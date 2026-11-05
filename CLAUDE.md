@@ -25,7 +25,8 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 
 ## Behaviors to preserve
 - Board layout: In the bay now (left); Waiting, then Scheduled (right column). Waiting rows show only Date in (the waiting timer was removed at the user's request). Scheduled rows are sorted by date/time and labelled Today (amber), Tomorrow, weekday date, or Overdue (red).
-- Staff panel has three columns: Scheduled, Waiting, In bay. Each row has one-click move buttons (Scheduled: "Arrived → Waiting" / "Arrived → In bay"; Waiting: "Move to In bay"; In bay: "Move to Waiting") because dragging was hard and does not work on touch screens. Dragging still works on computers. Both go through `moveTo()`. Moving back to Scheduled is done with Edit.
+- Staff panel has three columns: Scheduled, Waiting, In bay. Each row has one-click move buttons (Scheduled: "Arrived → Waiting" / "Arrived → In bay"; Waiting: "Move to In bay"; In bay: "Move to Waiting") because dragging was hard and does not work on touch screens. Dragging still works on computers. Both go through `moveTo()`.
+- Vehicles can also be dragged directly on the main board (not in TV mode, mouse only): drop zones `#bayZone`, `#queueZone`, `#schedZone`. While dragging, `boardDragging` pauses the 1-second `renderBoard()` redraw so the dragged card isn't replaced. Moving into Scheduled (board or Staff drag) asks for the date with a prompt (default tomorrow); cancelling leaves the vehicle where it was.
 - Elapsed time ticks every second; the card turns red with "OVER LIMIT" past the limit.
 - Staff panel has two columns (Waiting, In bay); vehicles are dragged between them. Dragging resets the timer (`since`).
 - Every field is editable at any time, including while waiting, via the **Edit** button on each vehicle in the Staff panel (In bay and Waiting). Edit loads the vehicle into the top form (title "Edit …", "Save changes" / "Cancel edit"); it can change the vehicle (duplicate guard applies), repair type, work, remarks, date in, status, bay, mechanics, time limit and the timer start (`fSince`). Changing status without touching the timer start resets `since`, like dragging. The Staff rows show a read-only summary; the old inline editors were replaced.
@@ -62,4 +63,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-05: added Edit button for In bay and Waiting vehicles (tested headless: edit all fields, timer start, vehicle swap with duplicate guard, status change, cancel).
 - 2026-11-05: removed the waiting timer from the board; added the Scheduled area (status `sched`).
 - 2026-11-05: added one-click move buttons in the Staff panel (user found dragging hard).
+- 2026-11-05: added drag-and-drop on the main board; Date in on waiting rows no longer wraps; space at the bottom for the floating buttons.
 - Ideas the user has not decided on: staff PIN, link to the user's PM/CM maintenance records.
