@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bay Status — Equipment Management Division</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1B1D21; --surface:#24262B; --surface2:#2C2F35;
+    --text:#ECEDEF; --muted:#8B909A; --hair:#3A3D44;
+    --amber:#E8A33D; --amber-dim:#4A3A22;
+    --blue:#5B8DEF; --blue-dim:#22304F;
+    --red:#E2544B; --red-dim:#4A2422;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#EEF0F3; --surface:#FFFFFF; --surface2:#F4F5F7;
+      --text:#1B1D21; --muted:#666B75; --hair:#DADDE2;
+      --amber-dim:#FCEBCE; --blue-dim:#DCE6FC; --red-dim:#FBDBD8;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1B1D21; --surface:#24262B; --surface2:#2C2F35; --text:#ECEDEF; --muted:#8B909A; --hair:#3A3D44;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%; margin:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100%;
+  }
+  .head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px clamp(16px,4vw,40px);
+    padding-top:calc(20px + env(safe-area-inset-top,0px));
+    border-bottom:1px solid var(--hair);
+  }
+  .brand{display:flex; flex-direction:column; gap:2px;}
+  .brand .name{font-family:'Bebas Neue',sans-serif; font-size:clamp(24px,3.2vw,34px); letter-spacing:0.5px; line-height:1;}
+  .brand .sub{color:var(--muted); font-size:13px;}
+  .clock{font-family:'Bebas Neue',sans-serif; font-size:clamp(28px,4vw,42px); letter-spacing:1px;}
+  .layout{
+    display:grid; grid-template-columns:1fr; gap:0;
+    max-width:1400px; margin:0 auto;
+  }
+  @media (min-width:900px){
+    .layout{grid-template-columns:1.7fr 1fr;}
+    .queue{border-left:1px solid var(--hair);}
+  }
+  .panel{padding:clamp(16px,3vw,32px);}
+  .section-title{
+    font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.5px;
+    color:var(--muted); margin:0 0 16px 0;
+  }
+  .bay-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:14px;
+  }
+  .card{
+    background:var(--surface); border:1px solid var(--hair); border-radius:10px;
+    padding:16px 18px; display:flex; flex-direction:column; gap:10px;
+  }
+  .card.over{border-color:var(--red);}
+  .card-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .plate{font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px;}
+  .bay-tag{
+    font-size:11px; font-weight:600; color:var(--amber); background:var(--amber-dim);
+    border-radius:5px; padding:2px 8px; white-space:nowrap;
+  }
+  .repair{color:var(--muted); font-size:13px;}
+  .mechanic{display:flex; justify-content:space-between; gap:8px; font-size:13px; color:var(--muted);}
+  .mechanic strong{color:var(--text); font-weight:600; text-align:right;}
+  .mechanic-block{display:flex; flex-direction:column; gap:6px;}
+  .mechanic-label{font-size:12px; color:var(--muted);}
+  .mechanic-names{display:flex; flex-wrap:wrap; gap:6px;}
+  .mech-chip{
+    background:var(--surface2); color:var(--text); font-size:12px; font-weight:500;
+    border-radius:6px; padding:3px 9px;
+  }
+  .timebox{display:flex; justify-content:space-between; font-size:13px; color:var(--muted);}
+  .timebox strong{color:var(--text); font-weight:600;}
+  .bar-track{height:8px; border-radius:5px; background:var(--surface2); overflow:hidden;}
+  .bar-fill{height:100%; border-radius:5px; background:var(--amber); transition:width .4s ease;}
+  .bar-fill.over{background:var(--red);}
+  .over-label{color:var(--red); font-size:12px; font-weight:600;}
+  .queue-list{display:flex; flex-direction:column; gap:10px;}
+  .qrow{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--surface); border:1px solid var(--hair); border-radius:10px;
+    padding:12px 16px;
+  }
+  .qrow .plate{font-size:20px;}
+  .qrow .waitsince{color:var(--muted); font-size:12px;}
+  .empty{color:var(--muted); font-size:14px; padding:12px 0;}
+  .staff-toggle{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom,0px)); right:16px;
+    background:var(--surface2); color:var(--muted); border:1px solid var(--hair);
+    border-radius:20px; padding:8px 14px; font-size:12px; cursor:pointer;
+  }
+  .staff-panel{
+    position:fixed; inset:0; background:rgba(0,0,0,0.55); display:none;
+    align-items:flex-end; justify-content:center; z-index:10;
+  }
+  .staff-panel.open{display:flex;}
+  .staff-sheet{
+    background:var(--bg); border-top:1px solid var(--hair); width:100%; max-width:560px;
+    max-height:82vh; overflow-y:auto; border-radius:16px 16px 0 0; padding:20px;
+    padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  }
+  .staff-sheet h3{font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:0.5px; margin:0 0 12px;}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;}
+  input,select{
+    width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--hair);
+    background:var(--surface); color:var(--text); font-size:14px; font-family:inherit;
+  }
+  .full{grid-column:1/-1;}
+  .btnrow{display:flex; gap:8px; margin-top:10px;}
+  button.action{
+    flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;
+    font-weight:600; font-size:14px;
+  }
+  .add{background:var(--amber); color:#1B1D21;}
+  .close{background:var(--surface2); color:var(--text);}
+  .entry-list{display:flex; flex-direction:column; gap:8px; margin-top:14px;}
+  .entry-cols{display:flex; flex-direction:column; gap:16px; margin-top:14px;}
+  .col-label{font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .entry-col{
+    display:flex; flex-direction:column; gap:8px;
+    background:var(--surface2); border:1px dashed var(--hair); border-radius:10px;
+    padding:10px; min-height:48px;
+  }
+  .entry-col.dragover{border-color:var(--amber); background:var(--amber-dim);}
+  .entry-col .empty-col{color:var(--muted); font-size:12px; padding:4px 2px;}
+  .entry{cursor:grab;}
+  .entry:active{cursor:grabbing;}
+  .entry{display:flex; flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--hair); border-radius:8px; padding:8px 12px; font-size:13px;}
+  .entry span{flex:1 1 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:2px;}
+  .entry .limit-edit{width:80px; padding:5px 6px; font-size:12px; flex:none;}
+  .entry button{background:none; border:1px solid var(--hair); border-radius:6px; padding:4px 8px; color:var(--red); cursor:pointer; font-size:12px; flex:none;}
+</style>
+</head>
+<body>
+
+<div id="modeBanner" style="display:none;background:var(--amber-dim);color:var(--amber);font-size:12px;padding:6px 16px;text-align:center;"></div>
+
+<div class="head">
+  <div class="brand">
+    <div class="name">BAY STATUS</div>
+    <div class="sub">Equipment Management Division</div>
+  </div>
+  <div class="clock" id="clock">--:--</div>
+</div>
+
+<div class="layout">
+  <div class="panel bays">
+    <div class="section-title">In the bay now</div>
+    <div class="bay-grid" id="bayGrid"></div>
+  </div>
+  <div class="panel queue">
+    <div class="section-title">Waiting</div>
+    <div class="queue-list" id="queueList"></div>
+  </div>
+</div>
+
+<button class="staff-toggle" id="staffToggle">Staff</button>
+
+<div class="staff-panel" id="staffPanel">
+  <div class="staff-sheet">
+    <h3>Update board</h3>
+    <div class="row">
+      <input id="fPlate" placeholder="Plate number">
+      <select id="fRepair">
+        <option>Preventive Maintenance</option>
+        <option>Corrective Maintenance</option>
+        <option>Express Maintenance</option>
+      </select>
+    </div>
+    <div class="row">
+      <select id="fStatus">
+        <option value="bay">In bay</option>
+        <option value="wait">Waiting</option>
+      </select>
+      <input id="fLimit" type="number" placeholder="Time limit (hrs)" value="2">
+    </div>
+    <div class="row">
+      <input id="fBay" placeholder="Bay (e.g. Bay 1)">
+      <select id="fMechanic" class="full" multiple size="4"></select>
+    </div>
+    <div class="btnrow">
+      <button class="action add" id="fAdd">Add to board</button>
+      <button class="action close" id="fClose">Close</button>
+    </div>
+    <div class="col-label" style="margin-top:16px;">Mechanics roster</div>
+    <div class="row">
+      <input id="fNewMechanic" class="full" placeholder="Add a mechanic's name">
+    </div>
+    <div class="btnrow">
+      <button class="action close" id="fAddMechanic">Add to roster</button>
+    </div>
+    <div class="entry-list" id="rosterList"></div>
+    <div class="entry-cols">
+      <div>
+        <div class="col-label">Waiting</div>
+        <div class="entry-col" id="colWait"></div>
+      </div>
+      <div>
+        <div class="col-label">In bay</div>
+        <div class="entry-col" id="colBay"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ============================================================
+   1. FIREBASE CONFIG — paste your web app config here.
+      (These values are meant to be public; security comes from
+      firestore.rules, not from hiding the config.)
+      Leave apiKey empty to run in local-only demo mode.
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBfL_LTNUoO28ls9KEsKreMdXHwfHFqndo",
+  authDomain: "bid-monitoring-f1308.firebaseapp.com",
+  projectId: "bid-monitoring-f1308",
+  appId: "1:130105353479:web:38f703107be7f274a8d1a2"
+};
+
+const DEFAULT_ROSTER = ['R. Santos', 'J. Cruz', 'M. Reyes', 'A. Dela Cruz', 'L. Bautista'];
+const FB_VER = '10.14.1';
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clean = o => JSON.parse(JSON.stringify(o));
+
+/* ============================================================
+   2. STORAGE — Firestore (shared, live) or localStorage (demo)
+   ============================================================ */
+async function cloudStore(){
+  const base = 'https://www.gstatic.com/firebasejs/' + FB_VER;
+  const appMod = await import(base + '/firebase-app.js');
+  const fs = await import(base + '/firebase-firestore.js');
+  const app = appMod.initializeApp(FIREBASE_CONFIG);
+  const db = fs.getFirestore(app);
+  const col = fs.collection(db, 'entries');
+  const rosterRef = fs.doc(db, 'meta', 'roster');
+  return {
+    mode: 'cloud',
+    subscribe(onEntries, onRoster, onError){
+      fs.onSnapshot(col, snap => onEntries(snap.docs.map(d => d.data())), onError);
+      fs.onSnapshot(rosterRef, s => onRoster(s.exists() ? (s.data().names || []) : null), onError);
+    },
+    saveEntry: e => fs.setDoc(fs.doc(db, 'entries', String(e.id)), clean(e)),
+    removeEntry: id => fs.deleteDoc(fs.doc(db, 'entries', String(id))),
+    saveRoster: names => fs.setDoc(rosterRef, { names: names })
+  };
+}
+
+function localStore(){
+  const K = 'bayBoardEntries2', R = 'bayBoardRoster2';
+  const read = (k, fallback) => {
+    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
+  };
+  const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} };
+  let list = read(K, null);
+  if (!list) {
+    const now = Date.now();
+    list = [
+      {id:1, plate:'SFC-1042', repair:'Preventive Maintenance', status:'bay', since: now - 45*60000, limitHrs:2, bay:'Bay 1', mechanics:['R. Santos']},
+      {id:2, plate:'EMD-0087', repair:'Corrective Maintenance', status:'bay', since: now - 130*60000, limitHrs:2, bay:'Bay 2', mechanics:['J. Cruz','M. Reyes']},
+      {id:3, plate:'RWL-2201', repair:'Express Maintenance', status:'wait', since: now - 10*60000, limitHrs:1},
+      {id:4, plate:'QAH-3315', repair:'Corrective Maintenance', status:'wait', since: now - 25*60000, limitHrs:3}
+    ];
+    write(K, list);
+  }
+  return {
+    mode: 'local',
+    subscribe(onEntries, onRoster){
+      const push = () => { onEntries(read(K, [])); onRoster(read(R, null)); };
+      window.addEventListener('storage', push);
+      push();
+    },
+    saveEntry(e){
+      const cur = read(K, []);
+      const i = cur.findIndex(x => x.id === e.id);
+      if (i >= 0) cur[i] = clean(e); else cur.push(clean(e));
+      write(K, cur);
+    },
+    removeEntry(id){ write(K, read(K, []).filter(x => x.id !== id)); },
+    saveRoster(names){ write(R, names); }
+  };
+}
+
+/* ============================================================
+   3. STATE + RENDERING
+   ============================================================ */
+let entries = [];
+let roster = DEFAULT_ROSTER.slice();
+let store = null;
+let staffDirty = false;
+
+const $ = id => document.getElementById(id);
+
+function fmtElapsed(ms){
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+  const pad = n => n < 10 ? '0' + n : '' + n;
+  return h > 0 ? (h + 'h ' + pad(m) + 'm ' + pad(s) + 's') : (m + 'm ' + pad(s) + 's');
+}
+
+function renderBoard(){
+  const now = Date.now();
+  const bay = entries.filter(e => e.status === 'bay');
+  const wait = entries.filter(e => e.status === 'wait');
+  const bayEl = $('bayGrid'), qEl = $('queueList');
+
+  bayEl.innerHTML = bay.length ? '' : '<div class="empty">No vehicles in the bay right now.</div>';
+  bay.forEach(e => {
+    const elapsed = now - e.since;
+    const limitMs = e.limitHrs * 3600000;
+    const pct = Math.min(100, (elapsed / limitMs) * 100);
+    const over = elapsed > limitMs;
+    const card = document.createElement('div');
+    card.className = 'card' + (over ? ' over' : '');
+    const tag = over ? '<span class="over-label">OVER LIMIT</span>' : (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '');
+    const mechs = e.mechanics || [];
+    card.innerHTML =
+      '<div class="card-top"><span class="plate">' + esc(e.plate) + '</span>' + tag + '</div>' +
+      '<div class="repair">' + esc(e.repair) + '</div>' +
+      (mechs.length ? '<div class="mechanic-block"><span class="mechanic-label">' + (mechs.length > 1 ? 'Mechanics' : 'Mechanic') + '</span><div class="mechanic-names">' + mechs.map(n => '<span class="mech-chip">' + esc(n) + '</span>').join('') + '</div></div>' : '') +
+      '<div class="timebox"><span>Elapsed</span><strong>' + fmtElapsed(elapsed) + '</strong></div>' +
+      '<div class="bar-track"><div class="bar-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="timebox"><span>Time limit</span><strong>' + esc(e.limitHrs) + 'h</strong></div>';
+    bayEl.appendChild(card);
+  });
+
+  qEl.innerHTML = wait.length ? '' : '<div class="empty">No vehicles waiting.</div>';
+  wait.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'qrow';
+    row.innerHTML =
+      '<div><div class="plate">' + esc(e.plate) + '</div><div class="repair">' + esc(e.repair) + '</div></div>' +
+      '<div class="waitsince">waiting ' + fmtElapsed(now - e.since) + '</div>';
+    qEl.appendChild(row);
+  });
+}
+
+function buildMechanicSelect(selected){
+  const sel = document.createElement('select');
+  sel.multiple = true;
+  sel.size = Math.min(5, Math.max(3, roster.length));
+  sel.className = 'limit-edit';
+  sel.style.width = '160px';
+  roster.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    if (selected && selected.indexOf(name) !== -1) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  return sel;
+}
+const mechanicValue = sel => Array.from(sel.selectedOptions).map(o => o.value).slice(0, 5);
+
+function saveEntry(e){ renderBoard(); store.saveEntry(e); }
+
+function renderRoster(){
+  const fMech = $('fMechanic');
+  fMech.innerHTML = '';
+  roster.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    fMech.appendChild(opt);
+  });
+  const listEl = $('rosterList');
+  listEl.innerHTML = '';
+  roster.forEach(name => {
+    const row = document.createElement('div');
+    row.className = 'entry';
+    row.innerHTML = '<span>' + esc(name) + '</span>';
+    const btn = document.createElement('button');
+    btn.textContent = 'Remove';
+    btn.onclick = () => {
+      roster = roster.filter(n => n !== name);
+      entries.forEach(e => {
+        if (e.mechanics && e.mechanics.indexOf(name) !== -1) {
+          e.mechanics = e.mechanics.filter(n => n !== name);
+          store.saveEntry(e);
+        }
+      });
+      store.saveRoster(roster);
+      renderRoster(); renderStaff(); renderBoard();
+    };
+    row.appendChild(btn);
+    listEl.appendChild(row);
+  });
+}
+
+function renderStaff(){
+  const colWait = $('colWait'), colBay = $('colBay');
+  colWait.innerHTML = '';
+  colBay.innerHTML = '';
+
+  entries.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'entry';
+    row.draggable = true;
+    row.ondragstart = ev => ev.dataTransfer.setData('text/plain', e.id);
+    row.innerHTML = '<span>' + esc(e.plate) + '</span>';
+
+    const bayIn = document.createElement('input');
+    bayIn.className = 'limit-edit'; bayIn.placeholder = 'Bay';
+    bayIn.value = e.bay || '';
+    bayIn.onchange = () => { e.bay = bayIn.value.trim(); saveEntry(e); };
+    row.appendChild(bayIn);
+
+    const mechIn = buildMechanicSelect(e.mechanics);
+    mechIn.onchange = () => { e.mechanics = mechanicValue(mechIn); saveEntry(e); };
+    row.appendChild(mechIn);
+
+    if (e.status === 'bay') {
+      const limitIn = document.createElement('input');
+      limitIn.type = 'number'; limitIn.step = '0.5';
+      limitIn.className = 'limit-edit';
+      limitIn.title = 'Time limit (hrs)';
+      limitIn.value = e.limitHrs;
+      limitIn.onchange = () => {
+        const v = parseFloat(limitIn.value);
+        if (!isNaN(v) && v > 0) { e.limitHrs = v; saveEntry(e); }
+      };
+      row.appendChild(limitIn);
+    }
+
+    const btn = document.createElement('button');
+    btn.textContent = 'Remove';
+    btn.onclick = () => {
+      entries = entries.filter(x => x.id !== e.id);
+      store.removeEntry(e.id);
+      renderBoard(); renderStaff();
+    };
+    row.appendChild(btn);
+
+    (e.status === 'wait' ? colWait : colBay).appendChild(row);
+  });
+
+  if (!entries.some(e => e.status === 'wait')) colWait.innerHTML = '<div class="empty-col">Drop a vehicle here to move it to waiting.</div>';
+  if (!entries.some(e => e.status === 'bay')) colBay.innerHTML = '<div class="empty-col">Drop a vehicle here to move it to a bay.</div>';
+
+  [colWait, colBay].forEach((col, i) => {
+    const target = i === 0 ? 'wait' : 'bay';
+    col.ondragover = ev => { ev.preventDefault(); col.classList.add('dragover'); };
+    col.ondragleave = () => col.classList.remove('dragover');
+    col.ondrop = ev => {
+      ev.preventDefault();
+      col.classList.remove('dragover');
+      const id = parseFloat(ev.dataTransfer.getData('text/plain'));
+      const e = entries.find(x => x.id === id);
+      if (!e || e.status === target) return;
+      e.status = target;
+      e.since = Date.now();
+      store.saveEntry(e);
+      renderBoard(); renderStaff();
+    };
+  });
+}
+
+/* Don't rebuild the staff panel while someone is typing in it. */
+function staffBusy(){
+  const a = document.activeElement;
+  return !!(a && $('staffPanel').contains(a) && (a.tagName === 'INPUT' || a.tagName === 'SELECT'));
+}
+function refreshStaff(){
+  if (staffBusy()) { staffDirty = true; return; }
+  staffDirty = false;
+  renderRoster();
+  renderStaff();
+}
+$('staffPanel').addEventListener('focusout', () => {
+  if (staffDirty) setTimeout(() => { if (!staffBusy()) refreshStaff(); }, 0);
+});
+
+function tickClock(){
+  $('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+/* ============================================================
+   4. WIRING
+   ============================================================ */
+$('staffToggle').onclick = () => $('staffPanel').classList.add('open');
+$('fClose').onclick = () => $('staffPanel').classList.remove('open');
+
+$('fAdd').onclick = () => {
+  const plate = $('fPlate').value.trim();
+  if (!plate) return;
+  const e = {
+    id: Date.now(),
+    plate: plate.toUpperCase(),
+    repair: $('fRepair').value,
+    status: $('fStatus').value,
+    since: Date.now(),
+    limitHrs: parseFloat($('fLimit').value) || 2,
+    bay: $('fBay').value.trim(),
+    mechanics: mechanicValue($('fMechanic'))
+  };
+  entries.push(e);
+  store.saveEntry(e);
+  $('fPlate').value = '';
+  $('fBay').value = '';
+  Array.from($('fMechanic').options).forEach(o => { o.selected = false; });
+  renderBoard(); renderStaff();
+};
+
+$('fAddMechanic').onclick = () => {
+  const input = $('fNewMechanic');
+  const name = input.value.trim();
+  if (!name || roster.indexOf(name) !== -1) return;
+  roster.push(name);
+  input.value = '';
+  store.saveRoster(roster);
+  renderRoster(); renderStaff();
+};
+
+function banner(msg){
+  const b = $('modeBanner');
+  b.textContent = msg;
+  b.style.display = msg ? 'block' : 'none';
+}
+
+async function start(){
+  if (FIREBASE_CONFIG.apiKey) {
+    try {
+      store = await cloudStore();
+    } catch (err) {
+      store = localStore();
+      banner('Could not reach Firebase — showing local data only on this device.');
+    }
+  } else {
+    store = localStore();
+    banner('Demo mode: data stays on this device. Add your Firebase config in index.html to share it live across screens.');
+  }
+
+  store.subscribe(
+    list => {
+      entries = list.slice().sort((a, b) => a.id - b.id);
+      renderBoard();
+      refreshStaff();
+    },
+    names => {
+      if (names && names.length) roster = names;
+      refreshStaff();
+    },
+    err => banner('Live sync problem: ' + (err && err.code ? err.code : 'unknown') + '. Check firestore.rules and your config.')
+  );
+
+  renderRoster();
+  renderBoard();
+  renderStaff();
+  tickClock();
+  setInterval(renderBoard, 1000);
+  setInterval(tickClock, 1000);
+}
+start();
+</script>
+</body>
+</html>
