@@ -9,5 +9,8 @@ service cloud.firestore {
     match /meta/{id} {
       allow read, write: if true;
     }
+    match /history/{id} {
+      allow read, write: if true;
+    }
   }
 }

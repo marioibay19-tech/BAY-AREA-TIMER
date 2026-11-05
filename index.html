@@ -14,6 +14,7 @@
     --amber:#E8A33D; --amber-dim:#4A3A22;
     --blue:#5B8DEF; --blue-dim:#22304F;
     --red:#E2544B; --red-dim:#4A2422;
+    --green:#4CB782; --green-dim:#1F3A2C;
     box-sizing:border-box;
     padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   }
@@ -21,7 +22,7 @@
     :root:not([data-theme="dark"]){
       --bg:#EEF0F3; --surface:#FFFFFF; --surface2:#F4F5F7;
       --text:#1B1D21; --muted:#666B75; --hair:#DADDE2;
-      --amber-dim:#FCEBCE; --blue-dim:#DCE6FC; --red-dim:#FBDBD8;
+      --amber-dim:#FCEBCE; --blue-dim:#DCE6FC; --red-dim:#FBDBD8; --green:#2E8B57; --green-dim:#D6F0E2;
     }
   }
   :root[data-theme="dark"]{
@@ -155,6 +156,35 @@
   .card.near{border-color:var(--amber);}
   .near-label{color:var(--amber); font-size:12px; font-weight:600; white-space:nowrap;}
   .tv-toggle{right:90px;}
+  .fin-toggle{right:184px;}
+  .entry button.done{color:var(--green); border-color:var(--green); font-weight:600;}
+
+  /* ---------- Finished maintenance page (#finished) ---------- */
+  .page{display:none; max-width:1400px; margin:0 auto; padding:clamp(16px,3vw,32px);}
+  body.show-finished .layout, body.show-finished .alert-bar, body.show-finished .staff-toggle{display:none !important;}
+  body.show-finished #finishedPage{display:block;}
+  .fin-head{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
+  .fin-head .section-title{margin:0;}
+  .fin-actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .btn-sm{background:var(--surface2); color:var(--text); border:1px solid var(--hair); border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer; font-family:inherit;}
+  .btn-sm.primary{background:var(--amber); color:#1B1D21; border-color:var(--amber); font-weight:600;}
+  .fin-filters{display:grid; grid-template-columns:2fr 1fr 1fr 1.3fr; gap:8px; margin-bottom:12px; align-items:end;}
+  @media (max-width:700px){ .fin-filters{grid-template-columns:1fr 1fr;} .fin-filters .wide{grid-column:1/-1;} }
+  .fin-summary{color:var(--muted); font-size:14px; margin-bottom:12px;}
+  .fin-summary strong{color:var(--text);}
+  .table-wrap{overflow-x:auto; border:1px solid var(--hair); border-radius:10px; background:var(--surface);}
+  table.fin{width:100%; border-collapse:collapse; font-size:13px; min-width:1100px;}
+  .fin th{text-align:left; color:var(--muted); font-weight:600; padding:10px 12px; border-bottom:1px solid var(--hair); white-space:nowrap; background:var(--surface2);}
+  .fin td{padding:10px 12px; border-bottom:1px solid var(--hair); vertical-align:top; line-height:1.4;}
+  .fin tr:last-child td{border-bottom:none;}
+  .fin .vt{font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:0.5px; line-height:1.1;}
+  .fin .subtxt{color:var(--muted); font-size:12px;}
+  .fin .nowrap{white-space:nowrap;}
+  .fin td .btn-sm{padding:4px 8px; font-size:12px; margin:0 4px 4px 0;}
+  .fin td .btn-sm.danger{color:var(--red);}
+  .pill{display:inline-block; border-radius:5px; padding:2px 8px; font-size:11px; font-weight:600; white-space:nowrap;}
+  .pill.ok{background:var(--green-dim); color:var(--green);}
+  .pill.late{background:var(--red-dim); color:var(--red);}
 
   /* ---------- TV display mode (?tv in the link) ---------- */
   .alert-bar{
@@ -221,6 +251,37 @@
   </div>
 </div>
 
+<div class="page" id="finishedPage">
+  <div class="fin-head">
+    <div class="section-title">Finished maintenance</div>
+    <div class="fin-actions">
+      <button class="btn-sm" id="finExport">Export to Excel (CSV)</button>
+      <button class="btn-sm primary" id="finBack">Back to board</button>
+    </div>
+  </div>
+  <div class="fin-filters">
+    <input id="finSearch" class="wide" placeholder="Search plate, property no., vehicle, work, remarks, mechanic">
+    <label><span class="field-label">Finished from</span><input id="finFrom" type="date"></label>
+    <label><span class="field-label">Finished to</span><input id="finTo" type="date"></label>
+    <label><span class="field-label">Repair type</span>
+      <select id="finRepair">
+        <option value="">All repair types</option>
+        <option>Preventive Maintenance</option>
+        <option>Corrective Maintenance</option>
+        <option>Express Maintenance</option>
+      </select></label>
+  </div>
+  <div class="fin-summary" id="finSummary">Loading…</div>
+  <div class="table-wrap"><table class="fin">
+    <thead><tr>
+      <th>Finished</th><th>Vehicle</th><th>Repair type</th><th>Work / Remarks</th><th>Mechanics</th>
+      <th>Bay</th><th>Date in</th><th>Time in bay</th><th>Limit</th><th>Result</th><th></th>
+    </tr></thead>
+    <tbody id="finBody"></tbody>
+  </table></div>
+</div>
+
+<button class="staff-toggle fin-toggle" id="finToggle" title="List of finished maintenance">Finished</button>
 <button class="staff-toggle tv-toggle" id="tvToggle" title="Full-screen display for the lobby TV">TV mode</button>
 <button class="staff-toggle" id="staffToggle">Staff</button>
 <button class="tv-start" id="tvStart">Tap here (or press any key) for full screen and alert sound</button>
@@ -337,12 +398,31 @@ async function cloudStore(){
     },
     saveEntry: e => fs.setDoc(fs.doc(db, 'entries', String(e.id)), clean(e)),
     removeEntry: id => fs.deleteDoc(fs.doc(db, 'entries', String(id))),
-    saveRoster: names => fs.setDoc(rosterRef, { names: names })
+    saveRoster: names => fs.setDoc(rosterRef, { names: names }),
+    // Finished jobs live in their own collection, 'history' (doc id = entry id).
+    subscribeHistory(onList, onError){
+      const q = fs.query(fs.collection(db, 'history'), fs.orderBy('doneAt', 'desc'));
+      return fs.onSnapshot(q, snap => onList(snap.docs.map(d => d.data())), onError);
+    },
+    finishEntry(rec){
+      // Save the record and take the vehicle off the board in one step.
+      const b = fs.writeBatch(db);
+      b.set(fs.doc(db, 'history', String(rec.id)), clean(rec));
+      b.delete(fs.doc(db, 'entries', String(rec.id)));
+      return b.commit();
+    },
+    unfinishEntry(e){
+      const b = fs.writeBatch(db);
+      b.set(fs.doc(db, 'entries', String(e.id)), clean(e));
+      b.delete(fs.doc(db, 'history', String(e.id)));
+      return b.commit();
+    },
+    removeHistory: id => fs.deleteDoc(fs.doc(db, 'history', String(id)))
   };
 }
 
 function localStore(){
-  const K = 'bayBoardEntries2', R = 'bayBoardRoster2';
+  const K = 'bayBoardEntries2', R = 'bayBoardRoster2', H = 'bayBoardHistory2';
   const read = (k, fallback) => {
     try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
   };
@@ -372,7 +452,29 @@ function localStore(){
       write(K, cur);
     },
     removeEntry(id){ write(K, read(K, []).filter(x => x.id !== id)); },
-    saveRoster(names){ write(R, names); }
+    saveRoster(names){ write(R, names); },
+    subscribeHistory(onList){
+      const push = () => onList(read(H, []).slice().sort((a, b) => b.doneAt - a.doneAt));
+      const onStorage = ev => { if (!ev.key || ev.key === H) push(); };
+      window.addEventListener('storage', onStorage);
+      historyLocalPush = push;
+      push();
+      return () => { window.removeEventListener('storage', onStorage); historyLocalPush = null; };
+    },
+    finishEntry(rec){
+      write(H, read(H, []).filter(x => x.id !== rec.id).concat([clean(rec)]));
+      write(K, read(K, []).filter(x => x.id !== rec.id));
+      if (historyLocalPush) historyLocalPush();
+    },
+    unfinishEntry(e){
+      write(H, read(H, []).filter(x => x.id !== e.id));
+      const cur = read(K, []).filter(x => x.id !== e.id); cur.push(clean(e)); write(K, cur);
+      if (historyLocalPush) historyLocalPush();
+    },
+    removeHistory(id){
+      write(H, read(H, []).filter(x => x.id !== id));
+      if (historyLocalPush) historyLocalPush();
+    }
   };
 }
 
@@ -383,6 +485,7 @@ let entries = [];
 let roster = DEFAULT_ROSTER.slice();
 let store = null;
 let staffDirty = false;
+let historyLocalPush = null;   // local demo mode: redraws the Finished page after a change
 
 const $ = id => document.getElementById(id);
 
@@ -678,9 +781,20 @@ function renderStaff(){
       row.appendChild(limitIn);
     }
 
+    if (e.status === 'bay') {
+      const doneBtn = document.createElement('button');
+      doneBtn.className = 'done';
+      doneBtn.textContent = 'Done';
+      doneBtn.title = 'Job finished: move it to the Finished maintenance list';
+      doneBtn.onclick = () => finishJob(e);
+      row.appendChild(doneBtn);
+    }
+
     const btn = document.createElement('button');
     btn.textContent = 'Remove';
+    btn.title = 'Take off the board without saving it as finished (for mistakes)';
     btn.onclick = () => {
+      if (!confirm('Remove ' + vTitle(e) + ' from the board? It will NOT be saved as finished. Use Done for finished jobs.')) return;
       entries = entries.filter(x => x.id !== e.id);
       store.removeEntry(e.id);
       renderBoard(); renderStaff();
@@ -711,6 +825,161 @@ function renderStaff(){
   });
 }
 
+/* ============================================================
+   FINISHED MAINTENANCE — Done button + #finished page
+   ============================================================ */
+function finishJob(e){
+  const now = Date.now();
+  const bayMs = Math.max(0, now - e.since);
+  const limitMs = (Number(e.limitHrs) || 0) * 3600000;
+  const msg = 'Mark ' + vTitle(e) + ' as done?\n\nTime in bay: ' + fmtElapsed(bayMs) +
+    '\nIt will be taken off the board and saved in Finished maintenance.';
+  if (!confirm(msg)) return;
+  const rec = Object.assign(clean(e), {
+    dateIn: entryDateIn(e),
+    doneAt: now,
+    bayMs: bayMs,
+    overLimit: limitMs > 0 && bayMs > limitMs
+  });
+  entries = entries.filter(x => x.id !== e.id);
+  Promise.resolve(store.finishEntry(rec)).catch(err => alert('Could not save the finished job: ' + (err && err.message || err)));
+  renderBoard(); renderStaff();
+}
+
+let finishedList = [];
+let historyUnsub = null;
+const isFinishedPage = () => location.hash === '#finished';
+
+function ymdOf(ms){
+  const d = new Date(ms), p = n => (n < 10 ? '0' : '') + n;
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function fmtDateTime(ms){
+  const d = new Date(ms);
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) + ' ' +
+    d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+function fmtDuration(ms){
+  const m = Math.round(Math.max(0, ms) / 60000), h = Math.floor(m / 60);
+  return h ? h + 'h ' + (m % 60) + 'm' : m + 'm';
+}
+function resultText(r){
+  const limitMs = (Number(r.limitHrs) || 0) * 3600000;
+  if (r.overLimit) return 'Over by ' + fmtDuration(r.bayMs - limitMs);
+  if (limitMs && r.bayMs < limitMs) return 'Early by ' + fmtDuration(limitMs - r.bayMs);
+  return 'On time';
+}
+
+function filteredHistory(){
+  const q = $('finSearch').value.trim().toLowerCase();
+  const from = $('finFrom').value, to = $('finTo').value, rep = $('finRepair').value;
+  return finishedList.filter(r => {
+    const day = ymdOf(r.doneAt);
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    if (rep && r.repair !== rep) return false;
+    if (q) {
+      const hay = [r.plate, r.vno, r.desc, r.who, r.work, r.remarks, r.bay, r.repair, (r.mechanics || []).join(' ')].join(' ').toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+}
+
+function renderFinished(){
+  if (!isFinishedPage()) return;
+  const list = filteredHistory();
+  const over = list.filter(r => r.overLimit).length;
+  const avg = list.length ? list.reduce((t, r) => t + (r.bayMs || 0), 0) / list.length : 0;
+  $('finSummary').innerHTML = list.length
+    ? '<strong>' + list.length + '</strong> finished job' + (list.length > 1 ? 's' : '') +
+      ' · <strong>' + (list.length - over) + '</strong> within the time limit · <strong>' + over + '</strong> over the limit' +
+      ' · average time in bay <strong>' + fmtDuration(avg) + '</strong>' +
+      (list.length !== finishedList.length ? ' (filtered from ' + finishedList.length + ')' : '')
+    : (finishedList.length ? 'No finished jobs match these filters.' : 'No finished jobs yet. Press Done on a vehicle in the Staff panel to record one here.');
+
+  const body = $('finBody');
+  body.innerHTML = '';
+  list.forEach(r => {
+    const tr = document.createElement('tr');
+    const title = vTitle(r);
+    const sub = [r.vno && r.vno !== title ? r.vno : '', r.desc].filter(Boolean).map(esc).join(' · ');
+    const work = [r.work ? esc(r.work) : '', r.remarks ? '<span class="subtxt">Remarks: ' + esc(r.remarks) + '</span>' : ''].filter(Boolean).join('<br>');
+    tr.innerHTML =
+      '<td class="nowrap">' + esc(fmtDateTime(r.doneAt)) + '</td>' +
+      '<td><div class="vt">' + esc(title) + '</div>' + (sub ? '<div class="subtxt">' + sub + '</div>' : '') + '</td>' +
+      '<td>' + esc(r.repair) + '</td>' +
+      '<td>' + (work || '<span class="subtxt">—</span>') + '</td>' +
+      '<td>' + ((r.mechanics || []).map(esc).join(', ') || '<span class="subtxt">—</span>') + '</td>' +
+      '<td class="nowrap">' + (esc(r.bay) || '<span class="subtxt">—</span>') + '</td>' +
+      '<td class="nowrap">' + esc(fmtDate(entryDateIn(r))) + '</td>' +
+      '<td class="nowrap">' + esc(fmtDuration(r.bayMs)) + '</td>' +
+      '<td class="nowrap">' + esc(r.limitHrs) + 'h</td>' +
+      '<td><span class="pill ' + (r.overLimit ? 'late' : 'ok') + '">' + esc(resultText(r)) + '</span></td>';
+    const act = document.createElement('td');
+    act.className = 'nowrap';
+    const back = document.createElement('button');
+    back.className = 'btn-sm'; back.textContent = 'Undo';
+    back.title = 'Pressed Done by mistake? Put it back in the bay with its timer running.';
+    back.onclick = () => {
+      if (entries.some(x => x.id === r.id || (r.vno && x.vno === r.vno))) { alert(title + ' is already on the board.'); return; }
+      if (!confirm('Put ' + title + ' back in the bay? Its timer continues from when it went in.')) return;
+      const e = clean(r);
+      delete e.doneAt; delete e.bayMs; delete e.overLimit;
+      e.status = 'bay';
+      entries.push(e);
+      entries.sort((x, y) => x.id - y.id);
+      store.unfinishEntry(e);
+      renderBoard(); refreshStaff();
+    };
+    const del = document.createElement('button');
+    del.className = 'btn-sm danger'; del.textContent = 'Delete';
+    del.onclick = () => {
+      if (!confirm('Delete this finished record for ' + title + '? This cannot be undone.')) return;
+      store.removeHistory(r.id);
+    };
+    act.appendChild(back); act.appendChild(del);
+    tr.appendChild(act);
+    body.appendChild(tr);
+  });
+}
+
+function exportFinished(){
+  const list = filteredHistory();
+  if (!list.length) { alert('Nothing to export.'); return; }
+  const cols = ['Finished', 'Plate', 'Property No.', 'Vehicle', 'End-user', 'Repair type', 'Work description', 'Remarks',
+    'Mechanics', 'Bay', 'Date in', 'Time in bay (hrs)', 'Time limit (hrs)', 'Result'];
+  const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const rows = list.map(r => [fmtDateTime(r.doneAt), isNA(r.plate) ? '' : r.plate, r.vno, r.desc, r.who, r.repair, r.work, r.remarks,
+    (r.mechanics || []).join(', '), r.bay, entryDateIn(r), ((r.bayMs || 0) / 3600000).toFixed(2), r.limitHrs, resultText(r)].map(q).join(','));
+  const csv = '﻿' + cols.map(q).join(',') + '\r\n' + rows.join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = 'finished-maintenance-' + todayStr() + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function showPage(){
+  const fin = isFinishedPage() && !isTV();
+  document.body.classList.toggle('show-finished', fin);
+  if (fin) {
+    $('staffPanel').classList.remove('open');
+    if (!historyUnsub && store) {
+      historyUnsub = store.subscribeHistory(
+        list => { finishedList = list; renderFinished(); },
+        err => { $('finSummary').textContent = 'Could not load finished jobs: ' + (err && err.code ? err.code : 'unknown error') + '.'; }
+      );
+    }
+    renderFinished();
+    window.scrollTo(0, 0);
+  } else if (historyUnsub) {
+    historyUnsub(); historyUnsub = null;   // stop listening while the board is showing
+  }
+}
+window.addEventListener('hashchange', showPage);
+['finSearch', 'finFrom', 'finTo', 'finRepair'].forEach(id => $(id).addEventListener('input', renderFinished));
+
 /* Don't rebuild the staff panel while someone is typing in it. */
 function staffBusy(){
   const a = document.activeElement;
@@ -738,6 +1007,12 @@ $('staffToggle').onclick = () => {
   $('staffPanel').classList.add('open');
 };
 $('tvToggle').onclick = () => { setTV(true); tvActivate(); };
+$('finToggle').onclick = () => { location.hash = 'finished'; };
+$('finBack').onclick = () => {
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (err) { location.hash = ''; }
+  showPage();
+};
+$('finExport').onclick = exportFinished;
 $('tvExit').onclick = () => setTV(false);
 $('tvStart').onclick = tvActivate;
 document.addEventListener('keydown', () => { if (isTV() && $('tvStart').classList.contains('show')) tvActivate(); });
@@ -832,6 +1107,7 @@ async function start(){
   );
 
   if (new URLSearchParams(location.search).has('tv')) setTV(true);
+  showPage();
 
   renderRoster();
   renderBoard();
