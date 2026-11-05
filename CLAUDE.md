@@ -30,10 +30,18 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 - The Staff panel is not rebuilt while someone is typing in it (`staffBusy()`), so live updates don't wipe input.
 - Timers use the clock of the device that moved the vehicle, so device clocks should be on automatic time.
 
+## TV display mode
+- Turned on by `?tv` in the URL (kept on refresh) or the "TV mode" button; `body.tv` class drives the bigger CSS. "Exit TV mode" (top right, hidden with the cursor after 3s idle) turns it off.
+- First tap/key enables full screen, the Web Audio chime and a screen wake lock (browsers require a user gesture). The board still shows without the tap.
+- Red alert bar lists over-limit vehicles. Chime plays once per vehicle when it newly crosses the limit, not for vehicles already over when the page loads (`alerted` set).
+- "N MIN LEFT" amber badge within `NEAR_MS` (15 min) of the limit; this shows in normal mode too.
+- Auto-scroll (`tvScroll`) when content is taller than the screen: pause 8s, scroll, pause 8s, jump to top.
+
 ## Testing
 Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREBASE_CONFIG.apiKey` empty to test in local mode. A headless-browser smoke test (add vehicles, check cards, duplicate guard) was used during development. Live Firestore sync has not been tested from the development sandbox, which cannot reach Google.
 
 ## Status and ideas
 - As of 2026-11-05: files delivered to the user; they were creating the GitHub repo and turning on Pages.
 - 2026-11-05: the upload landed as `index (1).html` (and `index.html` was deleted), which Pages can't serve. Renamed back to `index.html`, added README/CLAUDE.md/firestore.rules to the repo, and changed README so it no longer tells the user to paste `firestore.rules` into Firebase (that would have replaced the bid monitoring site's rules).
-- Ideas the user has not decided on: full-screen TV display mode with alerts, staff PIN, link to the user's PM/CM maintenance records.
+- 2026-11-05: user renamed the file on main themselves; site is live. TV display mode added (tested headless: alert bar, near/over badges, one chime per crossing, auto-scroll).
+- Ideas the user has not decided on: staff PIN, link to the user's PM/CM maintenance records.

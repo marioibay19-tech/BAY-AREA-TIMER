@@ -25,6 +25,19 @@ Open that link on the lobby TV and on the staff computer. A change on one shows 
 2. Click **Staff**, add one vehicle, and check that it appears on a second device (for example your phone) within a few seconds.
 3. Remove the test vehicle.
 
+## Lobby TV (TV mode)
+1. On the TV's browser, open **https://marioibay19-tech.github.io/BAY-AREA-TIMER/?tv** (note the `?tv` at the end) and bookmark it. You can also click **TV mode** at the bottom right of the normal page.
+2. Tap the screen once, or press any key on the remote or keyboard. This turns on full screen and the alert sound. Browsers don't allow sound or full screen until someone taps.
+3. That's it. The board shows bigger text, hides the Staff button, and keeps the screen awake where the browser allows it.
+
+What TV mode shows:
+- **"15 MIN LEFT"** (amber) when a vehicle is within 15 minutes of its time limit.
+- **"OVER LIMIT"** (red, pulsing) and a red bar across the top listing every vehicle that is over time.
+- A short **chime** once, when a vehicle first goes over its limit.
+- If there are more vehicles than fit on the screen, the page scrolls slowly down and back up.
+
+To leave TV mode, move the mouse and click **Exit TV mode** (top right).
+
 ## Notes
 - Until `apiKey` is filled in, the page runs in demo mode (data stays on that one device) and shows a banner saying so.
 - The Staff button only hides the controls; with the open rules above, anyone who has the link could edit. A simple PIN on the Staff panel can be added if you want it.
