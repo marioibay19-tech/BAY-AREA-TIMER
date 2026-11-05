@@ -12,7 +12,7 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 ## Stack and hosting
 - Static site on GitHub Pages (repo `marioibay19-tech/BAY-AREA-TIMER`, branch `main`, root folder). Live URL: https://marioibay19-tech.github.io/BAY-AREA-TIMER/
 - Shared live data in Firebase Firestore, project `bid-monitoring-f1308` (the same project the user's bid monitoring site uses). The web config is already filled in at the top of the module script (`FIREBASE_CONFIG`). Firebase web config values are public by design.
-- Do NOT edit the project's Firestore rules without asking. They already allow all reads and writes (`match /{document=**}`) and the bid monitoring site depends on them. Anyone with the link can edit the board; this was accepted. A staff PIN is a possible later addition.
+- Do NOT edit the project's Firestore rules without asking. They already allow all reads and writes (`match /{document=**}`) and the bid monitoring site depends on them. Anyone with the link can technically write to the database; the staff PIN (below) only keeps customers out of the UI. This was accepted.
 - If `apiKey` in `FIREBASE_CONFIG` is empty, the page runs in local demo mode using localStorage and shows a banner.
 
 ## Data model (Firestore)
@@ -20,6 +20,8 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
   Fields: `id` (ms timestamp), `plate`, `vno` (property no.), `desc`, `who` (assigned person), `repair` (Preventive / Corrective / Express Maintenance), `status` (`bay`, `wait` or `sched`), `since` (ms timestamp, reset when moved between columns), `limitHrs`, `bay` (text such as "Bay 1"), `mechanics` (array, max 5 names).
   `work` (work description text, shown on the customer board), `dateIn` ('YYYY-MM-DD', date the vehicle entered the bay area; set on add, defaults to today, editable in Staff panel, never reset by dragging). `remarks` (free text such as "Waiting for parts", shown on the customer board under Work, editable in Staff panel). `schedDate` ('YYYY-MM-DD') and `schedTime` ('HH:MM', optional) for `sched` entries; a scheduled entry has `dateIn` '' until it is moved to Waiting/In bay (drag or Edit), which sets `dateIn` to today and resets `since`. Entries without `dateIn` fall back to the date of `id` (or `since` for small demo ids).
 - Doc `meta/roster` with `{ names: [...] }`, the mechanics list used by the pickers.
+- Doc `meta/settings`: `pinHash` (SHA-256 of `'bay-status-board|' + PIN`; missing = default PIN 1234), plus later settings. Saved with merge.
+- Doc `meta/clock` `{ t: serverTimestamp }`, written/read by each screen to measure its clock offset.
 - Collection `history`, one doc per finished job, doc id = `String(entry.id)`: all entry fields plus `doneAt` (ms), `bayMs` (ms in bay = doneAt - since), `overLimit` (bool). Written by the Staff panel "Done" button (in-bay vehicles only) in one batch with deleting the `entries` doc. Read only while the Finished page is open (`subscribeHistory`, ordered by `doneAt` desc). Allowed by the existing `{document=**}` rule, so no rules change was needed.
 - `VEHICLES` (127 items: `no`, `plate`, `desc`, `who`) is embedded in `index.html`. It powers the searchable vehicle field. Plate `N/A` means no plate, so the board shows the property number as the main label. The assigned person's name is shown in the Staff panel only, not on the customer display.
 
@@ -33,7 +35,9 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 - Adding a vehicle already on the board (same property no.) is blocked.
 - All user-supplied text goes through `esc()` before `innerHTML`, because the data is public and shared.
 - The Staff panel is not rebuilt while someone is typing in it (`staffBusy()`), so live updates don't wipe input.
-- Timers use the clock of the device that moved the vehicle, so device clocks should be on automatic time.
+- Shared clock: every screen measures its offset from Firebase's server time (`serverOffset()`, every 30 min) and uses `nowMs()` instead of `Date.now()` for `since`, `doneAt`, timers and the header clock. Use `nowMs()` for any new time logic. `id` still uses `Date.now()` (just a unique id).
+- Staff PIN: the Staff button, board drag, Finished-page Undo/Delete and CSV export need the device to be unlocked (`requireUnlock()`, `isUnlocked()`). Unlock is remembered per device in localStorage (`bayBoardUnlock` = current pin hash), so changing the PIN locks every other device. "Lock this device" and "Change staff PIN" are in the Staff panel. The default PIN is not accepted until settings have loaded (`settingsLoaded`). Viewing the board and Finished page needs no PIN. Forgot PIN: delete the `pinHash` field of `meta/settings` in the Firebase console, which resets it to 1234.
+- Connection status under the clock (Live / Connecting / Offline) from snapshot metadata (`includeMetadataChanges`); a red offline bar shows after 8 s offline, with the last update time.
 
 ## TV display mode
 - Turned on by `?tv` in the URL (kept on refresh) or the "TV mode" button; `body.tv` class drives the bigger CSS. "Exit TV mode" (top right, hidden with the cursor after 3s idle) turns it off.
@@ -65,4 +69,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-05: added one-click move buttons in the Staff panel (user found dragging hard).
 - 2026-11-05: added drag-and-drop on the main board; Date in on waiting rows no longer wraps; space at the bottom for the floating buttons.
 - 2026-11-05: move buttons replaced by a "Move to…" dropdown.
+- 2026-11-05: user asked to do all four groups of improvements. Part 1 done: staff PIN, offline warning, shared server clock (tested in demo mode and against a mock Firestore with a skewed server clock and offline switch).
 - Ideas the user has not decided on: staff PIN, link to the user's PM/CM maintenance records.

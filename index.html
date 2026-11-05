@@ -168,6 +168,27 @@
   .card.near{border-color:var(--amber);}
   .near-label{color:var(--amber); font-size:12px; font-weight:600; white-space:nowrap;}
   .tv-toggle{right:90px;}
+  /* Connection status under the clock */
+  .clockbox{display:flex; flex-direction:column; align-items:flex-end; gap:4px;}
+  .conn{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; white-space:nowrap;}
+  .conn .dot{width:8px; height:8px; border-radius:50%; background:var(--green);}
+  .conn.off{color:var(--red); font-weight:600;}
+  .conn.off .dot{background:var(--red);}
+  body.tv .conn{font-size:clamp(13px,1vw,20px);}
+  .offline-bar{display:none; background:var(--red-dim); color:var(--red); font-weight:600; text-align:center;
+    padding:8px 16px; font-size:clamp(13px,1.2vw,22px); border-bottom:1px solid var(--red);}
+  .offline-bar.show{display:block;}
+  /* PIN box */
+  .pin-modal{position:fixed; inset:0; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; z-index:30; padding:16px;}
+  .pin-modal.open{display:flex;}
+  .pin-box{background:var(--bg); border:1px solid var(--hair); border-radius:14px; padding:20px; width:100%; max-width:340px;}
+  .pin-box h3{font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.5px; margin:0 0 6px;}
+  .pin-box p{color:var(--muted); font-size:13px; margin:0 0 12px;}
+  .pin-box input{font-size:22px; letter-spacing:6px; text-align:center;}
+  .pin-err{color:var(--red); font-size:13px; min-height:18px; margin-top:6px;}
+  .unlock-btn{display:none !important;}
+  body.locked .unlock-btn{display:inline-block !important;}
+  .settings-box{border-top:1px solid var(--hair); margin-top:18px; padding-top:14px;}
   .fin-toggle{right:184px;}
   .entry button.done{color:var(--green); border-color:var(--green); font-weight:600;}
   .entry button.edit{color:var(--blue); border-color:var(--blue); font-weight:600;}
@@ -256,8 +277,12 @@
     <div class="name">BAY STATUS</div>
     <div class="sub">Equipment Management Division</div>
   </div>
-  <div class="clock" id="clock">--:--</div>
+  <div class="clockbox">
+    <div class="clock" id="clock">--:--</div>
+    <div class="conn" id="conn" title="Connection to the shared board"><span class="dot"></span><span id="connText">Connecting…</span></div>
+  </div>
 </div>
+<div class="offline-bar" id="offlineBar">Offline — this screen is not getting updates. Check the internet connection.</div>
 
 <div class="alert-bar" id="alertBar"></div>
 
@@ -282,6 +307,7 @@
   <div class="fin-head">
     <div class="section-title">Finished maintenance</div>
     <div class="fin-actions">
+      <button class="btn-sm unlock-btn" id="finUnlock">Unlock to edit</button>
       <button class="btn-sm" id="finExport">Export to Excel (CSV)</button>
       <button class="btn-sm primary" id="finBack">Back to board</button>
     </div>
@@ -313,6 +339,20 @@
 <button class="staff-toggle" id="staffToggle">Staff</button>
 <button class="tv-start" id="tvStart">Tap here (or press any key) for full screen and alert sound</button>
 <button class="tv-exit" id="tvExit">Exit TV mode</button>
+
+<div class="pin-modal" id="pinModal">
+  <div class="pin-box">
+    <h3 id="pinTitle">Staff PIN</h3>
+    <p id="pinMsg">Enter the staff PIN to make changes on this device.</p>
+    <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="12">
+    <input id="pinInput2" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="Type it again" style="display:none; margin-top:8px;">
+    <div class="pin-err" id="pinErr"></div>
+    <div class="btnrow">
+      <button class="action add" id="pinOk">OK</button>
+      <button class="action close" id="pinCancel">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <div class="staff-panel" id="staffPanel">
   <div class="staff-sheet">
@@ -366,6 +406,13 @@
       <button class="action close" id="fAddMechanic">Add to roster</button>
     </div>
     <div class="entry-list" id="rosterList"></div>
+    <div class="settings-box" id="settingsBox">
+      <div class="col-label">Security</div>
+      <div class="btnrow">
+        <button class="action close" id="fChangePin">Change staff PIN</button>
+        <button class="action close" id="fLock">Lock this device</button>
+      </div>
+    </div>
     <div class="entry-cols">
       <div>
         <div class="col-label">Scheduled</div>
@@ -432,15 +479,35 @@ async function cloudStore(){
   const db = fs.getFirestore(app);
   const col = fs.collection(db, 'entries');
   const rosterRef = fs.doc(db, 'meta', 'roster');
+  const settingsRef = fs.doc(db, 'meta', 'settings');
   return {
     mode: 'cloud',
-    subscribe(onEntries, onRoster, onError){
-      fs.onSnapshot(col, snap => onEntries(snap.docs.map(d => d.data())), onError);
+    subscribe(onEntries, onRoster, onError, onStatus){
+      fs.onSnapshot(col, {includeMetadataChanges: true}, snap => {
+        if (onStatus) onStatus(!snap.metadata.fromCache);
+        onEntries(snap.docs.map(d => d.data()));
+      }, onError);
       fs.onSnapshot(rosterRef, s => onRoster(s.exists() ? (s.data().names || []) : null), onError);
     },
     saveEntry: e => fs.setDoc(fs.doc(db, 'entries', String(e.id)), clean(e)),
     removeEntry: id => fs.deleteDoc(fs.doc(db, 'entries', String(id))),
     saveRoster: names => fs.setDoc(rosterRef, { names: names }),
+    subscribeSettings(onSettings){
+      // Second argument: true once we really know the settings (not just an empty offline cache).
+      fs.onSnapshot(settingsRef, s => onSettings(s.exists() ? s.data() : {}, s.exists() || !s.metadata.fromCache), () => {});
+    },
+    saveSettings: part => fs.setDoc(settingsRef, clean(part), { merge: true }),
+    // Ask Firebase for its time so every screen's timers agree, even if a device clock is off.
+    async serverOffset(){
+      const ref = fs.doc(db, 'meta', 'clock');
+      const t0 = Date.now();
+      await fs.setDoc(ref, { t: fs.serverTimestamp() });
+      const snap = await fs.getDocFromServer(ref);
+      const t1 = Date.now();
+      const t = snap.data() && snap.data().t;
+      if (!t || t1 - t0 > 8000) return null;     // too slow to be accurate
+      return t.toMillis() - (t0 + t1) / 2;
+    },
     // Finished jobs live in their own collection, 'history' (doc id = entry id).
     subscribeHistory(onList, onError){
       const q = fs.query(fs.collection(db, 'history'), fs.orderBy('doneAt', 'desc'));
@@ -464,7 +531,7 @@ async function cloudStore(){
 }
 
 function localStore(){
-  const K = 'bayBoardEntries2', R = 'bayBoardRoster2', H = 'bayBoardHistory2';
+  const K = 'bayBoardEntries2', R = 'bayBoardRoster2', H = 'bayBoardHistory2', S = 'bayBoardSettings2';
   const read = (k, fallback) => {
     try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
   };
@@ -495,6 +562,14 @@ function localStore(){
     },
     removeEntry(id){ write(K, read(K, []).filter(x => x.id !== id)); },
     saveRoster(names){ write(R, names); },
+    subscribeSettings(onSettings){
+      const push = () => onSettings(read(S, {}), true);
+      window.addEventListener('storage', ev => { if (!ev.key || ev.key === S) push(); });
+      push();
+      this._pushSettings = push;
+    },
+    saveSettings(part){ write(S, Object.assign(read(S, {}), clean(part))); if (this._pushSettings) this._pushSettings(); },
+    async serverOffset(){ return null; },
     subscribeHistory(onList){
       const push = () => onList(read(H, []).slice().sort((a, b) => b.doneAt - a.doneAt));
       const onStorage = ev => { if (!ev.key || ev.key === H) push(); };
@@ -528,6 +603,9 @@ let roster = DEFAULT_ROSTER.slice();
 let store = null;
 let staffDirty = false;
 let historyLocalPush = null;   // local demo mode: redraws the Finished page after a change
+let settings = {};             // meta/settings: pinHash, bays, limits
+let clockOffset = 0;           // shared clock: server time minus this device's time
+const nowMs = () => Date.now() + clockOffset;
 
 const $ = id => document.getElementById(id);
 
@@ -581,7 +659,7 @@ function schedWhen(e){
 /* ---------- Drag vehicles on the main board ---------- */
 let boardDragging = false, dragTimer = null;
 function boardDraggable(el, e){
-  if (isTV()) return;
+  if (isTV() || !isUnlocked()) return;
   el.draggable = true;
   el.classList.add('board-drag');
   el.title = 'Drag to In the bay now, Waiting or Scheduled';
@@ -617,7 +695,7 @@ function endBoardDrag(){
 
 function renderBoard(){
   if (boardDragging) return;
-  const now = Date.now();
+  const now = nowMs();
   const bay = entries.filter(e => e.status === 'bay');
   const wait = entries.filter(e => e.status === 'wait');
   const bayEl = $('bayGrid'), qEl = $('queueList');
@@ -941,7 +1019,7 @@ function moveTo(e, target){
   if (editingId === e.id) endEdit();
   if (e.status === 'sched') e.dateIn = todayStr();         // it arrived today
   e.status = target;
-  e.since = Date.now();
+  e.since = nowMs();
   store.saveEntry(e);
   renderBoard(); renderStaff();
 }
@@ -950,7 +1028,7 @@ function moveTo(e, target){
    FINISHED MAINTENANCE — Done button + #finished page
    ============================================================ */
 function finishJob(e){
-  const now = Date.now();
+  const now = nowMs();
   const bayMs = Math.max(0, now - e.since);
   const limitMs = (Number(e.limitHrs) || 0) * 3600000;
   const msg = 'Mark ' + vTitle(e) + ' as done?\n\nTime in bay: ' + fmtElapsed(bayMs) +
@@ -1060,7 +1138,7 @@ function renderFinished(){
       if (!confirm('Delete this finished record for ' + title + '? This cannot be undone.')) return;
       store.removeHistory(r.id);
     };
-    act.appendChild(back); act.appendChild(del);
+    if (isUnlocked()) { act.appendChild(back); act.appendChild(del); }
     tr.appendChild(act);
     body.appendChild(tr);
   });
@@ -1118,15 +1196,138 @@ $('staffPanel').addEventListener('focusout', () => {
 });
 
 function tickClock(){
-  $('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  $('clock').textContent = new Date(nowMs()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+/* ============================================================
+   STAFF PIN — needed on each device before changing the board.
+   The PIN is stored as a hash in meta/settings (default 1234).
+   This keeps customers out; it is not bank-level security.
+   ============================================================ */
+const DEFAULT_PIN = '1234';
+async function hashPin(pin){
+  const text = 'bay-status-board|' + String(pin).trim();
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (err) {   // very old browsers: simple fallback
+    let h = 0; for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) | 0;
+    return 'x' + (h >>> 0).toString(16);
+  }
+}
+let defaultPinHash = '', settingsLoaded = false;
+hashPin(DEFAULT_PIN).then(h => { defaultPinHash = h; refreshLock(); });
+const currentPinHash = () => settings.pinHash || defaultPinHash;
+function readUnlock(){ try { return localStorage.getItem('bayBoardUnlock') || ''; } catch (err) { return ''; } }
+function writeUnlock(v){ try { if (v) localStorage.setItem('bayBoardUnlock', v); else localStorage.removeItem('bayBoardUnlock'); } catch (err) {} }
+const isUnlocked = () => !!currentPinHash() && readUnlock() === currentPinHash();
+
+function refreshLock(){
+  document.body.classList.toggle('locked', !isUnlocked());
+  if (!isUnlocked() && $('staffPanel').classList.contains('open')) { endEdit(); $('staffPanel').classList.remove('open'); }
+  renderBoard();
+  renderFinished();
+}
+
+/* Small PIN dialog. mode 'unlock' or 'change'. */
+let pinResolve = null, pinMode = 'unlock';
+function askPin(mode){
+  pinMode = mode;
+  $('pinTitle').textContent = mode === 'change' ? 'New staff PIN' : 'Staff PIN';
+  $('pinMsg').textContent = mode === 'change'
+    ? 'Choose a new PIN (4 to 12 digits). Every staff device will need the new PIN.'
+    : 'Enter the staff PIN to make changes on this device.';
+  $('pinInput').value = ''; $('pinInput2').value = '';
+  $('pinInput2').style.display = mode === 'change' ? '' : 'none';
+  $('pinErr').textContent = '';
+  $('pinModal').classList.add('open');
+  setTimeout(() => $('pinInput').focus(), 50);
+  return new Promise(res => { pinResolve = res; });
+}
+function closePin(result){
+  $('pinModal').classList.remove('open');
+  const r = pinResolve; pinResolve = null;
+  if (r) r(result);
+}
+async function pinOk(){
+  const pin = $('pinInput').value.trim();
+  if (pinMode === 'change') {
+    if (!/^\d{4,12}$/.test(pin)) { $('pinErr').textContent = 'Use 4 to 12 digits.'; return; }
+    if (pin !== $('pinInput2').value.trim()) { $('pinErr').textContent = 'The two PINs do not match.'; return; }
+    const h = await hashPin(pin);
+    writeUnlock(h);                 // keep this device unlocked with the new PIN
+    settings.pinHash = h;
+    store.saveSettings({ pinHash: h });
+    closePin(true);
+    alert('Staff PIN changed. Other staff devices will ask for the new PIN.');
+    refreshLock();
+    return;
+  }
+  if (!settingsLoaded) { $('pinErr').textContent = 'Still connecting to the board. Try again in a moment.'; return; }
+  if ((await hashPin(pin)) !== currentPinHash()) { $('pinErr').textContent = 'Wrong PIN. Try again.'; $('pinInput').select(); return; }
+  writeUnlock(currentPinHash());
+  closePin(true);
+  refreshLock();
+}
+$('pinOk').onclick = pinOk;
+$('pinCancel').onclick = () => closePin(false);
+['pinInput', 'pinInput2'].forEach(id => $(id).addEventListener('keydown', ev => { if (ev.key === 'Enter') pinOk(); if (ev.key === 'Escape') closePin(false); }));
+
+/* Run fn only if this device is unlocked (asks for the PIN first if needed). */
+async function requireUnlock(fn){
+  if (isUnlocked()) return fn();
+  if (await askPin('unlock')) return fn();
+}
+
+/* ============================================================
+   CONNECTION STATUS — warns when this screen stops getting updates
+   ============================================================ */
+let connLive = null, lastLive = 0, offlineSince = 0;
+function setConn(live){
+  if (live) lastLive = nowMs();
+  connLive = live && navigator.onLine !== false;
+  if (!connLive && !offlineSince) offlineSince = Date.now();
+  if (connLive) offlineSince = 0;
+  updateConn();
+}
+function updateConn(){
+  const el = $('conn'), txt = $('connText');
+  if (!store || store.mode !== 'cloud') { el.classList.remove('off'); txt.textContent = 'Demo mode'; return; }
+  // Only warn after 8 seconds, so a short blip doesn't flash the warning.
+  const off = connLive === false && offlineSince && Date.now() - offlineSince > 8000;
+  el.classList.toggle('off', !!off);
+  $('offlineBar').classList.toggle('show', !!off);
+  if (off) {
+    const last = lastLive ? new Date(lastLive).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'never';
+    txt.textContent = 'Offline · last update ' + last;
+    $('offlineBar').textContent = 'Offline — this screen is not getting updates (last update ' + last + '). Check the internet connection.';
+  } else {
+    txt.textContent = connLive ? 'Live' : 'Connecting…';
+  }
+}
+window.addEventListener('offline', () => setConn(false));
+window.addEventListener('online', () => updateConn());
+
+async function syncClock(){
+  try {
+    const off = await store.serverOffset();
+    if (off !== null && isFinite(off)) clockOffset = off;
+  } catch (err) {}
 }
 
 /* ============================================================
    4. WIRING
    ============================================================ */
-$('staffToggle').onclick = () => {
+$('staffToggle').onclick = () => requireUnlock(() => {
   if (!$('fDateIn').value) $('fDateIn').value = todayStr();
   $('staffPanel').classList.add('open');
+});
+$('finUnlock').onclick = () => requireUnlock(() => {});
+$('fChangePin').onclick = () => askPin('change');
+$('fLock').onclick = () => {
+  writeUnlock('');
+  refreshLock();
+  alert('This device is locked. The staff PIN is needed to make changes again.');
 };
 $('tvToggle').onclick = () => { setTV(true); tvActivate(); };
 $('finToggle').onclick = () => { location.hash = 'finished'; };
@@ -1134,7 +1335,7 @@ $('finBack').onclick = () => {
   try { history.replaceState(null, '', location.pathname + location.search); } catch (err) { location.hash = ''; }
   showPage();
 };
-$('finExport').onclick = exportFinished;
+$('finExport').onclick = () => requireUnlock(exportFinished);
 $('tvExit').onclick = () => setTV(false);
 $('tvStart').onclick = tvActivate;
 document.addEventListener('keydown', () => { if (isTV() && $('tvStart').classList.contains('show')) tvActivate(); });
@@ -1166,7 +1367,7 @@ function addVehicle(){
     status: $('fStatus').value,
     schedDate: isSched ? $('fSchedDate').value : '',
     schedTime: isSched ? $('fSchedTime').value : '',
-    since: Date.now(),
+    since: nowMs(),
     limitHrs: parseFloat($('fLimit').value) || 2,
     bay: $('fBay').value.trim(),
     mechanics: mechanicValue($('fMechanic'))
@@ -1260,10 +1461,10 @@ function saveEdit(){
   const sinceText = $('fSince').value;
   if (sinceText && sinceText !== editOrig.sinceText) {
     const t = new Date(sinceText).getTime();
-    if (isNaN(t) || t > Date.now() + 60000) { alert('The timer start time cannot be in the future.'); return; }
+    if (isNaN(t) || t > nowMs() + 60000) { alert('The timer start time cannot be in the future.'); return; }
     since = t;
   } else if ($('fStatus').value !== editOrig.status) {
-    since = Date.now();   // same as dragging to the other column
+    since = nowMs();   // same as dragging to the other column
   }
   if (typed !== editOrig.plateText) {
     const v = findVehicle(typed);
@@ -1300,6 +1501,9 @@ $('fAddMechanic').onclick = () => {
   store.saveRoster(roster);
   renderRoster(); renderStaff();
 };
+
+/* Hook for settings that change the form (bays, time limits); filled in below. */
+function applySettings(){}
 
 function banner(msg){
   const b = $('modeBanner');
@@ -1338,8 +1542,19 @@ async function start(){
       if (names && names.length) roster = names;
       refreshStaff();
     },
-    err => banner('Live sync problem: ' + (err && err.code ? err.code : 'unknown') + '. Check firestore.rules and your config.')
+    err => { setConn(false); banner('Live sync problem: ' + (err && err.code ? err.code : 'unknown') + '. Check firestore.rules and your config.'); },
+    live => setConn(live)
   );
+  store.subscribeSettings((st, known) => {
+    settings = st || {};
+    if (known) settingsLoaded = true;
+    refreshLock();
+    applySettings();
+  });
+  updateConn();
+  syncClock();
+  setInterval(syncClock, 30 * 60000);      // re-check the shared clock every 30 minutes
+  setInterval(updateConn, 2000);
 
   if (new URLSearchParams(location.search).has('tv')) setTV(true);
   showPage();
