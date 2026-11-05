@@ -18,16 +18,34 @@
     box-sizing:border-box;
     padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   }
+  /* Day colors: used when the device is in light mode, or when Day is chosen (data-theme="light").
+     Amber, blue and red are a little darker than at night so they stay readable on white. */
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
       --bg:#EEF0F3; --surface:#FFFFFF; --surface2:#F4F5F7;
-      --text:#1B1D21; --muted:#666B75; --hair:#DADDE2;
-      --amber-dim:#FCEBCE; --blue-dim:#DCE6FC; --red-dim:#FBDBD8; --green:#2E8B57; --green-dim:#D6F0E2;
+      --text:#1B1D21; --muted:#5F6470; --hair:#D3D7DD;
+      --amber:#C98A1E; --amber-dim:#FCEBCE; --blue:#2F6BD8; --blue-dim:#DCE6FC;
+      --red:#C8372D; --red-dim:#FBDBD8; --green:#2E8B57; --green-dim:#D6F0E2;
+      color-scheme:light;
     }
   }
+  :root[data-theme="light"]{
+    --bg:#EEF0F3; --surface:#FFFFFF; --surface2:#F4F5F7;
+    --text:#1B1D21; --muted:#5F6470; --hair:#D3D7DD;
+    --amber:#C98A1E; --amber-dim:#FCEBCE; --blue:#2F6BD8; --blue-dim:#DCE6FC;
+    --red:#C8372D; --red-dim:#FBDBD8; --green:#2E8B57; --green-dim:#D6F0E2;
+    color-scheme:light;
+  }
+  /* Night colors */
   :root[data-theme="dark"]{
     --bg:#1B1D21; --surface:#24262B; --surface2:#2C2F35; --text:#ECEDEF; --muted:#8B909A; --hair:#3A3D44;
+    --amber:#E8A33D; --amber-dim:#4A3A22; --blue:#5B8DEF; --blue-dim:#22304F;
+    --red:#E2544B; --red-dim:#4A2422; --green:#4CB782; --green-dim:#1F3A2C;
+    color-scheme:dark;
   }
+  .theme-btn{background:none; border:1px solid var(--hair); color:var(--muted); border-radius:14px; padding:2px 10px; font-size:12px; cursor:pointer; font-family:inherit;}
+  .theme-btn:hover{color:var(--text);}
+  body.tv .theme-btn{display:none;}
   *{box-sizing:border-box;}
   html,body{height:100%; margin:0;}
   body{
@@ -334,7 +352,10 @@
   </div>
   <div class="clockbox">
     <div class="clock" id="clock">--:--</div>
-    <div class="conn" id="conn" title="Connection to the shared board"><span class="dot"></span><span id="connText">Connecting…</span></div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="theme-btn" id="themeBtn" title="Switch between Day colors, Night colors, and Auto (Day 6 AM–6 PM)">◐ Auto</button>
+      <div class="conn" id="conn" title="Connection to the shared board"><span class="dot"></span><span id="connText">Connecting…</span></div>
+    </div>
   </div>
 </div>
 <div class="offline-bar" id="offlineBar">Offline — this screen is not getting updates. Check the internet connection.</div>
@@ -966,9 +987,25 @@ const TV_OPTS = [
 const tvShows = key => !(settings.tv && settings.tv[key] === false);
 function applyTvOptions(){
   TV_OPTS.forEach(([k]) => document.body.classList.toggle('tvh-' + k, !tvShows(k)));
+  applyTheme();
   const box = $('tvOptList');
   if (!box || box.contains(document.activeElement)) return;
   box.innerHTML = '';
+  const trow = document.createElement('div');
+  trow.className = 'set-row';
+  trow.innerHTML = '<span>TV colors</span>';
+  const tsel = document.createElement('select');
+  tsel.style.width = 'auto';
+  [['dark', 'Night (dark)'], ['light', 'Day (light)'], ['auto', 'Auto: Day 6 AM–6 PM, Night after']].forEach(([v, label]) => {
+    const o = document.createElement('option'); o.value = v; o.textContent = label; tsel.appendChild(o);
+  });
+  tsel.value = tvTheme();
+  tsel.onchange = () => {
+    const tv = Object.assign({}, settings.tv || {}); tv.theme = tsel.value;
+    store.saveSettings({ tv: tv });
+  };
+  trow.appendChild(tsel);
+  box.appendChild(trow);
   TV_OPTS.forEach(([k, , label]) => {
     const row = document.createElement('label');
     row.className = 'set-row';
@@ -1048,9 +1085,7 @@ function tvActivate(){
 
 function setTV(on){
   document.body.classList.toggle('tv', on);
-  // The TV is always dark (less glare, stronger colors), whatever the device setting.
-  if (on) document.documentElement.setAttribute('data-theme', 'dark');
-  else document.documentElement.removeAttribute('data-theme');
+  applyTheme();
   // Keep ?tv in the address so a refresh (or a bookmark) stays in TV mode.
   const params = new URLSearchParams(location.search);
   params.delete('tv');
@@ -1672,6 +1707,35 @@ async function syncClock(){
     if (off !== null && isFinite(off)) clockOffset = off;
   } catch (err) {}
 }
+
+/* ============================================================
+   DAY / NIGHT COLORS
+   Staff screens: button under the clock, remembered per device (localStorage).
+   Lobby TV: chosen in the Staff panel (meta/settings.tv.theme), default Night.
+   'auto' = Day from 6 AM to 6 PM, Night otherwise.
+   ============================================================ */
+const DAY_START = 6, DAY_END = 18;
+const THEME_LABEL = { light: '☀ Day', dark: '☾ Night', auto: '◐ Auto' };
+function readTheme(){ try { return localStorage.getItem('bayBoardTheme') || 'auto'; } catch (err) { return 'auto'; } }
+function writeTheme(v){ try { localStorage.setItem('bayBoardTheme', v); } catch (err) {} }
+const tvTheme = () => (settings.tv && settings.tv.theme) || 'dark';
+function resolveTheme(mode){
+  if (mode !== 'auto') return mode;
+  const h = new Date(nowMs()).getHours();
+  return h >= DAY_START && h < DAY_END ? 'light' : 'dark';
+}
+function applyTheme(){
+  const mode = isTV() ? tvTheme() : readTheme();
+  document.documentElement.setAttribute('data-theme', resolveTheme(mode));
+  $('themeBtn').textContent = THEME_LABEL[readTheme()] || THEME_LABEL.auto;
+}
+$('themeBtn').onclick = () => {
+  const order = ['light', 'dark', 'auto'];
+  writeTheme(order[(order.indexOf(readTheme()) + 1) % order.length]);
+  applyTheme();
+};
+setInterval(applyTheme, 60000);            // Auto switches at 6 AM and 6 PM
+applyTheme();
 
 /* ============================================================
    4. WIRING

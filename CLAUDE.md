@@ -50,7 +50,7 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 - Red alert bar lists over-limit vehicles. Chime plays once per vehicle when it newly crosses the limit, not for vehicles already over when the page loads (`alerted` set).
 - "N MIN LEFT" amber badge within `NEAR_MS` (15 min) of the limit; this shows in normal mode too.
 - No scrolling on the TV: `body.tv` is exactly the screen height and each list (`#bayGrid`, `#queueList`, `#schedList`) shows only what fits. `paginate()` groups items into rows and rows into pages after every `renderBoard()`; pages flip every 15 s (`tvPageTick`), with "Page 1 of 3" and dots in the section title. (The old auto-scroll was removed.)
-- The TV is always dark: `setTV(true)` sets `data-theme="dark"` on `<html>`; leaving TV mode removes it.
+- Day/Night colors: `applyTheme()` sets `data-theme` (`light`/`dark`) on `<html>`. Staff screens: "◐ Auto / ☀ Day / ☾ Night" button under the clock, per device in localStorage `bayBoardTheme` (default `auto`). TV: `meta/settings.tv.theme` chosen in Staff panel → TV display (default `dark`). `auto` = Day 6 AM–6 PM (`DAY_START`/`DAY_END`), re-checked every minute. Day colors use slightly darker amber/blue/red for contrast on white.
 - Header counts (`#counts`, all modes): in the bay · waiting · on hold (if any) · scheduled today.
 - TV display options in the Staff panel (`meta/settings.tv`, key=false hides it, TV only): mechanic names (`.mechanic-block`), property no. (`.pno`), make & model (`.vd`, waiting/scheduled `.vdesc`), work (`.w-work`), remarks (`.w-rem`), date in (`.datein-row`, `.qrow .datein`). Body classes `tvh-<key>`.
 
@@ -85,4 +85,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-05: Part 3 done: monthly/mechanic summary, vehicle history, printable job record, Recently deleted (30 days) for finished records and removed vehicles.
 - 2026-11-05: Part 4 done: vehicle-list typos fixed; add/replace/remove vehicles from the Staff panel. All four improvement groups are finished.
 - 2026-11-05: TV improvements "number 2" done: pages instead of scrolling, always dark, header counts, TV display options. Other TV ideas offered and not yet chosen: ready-by time and Ready for release list, customer status words, announcement ticker, voice announcement, repeat chime/quiet hours, nightly auto-refresh, after-hours screen, QR code.
+- 2026-11-05: added Day/Night/Auto colors (staff button + TV setting).
 - Ideas the user has not decided on: link to the user's PM/CM maintenance records.
