@@ -104,7 +104,10 @@
     padding:12px 16px;
   }
   .qrow .plate{font-size:20px;}
-  .qrow .waitsince{color:var(--muted); font-size:12px;}
+  .qrow .sched-when{font-size:13px; font-weight:600; text-align:right; white-space:nowrap;}
+  .qrow .sched-when.today{color:var(--amber);}
+  .qrow .sched-when.late{color:var(--red);}
+  .section-title.next{margin-top:28px;}
   .empty{color:var(--muted); font-size:14px; padding:12px 0;}
   .staff-toggle{
     position:fixed; bottom:calc(16px + env(safe-area-inset-bottom,0px)); right:16px;
@@ -211,7 +214,7 @@
   body.tv .plate{font-size:clamp(34px,2.8vw,56px);}
   body.tv .qrow .plate{font-size:clamp(26px,2vw,40px);}
   body.tv .repair, body.tv .vdesc, body.tv .timebox, body.tv .mechanic-label, body.tv .work, body.tv .work .wlabel, body.tv .qrow .datein,
-  body.tv .qrow .waitsince, body.tv .empty{font-size:clamp(15px,1.1vw,22px);}
+  body.tv .qrow .sched-when, body.tv .empty{font-size:clamp(15px,1.1vw,22px);}
   body.tv .mech-chip, body.tv .bay-tag, body.tv .over-label, body.tv .near-label{font-size:clamp(14px,1vw,20px);}
   body.tv .bar-track{height:clamp(10px,0.7vw,14px);}
   body.tv .card.over{animation:overPulse 1.6s ease-in-out infinite;}
@@ -256,6 +259,8 @@
   <div class="panel queue">
     <div class="section-title">Waiting</div>
     <div class="queue-list" id="queueList"></div>
+    <div class="section-title next">Scheduled</div>
+    <div class="queue-list" id="schedList"></div>
   </div>
 </div>
 
@@ -310,7 +315,7 @@
       <input id="fWork" class="full" maxlength="300" placeholder="Work description (e.g. Change oil, check brakes)">
       <input id="fRemarks" class="full" maxlength="300" placeholder="Remarks (e.g. Waiting for parts)">
     </div>
-    <div class="row">
+    <div class="row" id="rowDateIn">
       <label class="full"><span class="field-label">Date entered the bay area</span>
         <input id="fDateIn" type="date"></label>
     </div>
@@ -318,10 +323,15 @@
       <select id="fStatus">
         <option value="bay">In bay</option>
         <option value="wait">Waiting</option>
+        <option value="sched">Scheduled (future date)</option>
       </select>
       <input id="fLimit" type="number" step="0.5" min="0.5" placeholder="Time limit (hrs)" value="2">
     </div>
-    <div class="row edit-only">
+    <div class="row" id="rowSched" style="display:none;">
+      <label><span class="field-label">Scheduled date</span><input id="fSchedDate" type="date"></label>
+      <label><span class="field-label">Time (optional)</span><input id="fSchedTime" type="time"></label>
+    </div>
+    <div class="row edit-only" id="rowSince">
       <label class="full"><span class="field-label">Timer started (change only if the timer is wrong)</span>
         <input id="fSince" type="datetime-local"></label>
     </div>
@@ -343,6 +353,10 @@
     </div>
     <div class="entry-list" id="rosterList"></div>
     <div class="entry-cols">
+      <div>
+        <div class="col-label">Scheduled</div>
+        <div class="entry-col" id="colSched"></div>
+      </div>
       <div>
         <div class="col-label">Waiting</div>
         <div class="entry-col" id="colWait"></div>
@@ -531,6 +545,25 @@ function workHtml(e){
     (e.remarks ? '<div class="work"><span class="wlabel">Remarks</span>' + esc(e.remarks) + '</div>' : '');
 }
 
+/* Scheduled vehicles: schedDate 'YYYY-MM-DD', schedTime 'HH:MM' (optional). */
+const schedKey = e => (e.schedDate || '9999-99-99') + ' ' + (e.schedTime || '99:99');
+function schedWhen(e){
+  if (!e.schedDate) return { text: 'Date not set', cls: '' };
+  const today = todayStr();
+  const t = new Date(); t.setDate(t.getDate() + 1);
+  const tomorrow = ymdOf(t.getTime());
+  const [y, m, d] = e.schedDate.split('-').map(Number);
+  let day = e.schedDate === today ? 'Today' : e.schedDate === tomorrow ? 'Tomorrow'
+    : new Date(y, m - 1, d).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+  let time = '';
+  if (e.schedTime) {
+    const [h, mi] = e.schedTime.split(':').map(Number);
+    time = new Date(y, m - 1, d, h, mi).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  }
+  if (e.schedDate < today) return { text: 'Overdue · ' + fmtDate(e.schedDate), cls: 'late' };
+  return { text: day + (time ? ', ' + time : ''), cls: e.schedDate === today ? 'today' : '' };
+}
+
 function renderBoard(){
   const now = Date.now();
   const bay = entries.filter(e => e.status === 'bay');
@@ -576,9 +609,23 @@ function renderBoard(){
       '<div><div class="plate">' + esc(vTitle(e)) + '</div>' +
       (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') +
       '<div class="repair">' + esc(e.repair) + '</div>' + workHtml(e) + '</div>' +
-      '<div><div class="waitsince">waiting ' + fmtElapsed(now - e.since) + '</div>' +
-      '<div class="datein">Date in ' + esc(fmtDate(entryDateIn(e))) + '</div></div>';
+      '<div class="datein">Date in ' + esc(fmtDate(entryDateIn(e))) + '</div>';
     qEl.appendChild(row);
+  });
+
+  const sched = entries.filter(e => e.status === 'sched').sort((a, b) => schedKey(a) < schedKey(b) ? -1 : 1);
+  const sEl = $('schedList');
+  sEl.innerHTML = sched.length ? '' : '<div class="empty">Nothing scheduled.</div>';
+  sched.forEach(e => {
+    const w = schedWhen(e);
+    const row = document.createElement('div');
+    row.className = 'qrow';
+    row.innerHTML =
+      '<div><div class="plate">' + esc(vTitle(e)) + '</div>' +
+      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') +
+      '<div class="repair">' + esc(e.repair) + '</div>' + workHtml(e) + '</div>' +
+      '<div class="sched-when ' + w.cls + '">' + esc(w.text) + '</div>';
+    sEl.appendChild(row);
   });
 
   updateAlerts(overNow);
@@ -727,7 +774,8 @@ function renderRoster(){
 }
 
 function renderStaff(){
-  const colWait = $('colWait'), colBay = $('colBay');
+  const colSched = $('colSched'), colWait = $('colWait'), colBay = $('colBay');
+  colSched.innerHTML = '';
   colWait.innerHTML = '';
   colBay.innerHTML = '';
 
@@ -748,7 +796,7 @@ function renderStaff(){
         e.bay ? esc(e.bay) : '',
         mechs.length ? esc(mechs.join(', ')) : 'No mechanic yet',
         e.status === 'bay' ? esc(e.limitHrs) + 'h limit' : '',
-        'In ' + esc(fmtDate(entryDateIn(e)))
+        e.status === 'sched' ? 'Scheduled ' + esc(schedWhen(e).text) : 'In ' + esc(fmtDate(entryDateIn(e)))
       ].filter(Boolean).join(' · ') +
       (e.work ? '<br>Work: <b>' + esc(e.work) + '</b>' : '') +
       (e.remarks ? '<br>Remarks: <b>' + esc(e.remarks) + '</b>' : '');
@@ -782,14 +830,15 @@ function renderStaff(){
     };
     row.appendChild(btn);
 
-    (e.status === 'wait' ? colWait : colBay).appendChild(row);
+    (e.status === 'sched' ? colSched : e.status === 'wait' ? colWait : colBay).appendChild(row);
   });
+
+  if (!entries.some(e => e.status === 'sched')) colSched.innerHTML = '<div class="empty-col">Drop a vehicle here to schedule it, or add one with "Scheduled" chosen.</div>';
 
   if (!entries.some(e => e.status === 'wait')) colWait.innerHTML = '<div class="empty-col">Drop a vehicle here to move it to waiting.</div>';
   if (!entries.some(e => e.status === 'bay')) colBay.innerHTML = '<div class="empty-col">Drop a vehicle here to move it to a bay.</div>';
 
-  [colWait, colBay].forEach((col, i) => {
-    const target = i === 0 ? 'wait' : 'bay';
+  [[colSched, 'sched'], [colWait, 'wait'], [colBay, 'bay']].forEach(([col, target]) => {
     col.ondragover = ev => { ev.preventDefault(); col.classList.add('dragover'); };
     col.ondragleave = () => col.classList.remove('dragover');
     col.ondrop = ev => {
@@ -798,6 +847,8 @@ function renderStaff(){
       const id = parseFloat(ev.dataTransfer.getData('text/plain'));
       const e = entries.find(x => x.id === id);
       if (!e || e.status === target) return;
+      if (e.status === 'sched') e.dateIn = todayStr();         // it arrived today
+      if (target === 'sched' && !e.schedDate) e.schedDate = todayStr();
       e.status = target;
       e.since = Date.now();
       store.saveEntry(e);
@@ -1011,6 +1062,8 @@ function addVehicle(){
   if (!typed) return;
   const v = findVehicle(typed);
   if (v && entries.some(x => x.vno === v.no)) { alert(vLabel(v) + ' is already on the board.'); return; }
+  const isSched = $('fStatus').value === 'sched';
+  if (isSched && !$('fSchedDate').value) { alert('Please choose the scheduled date.'); return; }
   const e = {
     id: Date.now(),
     plate: v ? v.plate : typed.toUpperCase(),
@@ -1020,8 +1073,10 @@ function addVehicle(){
     repair: $('fRepair').value,
     work: $('fWork').value.trim(),
     remarks: $('fRemarks').value.trim(),
-    dateIn: $('fDateIn').value || todayStr(),
+    dateIn: isSched ? '' : ($('fDateIn').value || todayStr()),
     status: $('fStatus').value,
+    schedDate: isSched ? $('fSchedDate').value : '',
+    schedTime: isSched ? $('fSchedTime').value : '',
     since: Date.now(),
     limitHrs: parseFloat($('fLimit').value) || 2,
     bay: $('fBay').value.trim(),
@@ -1034,9 +1089,21 @@ function addVehicle(){
   $('fWork').value = '';
   $('fRemarks').value = '';
   $('fDateIn').value = todayStr();
+  $('fSchedDate').value = '';
+  $('fSchedTime').value = '';
   Array.from($('fMechanic').options).forEach(o => { o.selected = false; });
   renderBoard(); renderStaff();
 }
+
+/* Show the scheduled date/time boxes only when "Scheduled" is chosen. */
+function syncStatusFields(){
+  const sched = $('fStatus').value === 'sched';
+  $('rowSched').style.display = sched ? '' : 'none';
+  $('rowDateIn').style.display = sched ? 'none' : '';
+  $('rowSince').style.visibility = sched ? 'hidden' : '';
+  if (sched && !$('fSchedDate').value) $('fSchedDate').value = todayStr();
+}
+$('fStatus').addEventListener('change', syncStatusFields);
 
 /* ---------- Edit a vehicle already on the board ---------- */
 let editingId = null, editOrig = null;
@@ -1052,8 +1119,11 @@ function startEdit(e){
   $('fRepair').value = e.repair;
   $('fWork').value = e.work || '';
   $('fRemarks').value = e.remarks || '';
-  $('fDateIn').value = entryDateIn(e);
+  $('fDateIn').value = e.status === 'sched' ? todayStr() : entryDateIn(e);   // a scheduled vehicle that arrives, arrives today
   $('fStatus').value = e.status;
+  $('fSchedDate').value = e.schedDate || '';
+  $('fSchedTime').value = e.schedTime || '';
+  syncStatusFields();
   $('fLimit').value = e.limitHrs;
   $('fBay').value = e.bay || '';
   Array.from($('fMechanic').options).forEach(o => { o.selected = (e.mechanics || []).indexOf(o.value) !== -1; });
@@ -1071,6 +1141,8 @@ function clearForm(){
   $('fBay').value = '';
   $('fDateIn').value = todayStr();
   $('fSince').value = '';
+  $('fSchedDate').value = '';
+  $('fSchedTime').value = '';
   Array.from($('fMechanic').options).forEach(o => { o.selected = false; });
 }
 function endEdit(){
@@ -1078,6 +1150,7 @@ function endEdit(){
   editingId = null; editOrig = null;
   clearForm();
   $('fStatus').value = 'bay';
+  syncStatusFields();
   $('fLimit').value = 2;
   $('fRepair').selectedIndex = 0;
   $('formTitle').textContent = 'Update board';
@@ -1092,6 +1165,8 @@ function saveEdit(){
   if (!typed) { alert('Please choose the vehicle.'); return; }
   const limit = parseFloat($('fLimit').value);
   if (isNaN(limit) || limit <= 0) { alert('Please enter a time limit in hours, for example 2 or 1.5.'); return; }
+  const newStatus = $('fStatus').value;
+  if (newStatus === 'sched' && !$('fSchedDate').value) { alert('Please choose the scheduled date.'); return; }
   let since = e.since;
   const sinceText = $('fSince').value;
   if (sinceText && sinceText !== editOrig.sinceText) {
@@ -1112,8 +1187,10 @@ function saveEdit(){
   e.repair = $('fRepair').value;
   e.work = $('fWork').value.trim();
   e.remarks = $('fRemarks').value.trim();
-  e.dateIn = $('fDateIn').value || entryDateIn(e);
-  e.status = $('fStatus').value;
+  e.dateIn = newStatus === 'sched' ? (e.dateIn || '') : ($('fDateIn').value || todayStr());
+  e.status = newStatus;
+  e.schedDate = newStatus === 'sched' ? $('fSchedDate').value : (e.schedDate || '');
+  e.schedTime = newStatus === 'sched' ? $('fSchedTime').value : (e.schedTime || '');
   e.since = since;
   e.limitHrs = limit;
   e.bay = $('fBay').value.trim();

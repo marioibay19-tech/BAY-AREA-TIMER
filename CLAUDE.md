@@ -17,13 +17,15 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 
 ## Data model (Firestore)
 - Collection `entries`, one doc per vehicle on the board, doc id = `String(entry.id)`.
-  Fields: `id` (ms timestamp), `plate`, `vno` (property no.), `desc`, `who` (assigned person), `repair` (Preventive / Corrective / Express Maintenance), `status` (`bay` or `wait`), `since` (ms timestamp, reset when moved between columns), `limitHrs`, `bay` (text such as "Bay 1"), `mechanics` (array, max 5 names).
-  `work` (work description text, shown on the customer board), `dateIn` ('YYYY-MM-DD', date the vehicle entered the bay area; set on add, defaults to today, editable in Staff panel, never reset by dragging). `remarks` (free text such as "Waiting for parts", shown on the customer board under Work, editable in Staff panel). Entries without `dateIn` fall back to the date of `id` (or `since` for small demo ids).
+  Fields: `id` (ms timestamp), `plate`, `vno` (property no.), `desc`, `who` (assigned person), `repair` (Preventive / Corrective / Express Maintenance), `status` (`bay`, `wait` or `sched`), `since` (ms timestamp, reset when moved between columns), `limitHrs`, `bay` (text such as "Bay 1"), `mechanics` (array, max 5 names).
+  `work` (work description text, shown on the customer board), `dateIn` ('YYYY-MM-DD', date the vehicle entered the bay area; set on add, defaults to today, editable in Staff panel, never reset by dragging). `remarks` (free text such as "Waiting for parts", shown on the customer board under Work, editable in Staff panel). `schedDate` ('YYYY-MM-DD') and `schedTime` ('HH:MM', optional) for `sched` entries; a scheduled entry has `dateIn` '' until it is moved to Waiting/In bay (drag or Edit), which sets `dateIn` to today and resets `since`. Entries without `dateIn` fall back to the date of `id` (or `since` for small demo ids).
 - Doc `meta/roster` with `{ names: [...] }`, the mechanics list used by the pickers.
 - Collection `history`, one doc per finished job, doc id = `String(entry.id)`: all entry fields plus `doneAt` (ms), `bayMs` (ms in bay = doneAt - since), `overLimit` (bool). Written by the Staff panel "Done" button (in-bay vehicles only) in one batch with deleting the `entries` doc. Read only while the Finished page is open (`subscribeHistory`, ordered by `doneAt` desc). Allowed by the existing `{document=**}` rule, so no rules change was needed.
 - `VEHICLES` (127 items: `no`, `plate`, `desc`, `who`) is embedded in `index.html`. It powers the searchable vehicle field. Plate `N/A` means no plate, so the board shows the property number as the main label. The assigned person's name is shown in the Staff panel only, not on the customer display.
 
 ## Behaviors to preserve
+- Board layout: In the bay now (left); Waiting, then Scheduled (right column). Waiting rows show only Date in (the waiting timer was removed at the user's request). Scheduled rows are sorted by date/time and labelled Today (amber), Tomorrow, weekday date, or Overdue (red).
+- Staff panel has three columns: Scheduled, Waiting, In bay; drag between any of them.
 - Elapsed time ticks every second; the card turns red with "OVER LIMIT" past the limit.
 - Staff panel has two columns (Waiting, In bay); vehicles are dragged between them. Dragging resets the timer (`since`).
 - Every field is editable at any time, including while waiting, via the **Edit** button on each vehicle in the Staff panel (In bay and Waiting). Edit loads the vehicle into the top form (title "Edit …", "Save changes" / "Cancel edit"); it can change the vehicle (duplicate guard applies), repair type, work, remarks, date in, status, bay, mechanics, time limit and the timer start (`fSince`). Changing status without touching the timer start resets `since`, like dragging. The Staff rows show a read-only summary; the old inline editors were replaced.
@@ -58,4 +60,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-05: added Remarks field (same places as work description).
 - 2026-11-05: added Done button and Finished maintenance page (tested headless: done, filters, CSV export, undo, delete, hidden in TV mode).
 - 2026-11-05: added Edit button for In bay and Waiting vehicles (tested headless: edit all fields, timer start, vehicle swap with duplicate guard, status change, cancel).
+- 2026-11-05: removed the waiting timer from the board; added the Scheduled area (status `sched`).
 - Ideas the user has not decided on: staff PIN, link to the user's PM/CM maintenance records.
