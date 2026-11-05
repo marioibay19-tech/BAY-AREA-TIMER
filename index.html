@@ -54,6 +54,15 @@
     .queue{border-left:1px solid var(--hair);}
   }
   .panel{padding:clamp(16px,3vw,32px);}
+  .layout{padding-bottom:64px;}   /* room for the floating buttons */
+  body.tv .layout{padding-bottom:0;}
+  /* Drag on the main board (computers; not in TV mode) */
+  .board-drag{cursor:grab;}
+  .board-drag:active{cursor:grabbing;}
+  .board-drag.dragging{opacity:0.45;}
+  .drop-zone{border-radius:12px; transition:background .15s, box-shadow .15s;}
+  .drop-zone.dragover{background:var(--amber-dim); box-shadow:0 0 0 2px var(--amber);}
+  .queue-list{min-height:48px;}
   .section-title{
     font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.5px;
     color:var(--muted); margin:0 0 16px 0;
@@ -78,7 +87,7 @@
   .work{font-size:13px; line-height:1.4; color:var(--text);}
   .work .wlabel{display:block; font-size:12px; color:var(--muted); margin-bottom:2px;}
   .qrow .work{margin-top:4px;}
-  .qrow .datein{color:var(--muted); font-size:12px; margin-top:2px; text-align:right;}
+  .qrow .datein{color:var(--muted); font-size:12px; margin-top:2px; text-align:right; white-space:nowrap; flex:none;}
   .entry .work-edit{flex:1 1 100%; width:100%;}
   .entry .date-edit{width:140px; padding:5px 6px; font-size:12px; flex:none;}
   .field-label{font-size:12px; color:var(--muted); display:block; margin-bottom:3px;}
@@ -99,7 +108,7 @@
   .over-label{color:var(--red); font-size:12px; font-weight:600;}
   .queue-list{display:flex; flex-direction:column; gap:10px;}
   .qrow{
-    display:flex; justify-content:space-between; align-items:center;
+    display:flex; justify-content:space-between; align-items:center; gap:14px;
     background:var(--surface); border:1px solid var(--hair); border-radius:10px;
     padding:12px 16px;
   }
@@ -253,15 +262,19 @@
 <div class="alert-bar" id="alertBar"></div>
 
 <div class="layout">
-  <div class="panel bays">
+  <div class="panel bays drop-zone" id="bayZone">
     <div class="section-title">In the bay now</div>
     <div class="bay-grid" id="bayGrid"></div>
   </div>
   <div class="panel queue">
-    <div class="section-title">Waiting</div>
-    <div class="queue-list" id="queueList"></div>
-    <div class="section-title next">Scheduled</div>
-    <div class="queue-list" id="schedList"></div>
+    <div class="drop-zone" id="queueZone">
+      <div class="section-title">Waiting</div>
+      <div class="queue-list" id="queueList"></div>
+    </div>
+    <div class="drop-zone" id="schedZone">
+      <div class="section-title next">Scheduled</div>
+      <div class="queue-list" id="schedList"></div>
+    </div>
   </div>
 </div>
 
@@ -565,7 +578,45 @@ function schedWhen(e){
   return { text: day + (time ? ', ' + time : ''), cls: e.schedDate === today ? 'today' : '' };
 }
 
+/* ---------- Drag vehicles on the main board ---------- */
+let boardDragging = false, dragTimer = null;
+function boardDraggable(el, e){
+  if (isTV()) return;
+  el.draggable = true;
+  el.classList.add('board-drag');
+  el.title = 'Drag to In the bay now, Waiting or Scheduled';
+  el.addEventListener('dragstart', ev => {
+    ev.dataTransfer.setData('text/plain', String(e.id));
+    ev.dataTransfer.effectAllowed = 'move';
+    boardDragging = true;               // pause the 1-second redraw so the card isn't replaced mid-drag
+    clearTimeout(dragTimer);
+    dragTimer = setTimeout(endBoardDrag, 30000);
+    setTimeout(() => el.classList.add('dragging'), 0);
+  });
+  el.addEventListener('dragend', endBoardDrag);
+}
+function endBoardDrag(){
+  boardDragging = false;
+  clearTimeout(dragTimer);
+  document.querySelectorAll('.drop-zone.dragover').forEach(z => z.classList.remove('dragover'));
+  renderBoard();
+}
+[['bayZone', 'bay'], ['queueZone', 'wait'], ['schedZone', 'sched']].forEach(([id, target]) => {
+  const z = $(id);
+  z.addEventListener('dragover', ev => { if (!boardDragging) return; ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; z.classList.add('dragover'); });
+  z.addEventListener('dragleave', ev => { if (!z.contains(ev.relatedTarget)) z.classList.remove('dragover'); });
+  z.addEventListener('drop', ev => {
+    if (!boardDragging) return;
+    ev.preventDefault();
+    const id = parseFloat(ev.dataTransfer.getData('text/plain'));
+    const e = entries.find(x => x.id === id);
+    endBoardDrag();
+    if (e) moveTo(e, target);
+  });
+});
+
 function renderBoard(){
+  if (boardDragging) return;
   const now = Date.now();
   const bay = entries.filter(e => e.status === 'bay');
   const wait = entries.filter(e => e.status === 'wait');
@@ -599,6 +650,7 @@ function renderBoard(){
       '<div class="timebox"><span>Elapsed</span><strong>' + fmtElapsed(elapsed) + '</strong></div>' +
       '<div class="bar-track"><div class="bar-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
       '<div class="timebox"><span>Time limit</span><strong>' + esc(e.limitHrs) + 'h</strong></div>';
+    boardDraggable(card, e);
     bayEl.appendChild(card);
   });
 
@@ -611,6 +663,7 @@ function renderBoard(){
       (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') +
       '<div class="repair">' + esc(e.repair) + '</div>' + workHtml(e) + '</div>' +
       '<div class="datein">Date in ' + esc(fmtDate(entryDateIn(e))) + '</div>';
+    boardDraggable(row, e);
     qEl.appendChild(row);
   });
 
@@ -626,6 +679,7 @@ function renderBoard(){
       (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') +
       '<div class="repair">' + esc(e.repair) + '</div>' + workHtml(e) + '</div>' +
       '<div class="sched-when ' + w.cls + '">' + esc(w.text) + '</div>';
+    boardDraggable(row, e);
     sEl.appendChild(row);
   });
 
@@ -867,9 +921,18 @@ function renderStaff(){
 /* Move a vehicle to another list (button or drag). Moving restarts its timer. */
 function moveTo(e, target){
   if (!e || e.status === target) return;
+  if (target === 'sched') {
+    const t = new Date(); t.setDate(t.getDate() + 1);
+    const ans = prompt('Schedule ' + vTitle(e) + ' for which date?\n(Year-Month-Day, for example ' + ymdOf(t.getTime()) + ')',
+      e.schedDate && e.schedDate >= todayStr() ? e.schedDate : ymdOf(t.getTime()));
+    if (ans === null) return;
+    const d = ans.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || isNaN(new Date(d).getTime())) { alert('Please type the date like ' + ymdOf(t.getTime()) + '.'); return; }
+    e.schedDate = d;
+    e.schedTime = '';
+  }
   if (editingId === e.id) endEdit();
   if (e.status === 'sched') e.dateIn = todayStr();         // it arrived today
-  if (target === 'sched' && !e.schedDate) e.schedDate = todayStr();
   e.status = target;
   e.since = Date.now();
   store.saveEntry(e);
