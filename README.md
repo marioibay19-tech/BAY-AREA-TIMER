@@ -74,6 +74,13 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 8. **Print:** click **Print** on a row to print a one-page job record with signature lines (Mechanic, Inspected by, Received by). If nothing opens, allow pop-ups for the site.
 9. **Delete and Recently deleted:** Delete moves a record to **Recently deleted** (button at the top of the Finished page). It stays there for 30 days, with a **Restore** button, and is then removed for good.
 
+## Adding a vehicle to the list
+If a vehicle isn't found when you search:
+1. Click **Staff** and scroll down to **Vehicle list**.
+2. Type the **Property no.**, the **Plate no.** (or N/A), the **Make & model**, and the **End-user** if you know it.
+3. Click **Add to vehicle list**. It can now be searched on every screen.
+- Typing a property no. that is already in the list replaces its details, for example a new end-user. Click **Remove** to go back to the original details.
+
 ## Staff PIN
 - The **Staff** button, dragging on the board, and Undo/Delete/Export on the Finished page need the staff PIN. Looking at the board and the Finished list does not.
 - The starting PIN is **1234**. Change it right away: click **Staff**, enter 1234, scroll down to **Security**, and click **Change staff PIN**.
