@@ -60,7 +60,19 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 4. Pressed Done by mistake? On the Finished page, click **Undo** on that row to put the vehicle back in the bay.
 5. **Remove** in the Staff panel is only for vehicles added by mistake. It does not save anything to the Finished list.
 
+## Staff PIN
+- The **Staff** button, dragging on the board, and Undo/Delete/Export on the Finished page need the staff PIN. Looking at the board and the Finished list does not.
+- The starting PIN is **1234**. Change it right away: click **Staff**, enter 1234, scroll down to **Security**, and click **Change staff PIN**.
+- Each device asks for the PIN once and then remembers it. Click **Lock this device** (Staff panel → Security) on a shared or public computer. When the PIN is changed, every other device asks for the new one.
+- Forgot the PIN?
+  1. Open the Firebase console and go to **Firestore Database** → **Data**.
+  2. Open the **meta** collection, then the **settings** document.
+  3. Delete the **pinHash** field. The PIN goes back to 1234.
+
+## Connection and clock
+- Under the clock, the board shows **Live** when it is getting updates. If the internet drops, it shows **Offline** and a red bar with the time of the last update.
+- Timers use Firebase's clock, so every screen shows the same times even if one device's clock is wrong.
+
 ## Notes
 - Until `apiKey` is filled in, the page runs in demo mode (data stays on that one device) and shows a banner saying so.
 - The Staff button only hides the controls; with the open rules above, anyone who has the link could edit. A simple PIN on the Staff panel can be added if you want it.
-- Timers use the clock of the device that moved the vehicle into the bay, so keep device clocks set to automatic time.
