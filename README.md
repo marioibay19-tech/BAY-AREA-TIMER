@@ -38,6 +38,12 @@ What TV mode shows:
 
 To leave TV mode, move the mouse and click **Exit TV mode** (top right).
 
+## Scheduling a vehicle
+1. Click **Staff**, choose the vehicle, and set the status box to **Scheduled (future date)**.
+2. Pick the **Scheduled date** (and a time if you have one), then click **Add to board**.
+3. It shows on the board under **Scheduled**: "Today" in amber, "Tomorrow", the date, or "Overdue" in red if the date has passed.
+4. When the vehicle arrives, drag it from **Scheduled** to **Waiting** or **In bay** in the Staff panel, or click **Edit** and change the status. Its date in becomes today and its timer starts.
+
 ## Fixing a mistake (Edit)
 1. Click **Staff** and find the vehicle in the **Waiting** or **In bay** list.
 2. Click the blue **Edit** button. The vehicle's details load into the form at the top.
