@@ -38,6 +38,13 @@ What TV mode shows:
 
 To leave TV mode, move the mouse and click **Exit TV mode** (top right).
 
+## Finishing a job and the Finished list
+1. When a job is finished (even early), click **Staff**, find the vehicle in the **In bay** list, and click the green **Done** button. Click **OK** to confirm.
+2. The vehicle leaves the board and is saved in **Finished maintenance**, with the time it spent in the bay and whether it was within the time limit.
+3. To see the list, click **Finished** at the bottom right of the board. You can search, pick a date range or repair type, and click **Export to Excel (CSV)** to download it.
+4. Pressed Done by mistake? On the Finished page, click **Undo** on that row to put the vehicle back in the bay.
+5. **Remove** in the Staff panel is only for vehicles added by mistake. It does not save anything to the Finished list.
+
 ## Notes
 - Until `apiKey` is filled in, the page runs in demo mode (data stays on that one device) and shows a banner saying so.
 - The Staff button only hides the controls; with the open rules above, anyone who has the link could edit. A simple PIN on the Staff panel can be added if you want it.

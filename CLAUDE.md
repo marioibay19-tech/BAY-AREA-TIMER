@@ -20,6 +20,7 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
   Fields: `id` (ms timestamp), `plate`, `vno` (property no.), `desc`, `who` (assigned person), `repair` (Preventive / Corrective / Express Maintenance), `status` (`bay` or `wait`), `since` (ms timestamp, reset when moved between columns), `limitHrs`, `bay` (text such as "Bay 1"), `mechanics` (array, max 5 names).
   `work` (work description text, shown on the customer board), `dateIn` ('YYYY-MM-DD', date the vehicle entered the bay area; set on add, defaults to today, editable in Staff panel, never reset by dragging). `remarks` (free text such as "Waiting for parts", shown on the customer board under Work, editable in Staff panel). Entries without `dateIn` fall back to the date of `id` (or `since` for small demo ids).
 - Doc `meta/roster` with `{ names: [...] }`, the mechanics list used by the pickers.
+- Collection `history`, one doc per finished job, doc id = `String(entry.id)`: all entry fields plus `doneAt` (ms), `bayMs` (ms in bay = doneAt - since), `overLimit` (bool). Written by the Staff panel "Done" button (in-bay vehicles only) in one batch with deleting the `entries` doc. Read only while the Finished page is open (`subscribeHistory`, ordered by `doneAt` desc). Allowed by the existing `{document=**}` rule, so no rules change was needed.
 - `VEHICLES` (127 items: `no`, `plate`, `desc`, `who`) is embedded in `index.html`. It powers the searchable vehicle field. Plate `N/A` means no plate, so the board shows the property number as the main label. The assigned person's name is shown in the Staff panel only, not on the customer display.
 
 ## Behaviors to preserve
@@ -38,6 +39,14 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 - "N MIN LEFT" amber badge within `NEAR_MS` (15 min) of the limit; this shows in normal mode too.
 - Auto-scroll (`tvScroll`) when content is taller than the screen: pause 8s, scroll, pause 8s, jump to top.
 
+## Finished maintenance page
+- `#finished` in the URL (or the "Finished" button) shows the page instead of the board; "Back to board" clears the hash. Hidden in TV mode.
+- Filters: text search, finished from/to date, repair type. Summary line counts jobs, within/over limit, average time in bay.
+- Per row: Undo (puts it back in the bay with its original `since`, blocked if the vehicle is already on the board) and Delete (with confirm).
+- "Export to Excel (CSV)" downloads the filtered list (UTF-8 BOM so Excel reads it). The CSV includes the end-user; the on-screen table does not.
+- "Remove" in the Staff panel still deletes without recording (now asks for confirmation); "Done" is the normal way to finish a job.
+- Never name a module variable `history` — it would hide `window.history`, which TV mode uses.
+
 ## Testing
 Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREBASE_CONFIG.apiKey` empty to test in local mode. A headless-browser smoke test (add vehicles, check cards, duplicate guard) was used during development. Live Firestore sync has not been tested from the development sandbox, which cannot reach Google.
 
@@ -47,4 +56,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-05: user renamed the file on main themselves; site is live. TV display mode added (tested headless: alert bar, near/over badges, one chime per crossing, auto-scroll).
 - 2026-11-05: added work description and date-in fields (form, Staff panel editors, bay cards and waiting rows).
 - 2026-11-05: added Remarks field (same places as work description).
+- 2026-11-05: added Done button and Finished maintenance page (tested headless: done, filters, CSV export, undo, delete, hidden in TV mode).
 - Ideas the user has not decided on: staff PIN, link to the user's PM/CM maintenance records.
