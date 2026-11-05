@@ -34,7 +34,10 @@ What TV mode shows:
 - **"15 MIN LEFT"** (amber) when a vehicle is within 15 minutes of its time limit.
 - **"OVER LIMIT"** (red, pulsing) and a red bar across the top listing every vehicle that is over time.
 - A short **chime** once, when a vehicle first goes over its limit.
-- If there are more vehicles than fit on the screen, the page scrolls slowly down and back up.
+- If there are more vehicles than fit on the screen, each list shows **pages** ("Page 1 of 3") and flips to the next page every 15 seconds. Nothing scrolls.
+- The TV is always in **dark colors**, whatever the TV's own setting.
+- The top of the board shows the counts: in the bay, waiting, on hold, and scheduled today.
+- **Choose what the TV shows:** in the Staff panel under **TV display**, untick what you don't want on the lobby TV (mechanic names, property no., make & model, work, remarks, date in). This only changes the TV; staff screens still show everything.
 
 To leave TV mode, move the mouse and click **Exit TV mode** (top right).
 

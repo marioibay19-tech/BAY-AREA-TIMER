@@ -76,7 +76,8 @@
     padding:16px 18px; display:flex; flex-direction:column; gap:10px;
   }
   .card.over{border-color:var(--red);}
-  .card-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .card-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap;}
+  .card-top .plate{white-space:nowrap;}
   .plate{font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px;}
   .bay-tag{
     font-size:11px; font-weight:600; color:var(--amber); background:var(--amber-dim);
@@ -265,15 +266,43 @@
   body.tv .brand .sub{font-size:clamp(14px,1.2vw,22px);}
   body.tv .clock{font-size:clamp(40px,4.2vw,80px);}
   body.tv .section-title{font-size:clamp(26px,2.2vw,40px);}
-  body.tv .bay-grid{grid-template-columns:repeat(auto-fill,minmax(clamp(300px,22vw,460px),1fr)); gap:clamp(14px,1.2vw,24px);}
-  body.tv .card{padding:clamp(18px,1.4vw,28px); gap:clamp(10px,0.8vw,16px); border-width:2px;}
-  body.tv .plate{font-size:clamp(34px,2.8vw,56px);}
-  body.tv .qrow .plate{font-size:clamp(26px,2vw,40px);}
+  body.tv .bay-grid{grid-template-columns:repeat(auto-fill,minmax(clamp(260px,16.5vw,420px),1fr)); gap:clamp(12px,1vw,22px);}
+  body.tv .card{padding:clamp(14px,1.1vw,24px); gap:clamp(6px,0.55vw,12px); border-width:2px;}
+  body.tv .plate{font-size:clamp(30px,2.4vw,52px);}
+  body.tv .qrow{padding:clamp(10px,0.75vw,16px) clamp(14px,1vw,22px);}
+  body.tv .queue-list{gap:clamp(8px,0.6vw,12px);}
+  body.tv .qrow .plate{font-size:clamp(24px,1.8vw,38px);}
+  body.tv .qrow .work .wtext{-webkit-line-clamp:1;}
+  body.tv .qrow .work .wlabel{display:none;}
   body.tv .repair, body.tv .vdesc, body.tv .timebox, body.tv .mechanic-label, body.tv .work, body.tv .work .wlabel, body.tv .qrow .datein,
   body.tv .qrow .sched-when, body.tv .empty{font-size:clamp(15px,1.1vw,22px);}
   body.tv .mech-chip, body.tv .bay-tag, body.tv .over-label, body.tv .near-label{font-size:clamp(14px,1vw,20px);}
   body.tv .bar-track{height:clamp(10px,0.7vw,14px);}
   body.tv .card.over{animation:overPulse 1.6s ease-in-out infinite;}
+  /* TV: fit the screen exactly (no scrolling); each list shows pages instead */
+  body.tv{height:100vh; overflow:hidden; display:flex; flex-direction:column;}
+  body.tv .head, body.tv .offline-bar, body.tv .alert-bar, body.tv #modeBanner{flex:none;}
+  body.tv .layout{flex:1; min-height:0; width:100%; grid-template-rows:minmax(0,1fr);}
+  @media (max-width:899px){ body.tv .layout{grid-template-rows:minmax(0,1fr) minmax(0,1fr);} }
+  body.tv .panel{display:flex; flex-direction:column; min-height:0; overflow:hidden;}
+  body.tv #bayGrid{flex:1; min-height:0; overflow:hidden; align-content:start; position:relative;}
+  body.tv #queueZone, body.tv #schedZone{min-height:0; display:flex; flex-direction:column;}
+  body.tv #queueZone{flex:3 1 0;}
+  body.tv #schedZone{flex:2 1 0;}
+  body.tv #queueList, body.tv #schedList{flex:1; min-height:0; overflow:hidden; position:relative;}
+  body.tv .section-title.next{margin-top:clamp(12px,1.4vw,24px);}
+  .page-ind{font-family:'Inter',system-ui,sans-serif; font-size:0.55em; letter-spacing:0; color:var(--amber); margin-left:10px; vertical-align:middle; font-weight:600;}
+  .page-dots{display:inline-flex; gap:5px; margin-left:8px; vertical-align:middle;}
+  .page-dots i{width:9px; height:9px; border-radius:50%; background:var(--hair); display:inline-block;}
+  .page-dots i.on{background:var(--amber);}
+  /* Counts in the header */
+  .counts{color:var(--muted); font-size:13px; margin-top:4px;}
+  .counts b{color:var(--text); font-weight:600;}
+  body.tv .counts{font-size:clamp(15px,1.3vw,26px);}
+  /* What the TV shows (set in the Staff panel) */
+  body.tv.tvh-mech .mechanic-block, body.tv.tvh-pno .pno, body.tv.tvh-work .w-work,
+  body.tv.tvh-rem .w-rem, body.tv.tvh-datein .datein-row, body.tv.tvh-datein .qrow .datein,
+  body.tv.tvh-desc .vdesc .vd, body.tv.tvh-desc .qrow .vdesc, body.tv.tvh-desc .pno .sep{display:none !important;}
   @keyframes overPulse{
     0%,100%{box-shadow:0 0 0 0 rgba(226,84,75,0);}
     50%{box-shadow:0 0 0 6px rgba(226,84,75,0.45);}
@@ -301,6 +330,7 @@
   <div class="brand">
     <div class="name">BAY STATUS</div>
     <div class="sub">Equipment Management Division</div>
+    <div class="counts" id="counts"></div>
   </div>
   <div class="clockbox">
     <div class="clock" id="clock">--:--</div>
@@ -313,16 +343,16 @@
 
 <div class="layout">
   <div class="panel bays drop-zone" id="bayZone">
-    <div class="section-title">In the bay now</div>
+    <div class="section-title">In the bay now<span class="page-ind" id="bayPage"></span></div>
     <div class="bay-grid" id="bayGrid"></div>
   </div>
   <div class="panel queue">
     <div class="drop-zone" id="queueZone">
-      <div class="section-title">Waiting</div>
+      <div class="section-title">Waiting<span class="page-ind" id="queuePage"></span></div>
       <div class="queue-list" id="queueList"></div>
     </div>
     <div class="drop-zone" id="schedZone">
-      <div class="section-title next">Scheduled</div>
+      <div class="section-title next">Scheduled<span class="page-ind" id="schedPage"></span></div>
       <div class="queue-list" id="schedList"></div>
     </div>
   </div>
@@ -462,6 +492,10 @@
       </div>
       <div class="btnrow"><button class="action close" id="vAdd">Add to vehicle list</button></div>
       <div class="entry-list" id="vAddedList" style="margin-top:6px;"></div>
+    </div>
+    <div class="settings-box">
+      <div class="col-label">TV display: what the lobby TV shows</div>
+      <div id="tvOptList"></div>
     </div>
     <div class="settings-box" id="settingsBox">
       <div class="col-label">Security</div>
@@ -714,8 +748,8 @@ function fmtDate(ymd){
   return new Date(y, m - 1, d).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 }
 function workHtml(e){
-  return (e.work ? '<div class="work" title="' + esc(e.work) + '"><span class="wlabel">Work</span><span class="wtext">' + esc(e.work) + '</span></div>' : '') +
-    (e.remarks ? '<div class="work" title="' + esc(e.remarks) + '"><span class="wlabel">Remarks</span><span class="wtext">' + esc(e.remarks) + '</span></div>' : '');
+  return (e.work ? '<div class="work w-work" title="' + esc(e.work) + '"><span class="wlabel">Work</span><span class="wtext">' + esc(e.work) + '</span></div>' : '') +
+    (e.remarks ? '<div class="work w-rem" title="' + esc(e.remarks) + '"><span class="wlabel">Remarks</span><span class="wtext">' + esc(e.remarks) + '</span></div>' : '');
 }
 
 /* ---------- On hold (Awaiting parts, etc.) ----------
@@ -833,11 +867,12 @@ function renderBoard(){
     const mechs = e.mechanics || [];
     card.innerHTML =
       '<div class="card-top"><span class="plate">' + esc(vTitle(e)) + '</span>' + tag + '</div>' +
-      (e.desc || (e.vno && e.vno !== vTitle(e)) ? '<div class="vdesc">' + [e.desc, (e.vno && e.vno !== vTitle(e)) ? e.vno : ''].filter(Boolean).map(esc).join(' · ') + '</div>' : '') +
+      (e.desc || (e.vno && e.vno !== vTitle(e)) ? '<div class="vdesc">' + (e.desc ? '<span class="vd">' + esc(e.desc) + '</span>' : '') +
+        ((e.vno && e.vno !== vTitle(e)) ? '<span class="pno">' + (e.desc ? '<span class="sep"> · </span>' : '') + esc(e.vno) + '</span>' : '') + '</div>' : '') +
       '<div class="repair">' + esc(e.repair) + '</div>' +
       workHtml(e) +
       (mechs.length ? '<div class="mechanic-block"><span class="mechanic-label">' + (mechs.length > 1 ? 'Mechanics' : 'Mechanic') + '</span><div class="mechanic-names">' + mechs.map(n => '<span class="mech-chip">' + esc(n) + '</span>').join('') + '</div></div>' : '') +
-      '<div class="timebox"><span>Date in</span><strong>' + esc(fmtDate(entryDateIn(e))) + '</strong></div>' +
+      '<div class="timebox datein-row"><span>Date in</span><strong>' + esc(fmtDate(entryDateIn(e))) + '</strong></div>' +
       '<div class="timebox"><span>' + (held ? 'Elapsed (paused)' : 'Elapsed') + '</span><strong>' + fmtElapsed(elapsed) + '</strong></div>' +
       '<div class="bar-track"><div class="bar-fill' + (held ? ' hold' : over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
       '<div class="timebox"><span>Time limit</span><strong>' + esc(e.limitHrs) + 'h</strong></div>';
@@ -876,6 +911,79 @@ function renderBoard(){
   });
 
   updateAlerts(overNow);
+
+  const today = todayStr();
+  const nHold = entries.filter(e => e.hold && e.status !== 'sched').length;
+  const nSchedToday = sched.filter(e => e.schedDate === today).length;
+  $('counts').innerHTML = '<b>' + bay.length + '</b> in the bay · <b>' + wait.length + '</b> waiting' +
+    (nHold ? ' · <b>' + nHold + '</b> on hold' : '') + ' · <b>' + nSchedToday + '</b> scheduled today';
+  tvPaginate();
+}
+
+/* ---------- TV pages: show what fits, then flip to the next page every 15 seconds ---------- */
+const TV_PAGE_MS = 15000;
+let tvPageTick = 0;
+function paginate(container, indicator){
+  const items = Array.from(container.children).filter(c => !c.classList.contains('empty'));
+  items.forEach(it => { it.style.display = ''; });
+  if (!isTV() || items.length < 2) { indicator.innerHTML = ''; return; }
+  const avail = container.clientHeight;
+  // Group items into rows (cards side by side share a row), then rows into pages.
+  const rows = [];
+  items.forEach(it => {
+    const top = it.offsetTop, bottom = top + it.offsetHeight;
+    const last = rows[rows.length - 1];
+    if (last && Math.abs(last.top - top) < 4) { last.items.push(it); last.bottom = Math.max(last.bottom, bottom); }
+    else rows.push({ top, bottom, items: [it] });
+  });
+  const pages = [];
+  let cur = null;
+  rows.forEach(r => {
+    if (!cur || (r.bottom - cur.top > avail && cur.items.length)) { cur = { top: r.top, items: [] }; pages.push(cur); }
+    cur.items.push(...r.items);
+  });
+  if (pages.length < 2) { indicator.innerHTML = ''; return; }
+  const n = tvPageTick % pages.length;
+  pages.forEach((pg, i) => { if (i !== n) pg.items.forEach(it => { it.style.display = 'none'; }); });
+  indicator.innerHTML = 'Page ' + (n + 1) + ' of ' + pages.length +
+    '<span class="page-dots">' + pages.map((_, i) => '<i class="' + (i === n ? 'on' : '') + '"></i>').join('') + '</span>';
+}
+function tvPaginate(){
+  [['bayGrid', 'bayPage'], ['queueList', 'queuePage'], ['schedList', 'schedPage']].forEach(([c, ind]) => paginate($(c), $(ind)));
+}
+setInterval(() => { if (isTV()) { tvPageTick++; renderBoard(); } }, TV_PAGE_MS);
+window.addEventListener('resize', () => { if (isTV()) renderBoard(); });
+
+/* ---------- What the TV shows (meta/settings.tv; true = show) ---------- */
+const TV_OPTS = [
+  ['mech', 'mechanic-block', 'Mechanic names'],
+  ['pno', '', 'Property no. (when the vehicle has a plate)'],
+  ['desc', '', 'Vehicle make & model'],
+  ['work', '', 'Work description'],
+  ['rem', '', 'Remarks'],
+  ['datein', '', 'Date in']
+];
+const tvShows = key => !(settings.tv && settings.tv[key] === false);
+function applyTvOptions(){
+  TV_OPTS.forEach(([k]) => document.body.classList.toggle('tvh-' + k, !tvShows(k)));
+  const box = $('tvOptList');
+  if (!box || box.contains(document.activeElement)) return;
+  box.innerHTML = '';
+  TV_OPTS.forEach(([k, , label]) => {
+    const row = document.createElement('label');
+    row.className = 'set-row';
+    row.style.cursor = 'pointer';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = tvShows(k);
+    cb.style.width = '18px'; cb.style.height = '18px';
+    cb.onchange = () => {
+      const tv = Object.assign({}, settings.tv || {}); tv[k] = cb.checked;
+      store.saveSettings({ tv: tv });
+    };
+    const sp = document.createElement('span'); sp.textContent = 'Show ' + label.charAt(0).toLowerCase() + label.slice(1);
+    row.appendChild(cb); row.appendChild(sp);
+    box.appendChild(row);
+  });
 }
 
 /* ============================================================
@@ -940,6 +1048,9 @@ function tvActivate(){
 
 function setTV(on){
   document.body.classList.toggle('tv', on);
+  // The TV is always dark (less glare, stronger colors), whatever the device setting.
+  if (on) document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.removeAttribute('data-theme');
   // Keep ?tv in the address so a refresh (or a bookmark) stays in TV mode.
   const params = new URLSearchParams(location.search);
   params.delete('tv');
@@ -957,6 +1068,8 @@ function setTV(on){
     document.body.classList.remove('idle');
     window.scrollTo(0, 0);
   }
+  tvPageTick = 0;
+  renderBoard();
 }
 
 /* Hide the mouse pointer and Exit button when the mouse sits still. */
@@ -968,19 +1081,6 @@ function pokeIdle(){
 }
 ['mousemove', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { if (isTV()) pokeIdle(); }, {passive:true}));
 
-/* If the board is taller than the screen, scroll slowly down, pause, and jump back up. */
-let scrollPhase = 'top', scrollWait = 0;
-function tvScroll(){
-  if (!isTV()) return;
-  const se = document.scrollingElement || document.documentElement;
-  const max = se.scrollHeight - window.innerHeight;
-  if (max <= 4) { scrollPhase = 'top'; scrollWait = 0; return; }
-  if (scrollPhase === 'top') { if (++scrollWait > 160) { scrollPhase = 'down'; scrollWait = 0; } }
-  else if (scrollPhase === 'down') {
-    window.scrollTo(0, se.scrollTop + 1);
-    if (se.scrollTop >= max - 1) scrollPhase = 'bottom';
-  } else if (++scrollWait > 160) { window.scrollTo(0, 0); scrollPhase = 'top'; scrollWait = 0; }
-}
 
 const mechanicValue = sel => Array.from(sel.selectedOptions).map(o => o.value).slice(0, 5);
 
@@ -1864,6 +1964,7 @@ $('vAdd').onclick = () => {
 
 let limitTouched = false;
 function applySettings(){
+  applyTvOptions();
   rebuildVehicles(addedVehicles());
   renderAddedVehicles();
   if (!$('staffPanel').contains(document.activeElement) || document.activeElement !== $('fBay')) renderBayOptions();
@@ -1936,7 +2037,6 @@ async function start(){
   tickClock();
   setInterval(renderBoard, 1000);
   setInterval(tickClock, 1000);
-  setInterval(tvScroll, 50);
 }
 start();
 </script>
