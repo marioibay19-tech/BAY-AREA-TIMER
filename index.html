@@ -143,6 +143,50 @@
   .entry span{flex:1 1 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:2px;}
   .entry .limit-edit{width:80px; padding:5px 6px; font-size:12px; flex:none;}
   .entry button{background:none; border:1px solid var(--hair); border-radius:6px; padding:4px 8px; color:var(--red); cursor:pointer; font-size:12px; flex:none;}
+
+  /* Nearing the time limit */
+  .card.near{border-color:var(--amber);}
+  .near-label{color:var(--amber); font-size:12px; font-weight:600; white-space:nowrap;}
+  .tv-toggle{right:90px;}
+
+  /* ---------- TV display mode (?tv in the link) ---------- */
+  .alert-bar{
+    display:none; background:var(--red); color:#fff; font-weight:600;
+    padding:10px clamp(16px,4vw,40px); font-size:clamp(16px,1.6vw,26px);
+  }
+  body.tv .alert-bar.show{display:block;}
+  body.tv .staff-toggle{display:none;}
+  body.tv .layout{max-width:none;}
+  body.tv .brand .name{font-size:clamp(34px,3.4vw,64px);}
+  body.tv .brand .sub{font-size:clamp(14px,1.2vw,22px);}
+  body.tv .clock{font-size:clamp(40px,4.2vw,80px);}
+  body.tv .section-title{font-size:clamp(26px,2.2vw,40px);}
+  body.tv .bay-grid{grid-template-columns:repeat(auto-fill,minmax(clamp(300px,22vw,460px),1fr)); gap:clamp(14px,1.2vw,24px);}
+  body.tv .card{padding:clamp(18px,1.4vw,28px); gap:clamp(10px,0.8vw,16px); border-width:2px;}
+  body.tv .plate{font-size:clamp(34px,2.8vw,56px);}
+  body.tv .qrow .plate{font-size:clamp(26px,2vw,40px);}
+  body.tv .repair, body.tv .vdesc, body.tv .timebox, body.tv .mechanic-label,
+  body.tv .qrow .waitsince, body.tv .empty{font-size:clamp(15px,1.1vw,22px);}
+  body.tv .mech-chip, body.tv .bay-tag, body.tv .over-label, body.tv .near-label{font-size:clamp(14px,1vw,20px);}
+  body.tv .bar-track{height:clamp(10px,0.7vw,14px);}
+  body.tv .card.over{animation:overPulse 1.6s ease-in-out infinite;}
+  @keyframes overPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(226,84,75,0);}
+    50%{box-shadow:0 0 0 6px rgba(226,84,75,0.45);}
+  }
+  body.tv.idle, body.tv.idle *{cursor:none !important;}
+  .tv-start{
+    display:none; position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:20;
+    background:var(--surface2); color:var(--text); border:1px solid var(--hair); border-radius:24px;
+    padding:12px 22px; font-size:16px; cursor:pointer; font-family:inherit;
+  }
+  body.tv .tv-start.show{display:block;}
+  .tv-exit{
+    display:none; position:fixed; top:12px; right:12px; z-index:20;
+    background:var(--surface2); color:var(--muted); border:1px solid var(--hair);
+    border-radius:20px; padding:8px 14px; font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  body.tv:not(.idle) .tv-exit{display:block;}
 </style>
 </head>
 <body>
@@ -157,6 +201,8 @@
   <div class="clock" id="clock">--:--</div>
 </div>
 
+<div class="alert-bar" id="alertBar"></div>
+
 <div class="layout">
   <div class="panel bays">
     <div class="section-title">In the bay now</div>
@@ -168,7 +214,10 @@
   </div>
 </div>
 
+<button class="staff-toggle tv-toggle" id="tvToggle" title="Full-screen display for the lobby TV">TV mode</button>
 <button class="staff-toggle" id="staffToggle">Staff</button>
+<button class="tv-start" id="tvStart">Tap here (or press any key) for full screen and alert sound</button>
+<button class="tv-exit" id="tvExit">Exit TV mode</button>
 
 <div class="staff-panel" id="staffPanel">
   <div class="staff-sheet">
@@ -338,14 +387,22 @@ function renderBoard(){
   const bayEl = $('bayGrid'), qEl = $('queueList');
 
   bayEl.innerHTML = bay.length ? '' : '<div class="empty">No vehicles in the bay right now.</div>';
+  const overNow = [];
   bay.forEach(e => {
     const elapsed = now - e.since;
     const limitMs = e.limitHrs * 3600000;
     const pct = Math.min(100, (elapsed / limitMs) * 100);
     const over = elapsed > limitMs;
+    const left = limitMs - elapsed;
+    const near = !over && left <= NEAR_MS;
+    if (over) overNow.push(e);
     const card = document.createElement('div');
-    card.className = 'card' + (over ? ' over' : '');
-    const tag = over ? '<span class="over-label">OVER LIMIT</span>' : (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '');
+    card.className = 'card' + (over ? ' over' : near ? ' near' : '');
+    // Keep the pulse smooth even though the card is redrawn every second.
+    if (over) card.style.animationDelay = -(now % 1600) + 'ms';
+    const tag = over ? '<span class="over-label">OVER LIMIT</span>'
+      : near ? '<span class="near-label">' + Math.max(1, Math.ceil(left / 60000)) + ' MIN LEFT</span>'
+      : (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '');
     const mechs = e.mechanics || [];
     card.innerHTML =
       '<div class="card-top"><span class="plate">' + esc(vTitle(e)) + '</span>' + tag + '</div>' +
@@ -369,6 +426,112 @@ function renderBoard(){
       '<div class="waitsince">waiting ' + fmtElapsed(now - e.since) + '</div>';
     qEl.appendChild(row);
   });
+
+  updateAlerts(overNow);
+}
+
+/* ============================================================
+   TV DISPLAY MODE — open the link with ?tv at the end.
+   ============================================================ */
+const NEAR_MS = 15 * 60000;          // "MIN LEFT" warning starts 15 minutes before the limit
+const isTV = () => document.body.classList.contains('tv');
+let alerted = null;                   // ids already chimed for (null until the first draw)
+let audioCtx = null;
+
+function updateAlerts(overNow){
+  const bar = $('alertBar');
+  if (overNow.length) {
+    bar.textContent = 'OVER TIME LIMIT: ' + overNow.map(e => vTitle(e) + (e.bay ? ' (' + e.bay + ')' : '')).join('  ·  ');
+    bar.classList.add('show');
+  } else {
+    bar.classList.remove('show');
+  }
+  const ids = new Set(overNow.map(e => e.id));
+  // Chime once when a vehicle newly goes over. Vehicles already over when the page opens don't chime.
+  if (alerted && overNow.some(e => !alerted.has(e.id)) && isTV()) chime();
+  if (entries.length || alerted) alerted = ids;
+}
+
+function chime(){
+  if (!audioCtx) return;              // sound only works after someone taps the screen once
+  try {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime;
+    [[880, 0], [660, 0.35], [880, 0.7]].forEach(([freq, at]) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t + at);
+      g.gain.exponentialRampToValueAtTime(0.4, t + at + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.3);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t + at); o.stop(t + at + 0.32);
+    });
+  } catch (err) {}
+}
+
+let wakeLock = null;
+async function keepAwake(){
+  try {
+    if ('wakeLock' in navigator && isTV() && document.visibilityState === 'visible') {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch (err) {}
+}
+document.addEventListener('visibilitychange', () => { if (isTV()) keepAwake(); });
+
+function tvActivate(){
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    else if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (err) {}
+  const el = document.documentElement;
+  if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(() => {});
+  keepAwake();
+  $('tvStart').classList.remove('show');
+}
+
+function setTV(on){
+  document.body.classList.toggle('tv', on);
+  // Keep ?tv in the address so a refresh (or a bookmark) stays in TV mode.
+  const params = new URLSearchParams(location.search);
+  params.delete('tv');
+  let q = params.toString();
+  if (on) q = q ? 'tv&' + q : 'tv';
+  try { history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); } catch (err) {}
+  if (on) {
+    $('staffPanel').classList.remove('open');
+    $('tvStart').classList.toggle('show', !document.fullscreenElement || !audioCtx);
+    pokeIdle();
+  } else {
+    $('tvStart').classList.remove('show');
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+    document.body.classList.remove('idle');
+    window.scrollTo(0, 0);
+  }
+}
+
+/* Hide the mouse pointer and Exit button when the mouse sits still. */
+let idleTimer = null;
+function pokeIdle(){
+  document.body.classList.remove('idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { if (isTV()) document.body.classList.add('idle'); }, 3000);
+}
+['mousemove', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { if (isTV()) pokeIdle(); }, {passive:true}));
+
+/* If the board is taller than the screen, scroll slowly down, pause, and jump back up. */
+let scrollPhase = 'top', scrollWait = 0;
+function tvScroll(){
+  if (!isTV()) return;
+  const se = document.scrollingElement || document.documentElement;
+  const max = se.scrollHeight - window.innerHeight;
+  if (max <= 4) { scrollPhase = 'top'; scrollWait = 0; return; }
+  if (scrollPhase === 'top') { if (++scrollWait > 160) { scrollPhase = 'down'; scrollWait = 0; } }
+  else if (scrollPhase === 'down') {
+    window.scrollTo(0, se.scrollTop + 1);
+    if (se.scrollTop >= max - 1) scrollPhase = 'bottom';
+  } else if (++scrollWait > 160) { window.scrollTo(0, 0); scrollPhase = 'top'; scrollWait = 0; }
 }
 
 function buildMechanicSelect(selected){
@@ -513,6 +676,16 @@ function tickClock(){
    4. WIRING
    ============================================================ */
 $('staffToggle').onclick = () => $('staffPanel').classList.add('open');
+$('tvToggle').onclick = () => { setTV(true); tvActivate(); };
+$('tvExit').onclick = () => setTV(false);
+$('tvStart').onclick = tvActivate;
+document.addEventListener('keydown', () => { if (isTV() && $('tvStart').classList.contains('show')) tvActivate(); });
+document.addEventListener('click', ev => {
+  if (isTV() && !audioCtx && ev.target !== $('tvExit')) tvActivate();
+});
+document.addEventListener('fullscreenchange', () => {
+  if (isTV()) $('tvStart').classList.toggle('show', !document.fullscreenElement || !audioCtx);
+});
 $('fClose').onclick = () => $('staffPanel').classList.remove('open');
 
 $('fAdd').onclick = () => {
@@ -591,12 +764,15 @@ async function start(){
     err => banner('Live sync problem: ' + (err && err.code ? err.code : 'unknown') + '. Check firestore.rules and your config.')
   );
 
+  if (new URLSearchParams(location.search).has('tv')) setTV(true);
+
   renderRoster();
   renderBoard();
   renderStaff();
   tickClock();
   setInterval(renderBoard, 1000);
   setInterval(tickClock, 1000);
+  setInterval(tvScroll, 50);
 }
 start();
 </script>
