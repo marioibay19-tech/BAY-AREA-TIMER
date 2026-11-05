@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Open read/write, same as the bid monitoring site.
+    // Anyone with the link can edit the board.
+    match /entries/{id} {
+      allow read, write: if true;
+    }
+    match /meta/{id} {
+      allow read, write: if true;
+    }
+  }
+}
