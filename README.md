@@ -35,7 +35,7 @@ What TV mode shows:
 - **"OVER LIMIT"** (red, pulsing) and a red bar across the top listing every vehicle that is over time.
 - A short **chime** once, when a vehicle first goes over its limit.
 - If there are more vehicles than fit on the screen, each list shows **pages** ("Page 1 of 3") and flips to the next page every 15 seconds. Nothing scrolls.
-- The TV is always in **dark colors**, whatever the TV's own setting.
+- **TV colors:** Night (dark, the default), Day (light), or Auto (Day from 6 AM to 6 PM, Night after). Choose in the Staff panel under **TV display → TV colors**. The TV changes within a few seconds.
 - The top of the board shows the counts: in the bay, waiting, on hold, and scheduled today.
 - **Choose what the TV shows:** in the Staff panel under **TV display**, untick what you don't want on the lobby TV (mechanic names, property no., make & model, work, remarks, date in). This only changes the TV; staff screens still show everything.
 
@@ -83,6 +83,9 @@ If a vehicle isn't found when you search:
 2. Type the **Property no.**, the **Plate no.** (or N/A), the **Make & model**, and the **End-user** if you know it.
 3. Click **Add to vehicle list**. It can now be searched on every screen.
 - Typing a property no. that is already in the list replaces its details, for example a new end-user. Click **Remove** to go back to the original details.
+
+## Day and Night colors
+On staff computers and phones, click the small button under the clock to switch between **☀ Day** (light), **☾ Night** (dark) and **◐ Auto** (Day from 6 AM to 6 PM, Night after). Each device remembers its own choice.
 
 ## Staff PIN
 - The **Staff** button, dragging on the board, and Undo/Delete/Export on the Finished page need the staff PIN. Looking at the board and the Finished list does not.
