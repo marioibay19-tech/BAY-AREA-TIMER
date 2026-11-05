@@ -162,6 +162,7 @@
   .fin-toggle{right:184px;}
   .entry button.done{color:var(--green); border-color:var(--green); font-weight:600;}
   .entry button.edit{color:var(--blue); border-color:var(--blue); font-weight:600;}
+  .entry button.move{color:#1B1D21; background:var(--amber); border-color:var(--amber); font-weight:600; padding:6px 10px;}
   .entry.editing{border-color:var(--amber); box-shadow:0 0 0 2px var(--amber-dim);}
   .entry .entry-info{flex:1 1 100%; color:var(--muted); font-size:12px; line-height:1.45; margin-bottom:4px;}
   .entry .entry-info b{color:var(--text); font-weight:500;}
@@ -802,6 +803,18 @@ function renderStaff(){
       (e.remarks ? '<br>Remarks: <b>' + esc(e.remarks) + '</b>' : '');
     row.appendChild(info);
 
+    // One-click moves (easier than dragging, and works on phones and tablets).
+    const moves = e.status === 'sched' ? [['wait', 'Arrived → Waiting'], ['bay', 'Arrived → In bay']]
+      : e.status === 'wait' ? [['bay', 'Move to In bay']]
+      : [['wait', 'Move to Waiting']];
+    moves.forEach(([target, label]) => {
+      const mv = document.createElement('button');
+      mv.className = 'move';
+      mv.textContent = label;
+      mv.onclick = () => moveTo(e, target);
+      row.appendChild(mv);
+    });
+
     const editBtn = document.createElement('button');
     editBtn.className = 'edit';
     editBtn.textContent = 'Edit';
@@ -833,10 +846,10 @@ function renderStaff(){
     (e.status === 'sched' ? colSched : e.status === 'wait' ? colWait : colBay).appendChild(row);
   });
 
-  if (!entries.some(e => e.status === 'sched')) colSched.innerHTML = '<div class="empty-col">Drop a vehicle here to schedule it, or add one with "Scheduled" chosen.</div>';
+  if (!entries.some(e => e.status === 'sched')) colSched.innerHTML = '<div class="empty-col">No scheduled vehicles. Add one above with "Scheduled" chosen.</div>';
 
-  if (!entries.some(e => e.status === 'wait')) colWait.innerHTML = '<div class="empty-col">Drop a vehicle here to move it to waiting.</div>';
-  if (!entries.some(e => e.status === 'bay')) colBay.innerHTML = '<div class="empty-col">Drop a vehicle here to move it to a bay.</div>';
+  if (!entries.some(e => e.status === 'wait')) colWait.innerHTML = '<div class="empty-col">No vehicles waiting.</div>';
+  if (!entries.some(e => e.status === 'bay')) colBay.innerHTML = '<div class="empty-col">No vehicles in the bay.</div>';
 
   [[colSched, 'sched'], [colWait, 'wait'], [colBay, 'bay']].forEach(([col, target]) => {
     col.ondragover = ev => { ev.preventDefault(); col.classList.add('dragover'); };
@@ -846,15 +859,21 @@ function renderStaff(){
       col.classList.remove('dragover');
       const id = parseFloat(ev.dataTransfer.getData('text/plain'));
       const e = entries.find(x => x.id === id);
-      if (!e || e.status === target) return;
-      if (e.status === 'sched') e.dateIn = todayStr();         // it arrived today
-      if (target === 'sched' && !e.schedDate) e.schedDate = todayStr();
-      e.status = target;
-      e.since = Date.now();
-      store.saveEntry(e);
-      renderBoard(); renderStaff();
+      if (e) moveTo(e, target);
     };
   });
+}
+
+/* Move a vehicle to another list (button or drag). Moving restarts its timer. */
+function moveTo(e, target){
+  if (!e || e.status === target) return;
+  if (editingId === e.id) endEdit();
+  if (e.status === 'sched') e.dateIn = todayStr();         // it arrived today
+  if (target === 'sched' && !e.schedDate) e.schedDate = todayStr();
+  e.status = target;
+  e.since = Date.now();
+  store.saveEntry(e);
+  renderBoard(); renderStaff();
 }
 
 /* ============================================================
