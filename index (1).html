@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bay Status — Equipment Management Division</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1B1D21; --surface:#24262B; --surface2:#2C2F35;
+    --text:#ECEDEF; --muted:#8B909A; --hair:#3A3D44;
+    --amber:#E8A33D; --amber-dim:#4A3A22;
+    --blue:#5B8DEF; --blue-dim:#22304F;
+    --red:#E2544B; --red-dim:#4A2422;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#EEF0F3; --surface:#FFFFFF; --surface2:#F4F5F7;
+      --text:#1B1D21; --muted:#666B75; --hair:#DADDE2;
+      --amber-dim:#FCEBCE; --blue-dim:#DCE6FC; --red-dim:#FBDBD8;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1B1D21; --surface:#24262B; --surface2:#2C2F35; --text:#ECEDEF; --muted:#8B909A; --hair:#3A3D44;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%; margin:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100%;
+  }
+  .head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px clamp(16px,4vw,40px);
+    padding-top:calc(20px + env(safe-area-inset-top,0px));
+    border-bottom:1px solid var(--hair);
+  }
+  .brand{display:flex; flex-direction:column; gap:2px;}
+  .brand .name{font-family:'Bebas Neue',sans-serif; font-size:clamp(24px,3.2vw,34px); letter-spacing:0.5px; line-height:1;}
+  .brand .sub{color:var(--muted); font-size:13px;}
+  .clock{font-family:'Bebas Neue',sans-serif; font-size:clamp(28px,4vw,42px); letter-spacing:1px;}
+  .layout{
+    display:grid; grid-template-columns:1fr; gap:0;
+    max-width:1400px; margin:0 auto;
+  }
+  @media (min-width:900px){
+    .layout{grid-template-columns:1.7fr 1fr;}
+    .queue{border-left:1px solid var(--hair);}
+  }
+  .panel{padding:clamp(16px,3vw,32px);}
+  .section-title{
+    font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.5px;
+    color:var(--muted); margin:0 0 16px 0;
+  }
+  .bay-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:14px;
+  }
+  .card{
+    background:var(--surface); border:1px solid var(--hair); border-radius:10px;
+    padding:16px 18px; display:flex; flex-direction:column; gap:10px;
+  }
+  .card.over{border-color:var(--red);}
+  .card-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+  .plate{font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px;}
+  .bay-tag{
+    font-size:11px; font-weight:600; color:var(--amber); background:var(--amber-dim);
+    border-radius:5px; padding:2px 8px; white-space:nowrap;
+  }
+  .repair{color:var(--muted); font-size:13px;}
+  .vdesc{color:var(--text); font-size:13px; line-height:1.35; opacity:.85;}
+  .mechanic{display:flex; justify-content:space-between; gap:8px; font-size:13px; color:var(--muted);}
+  .mechanic strong{color:var(--text); font-weight:600; text-align:right;}
+  .mechanic-block{display:flex; flex-direction:column; gap:6px;}
+  .mechanic-label{font-size:12px; color:var(--muted);}
+  .mechanic-names{display:flex; flex-wrap:wrap; gap:6px;}
+  .mech-chip{
+    background:var(--surface2); color:var(--text); font-size:12px; font-weight:500;
+    border-radius:6px; padding:3px 9px;
+  }
+  .timebox{display:flex; justify-content:space-between; font-size:13px; color:var(--muted);}
+  .timebox strong{color:var(--text); font-weight:600;}
+  .bar-track{height:8px; border-radius:5px; background:var(--surface2); overflow:hidden;}
+  .bar-fill{height:100%; border-radius:5px; background:var(--amber); transition:width .4s ease;}
+  .bar-fill.over{background:var(--red);}
+  .over-label{color:var(--red); font-size:12px; font-weight:600;}
+  .queue-list{display:flex; flex-direction:column; gap:10px;}
+  .qrow{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--surface); border:1px solid var(--hair); border-radius:10px;
+    padding:12px 16px;
+  }
+  .qrow .plate{font-size:20px;}
+  .qrow .waitsince{color:var(--muted); font-size:12px;}
+  .empty{color:var(--muted); font-size:14px; padding:12px 0;}
+  .staff-toggle{
+    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom,0px)); right:16px;
+    background:var(--surface2); color:var(--muted); border:1px solid var(--hair);
+    border-radius:20px; padding:8px 14px; font-size:12px; cursor:pointer;
+  }
+  .staff-panel{
+    position:fixed; inset:0; background:rgba(0,0,0,0.55); display:none;
+    align-items:flex-end; justify-content:center; z-index:10;
+  }
+  .staff-panel.open{display:flex;}
+  .staff-sheet{
+    background:var(--bg); border-top:1px solid var(--hair); width:100%; max-width:560px;
+    max-height:82vh; overflow-y:auto; border-radius:16px 16px 0 0; padding:20px;
+    padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  }
+  .staff-sheet h3{font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:0.5px; margin:0 0 12px;}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;}
+  input,select{
+    width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--hair);
+    background:var(--surface); color:var(--text); font-size:14px; font-family:inherit;
+  }
+  .full{grid-column:1/-1;}
+  .btnrow{display:flex; gap:8px; margin-top:10px;}
+  button.action{
+    flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;
+    font-weight:600; font-size:14px;
+  }
+  .add{background:var(--amber); color:#1B1D21;}
+  .close{background:var(--surface2); color:var(--text);}
+  .entry-list{display:flex; flex-direction:column; gap:8px; margin-top:14px;}
+  .entry-cols{display:flex; flex-direction:column; gap:16px; margin-top:14px;}
+  .col-label{font-size:12px; color:var(--muted); margin-bottom:6px;}
+  .entry-col{
+    display:flex; flex-direction:column; gap:8px;
+    background:var(--surface2); border:1px dashed var(--hair); border-radius:10px;
+    padding:10px; min-height:48px;
+  }
+  .entry-col.dragover{border-color:var(--amber); background:var(--amber-dim);}
+  .entry-col .empty-col{color:var(--muted); font-size:12px; padding:4px 2px;}
+  .entry{cursor:grab;}
+  .entry:active{cursor:grabbing;}
+  .entry{display:flex; flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--hair); border-radius:8px; padding:8px 12px; font-size:13px;}
+  .entry span{flex:1 1 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:2px;}
+  .entry .limit-edit{width:80px; padding:5px 6px; font-size:12px; flex:none;}
+  .entry button{background:none; border:1px solid var(--hair); border-radius:6px; padding:4px 8px; color:var(--red); cursor:pointer; font-size:12px; flex:none;}
+</style>
+</head>
+<body>
+
+<div id="modeBanner" style="display:none;background:var(--amber-dim);color:var(--amber);font-size:12px;padding:6px 16px;text-align:center;"></div>
+
+<div class="head">
+  <div class="brand">
+    <div class="name">BAY STATUS</div>
+    <div class="sub">Equipment Management Division</div>
+  </div>
+  <div class="clock" id="clock">--:--</div>
+</div>
+
+<div class="layout">
+  <div class="panel bays">
+    <div class="section-title">In the bay now</div>
+    <div class="bay-grid" id="bayGrid"></div>
+  </div>
+  <div class="panel queue">
+    <div class="section-title">Waiting</div>
+    <div class="queue-list" id="queueList"></div>
+  </div>
+</div>
+
+<button class="staff-toggle" id="staffToggle">Staff</button>
+
+<div class="staff-panel" id="staffPanel">
+  <div class="staff-sheet">
+    <h3>Update board</h3>
+    <div class="row">
+      <input id="fPlate" class="full" list="vehicleList" autocomplete="off" placeholder="Search vehicle: property no., plate, description or name">
+      <datalist id="vehicleList"></datalist>
+      <select id="fRepair" class="full">
+        <option>Preventive Maintenance</option>
+        <option>Corrective Maintenance</option>
+        <option>Express Maintenance</option>
+      </select>
+    </div>
+    <div class="row">
+      <select id="fStatus">
+        <option value="bay">In bay</option>
+        <option value="wait">Waiting</option>
+      </select>
+      <input id="fLimit" type="number" placeholder="Time limit (hrs)" value="2">
+    </div>
+    <div class="row">
+      <input id="fBay" placeholder="Bay (e.g. Bay 1)">
+      <select id="fMechanic" class="full" multiple size="4"></select>
+    </div>
+    <div class="btnrow">
+      <button class="action add" id="fAdd">Add to board</button>
+      <button class="action close" id="fClose">Close</button>
+    </div>
+    <div class="col-label" style="margin-top:16px;">Mechanics roster</div>
+    <div class="row">
+      <input id="fNewMechanic" class="full" placeholder="Add a mechanic's name">
+    </div>
+    <div class="btnrow">
+      <button class="action close" id="fAddMechanic">Add to roster</button>
+    </div>
+    <div class="entry-list" id="rosterList"></div>
+    <div class="entry-cols">
+      <div>
+        <div class="col-label">Waiting</div>
+        <div class="entry-col" id="colWait"></div>
+      </div>
+      <div>
+        <div class="col-label">In bay</div>
+        <div class="entry-col" id="colBay"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ============================================================
+   1. FIREBASE CONFIG — paste your web app config here.
+      (These values are meant to be public; security comes from
+      firestore.rules, not from hiding the config.)
+      Leave apiKey empty to run in local-only demo mode.
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBfL_LTNUoO28ls9KEsKreMdXHwfHFqndo",
+  authDomain: "bid-monitoring-f1308.firebaseapp.com",
+  projectId: "bid-monitoring-f1308",
+  appId: "1:130105353479:web:38f703107be7f274a8d1a2"
+};
+
+const DEFAULT_ROSTER = ['R. Santos', 'J. Cruz', 'M. Reyes', 'A. Dela Cruz', 'L. Bautista'];
+
+/* Vehicle registry: property no., plate (or N/A), description, assigned person */
+const VEHICLES = [{"no":"F5-334","plate":"N/A","desc":"Tadano Crane Truck Mtd. Nissan","who":"Jersel Froilan B. Rimando"},{"no":"F5-372","plate":"N/A","desc":"Rough Terrain Crane, 80 tons","who":"Jersel Froilan B. Rimando"},{"no":"F16-111","plate":"N/A","desc":"Crawler Type , Hidromek","who":"Alvin-Barrey L. Taguicana"},{"no":"F16-208","plate":"N/A","desc":"Kobelco SK-200 Hydraulic Excavator","who":"Rachelle G. Lomague"},{"no":"F16-211","plate":"N/A","desc":"Kobelco SK-200 Hydraulic Excavator","who":"Jersel Froilan B. Rimando"},{"no":"F16-215","plate":"N/A","desc":"KATO HD820, Hydraulic Excavator, Crawler Type","who":"Jersel Froilan B. Rimando"},{"no":"G1-200","plate":"N/A","desc":"SEIMITSU GENSET","who":"Dianne Jean D. Eguilos"},{"no":"G1-607","plate":"N/A","desc":"Diesel Generator, Powerhouse PWH-12000E-DST","who":"Jersel Froilan B. Rimando"},{"no":"H1-2349","plate":"SAN-444","desc":"Ford Fiera","who":"Alvin-Barrey L. Taguicana"},{"no":"H1-2637","plate":"SAN-885","desc":"","who":""},{"no":"H1-3303","plate":"SBP-800","desc":"","who":""},{"no":"H1-3346","plate":"SBP-804","desc":"","who":""},{"no":"H1-4074","plate":"SEW-323","desc":"Mitsubishi Pick-up L200","who":"Myrna T. Dulay"},{"no":"H1-4445","plate":"SGY-858","desc":"Mitsubishi L200 Pick-up, D/C, 4WD","who":"Mary Rose N. Milo"},{"no":"H1-4469","plate":"SBY-236","desc":"Mitsubishi Pick-up L200 Single Cab","who":"Bon Carlo P. Dugayo"},{"no":"H1-4577","plate":"SFH-347","desc":"Nissan Frontier, Pick-up Double Cab","who":"Arturo F. Prepose"},{"no":"H1-4624","plate":"SGS-838","desc":"Nissan Frontier, Double Cab, Pick-up, Mdl. 2003","who":"Kim Angelo K. Soy"},{"no":"H1-4972","plate":"SFH-592","desc":"Toyota Hi-Lux, 3.0L 4x4, Pick-up","who":"Mary Rose N. Milo"},{"no":"H1-4973","plate":"SEW-219","desc":"Land Rover, Pick-up","who":"Mary Rose N. Milo"},{"no":"H1-5181","plate":"SKA-710","desc":"Toyota Hilux 3.0L G 4x4, Pick-up","who":"Renalyn Oller"},{"no":"H1-5191","plate":"SKA-730","desc":"Toyota Hilux JMT 4x2, Pick-up","who":"Arturo F. Prepose"},{"no":"H1-5212","plate":"SKA-714","desc":"Toyota Hi-Lux, 4x4","who":"Mary Rose N. Milo"},{"no":"H1-5213","plate":"SKA-716","desc":"Hyundai Grand Starex GL Van","who":"Clarence B. Rimando"},{"no":"H1M-5219","plate":"SKA-731","desc":"Nissan Navara 4x2","who":"Allan N. Hufana"},{"no":"H1-5340","plate":"SHY-774","desc":"Nissan Frontier Navara, Pick-up","who":"John Lionel E. Ledda"},{"no":"H1-5886","plate":"XSS-651","desc":"Nissan Frontier, Pick-up Mdl. 2005","who":"Arturo F. Prepose"},{"no":"H1-5887","plate":"AEW-851 (013601)","desc":"Mitsubishi Montero Sport G.","who":"Clarence B. Rimando"},{"no":"H1M-5888","plate":"POZ-373 (013603)","desc":"Mitsubishi Strada GLX 2.5 Pick-Up","who":"Allan N. Hufana"},{"no":"H1-5889","plate":"PUI-530 (013610)","desc":"Toyota Innova 2.5J DSL M/T","who":"Mary Rose N. Milo"},{"no":"H1-5890","plate":"WMP-140","desc":"Mitsubishi L200, Pick-up","who":"Arturo F. Prepose"},{"no":"H1-5891","plate":"RNF-827","desc":"Isuzu DMax, 4x4, Double Cab","who":"Arturo F. Prepose"},{"no":"H1-5896","plate":"XMJ-720","desc":"Toyota, Hilux 4x2 Dlx, Mdl. 2003","who":"Arturo F. Prepose"},{"no":"H1-5898","plate":"ABG-2815","desc":"Isuzu Dmax, 4x4 MT LS","who":"Willer M. Bince"},{"no":"H1M-5899","plate":"UOY-171","desc":"Toyota Hilux 2.5 LJ 4X, Pick-up","who":"Allan N. Hufana"},{"no":"H1-5902","plate":"NQC-313","desc":"Mitsubishi Strada GLX 2.5 Pick-Up","who":"Willer M. Bince"},{"no":"H1M-5944","plate":"ABI-1115","desc":"Mitsubishi L300 Exceed 2.5 UV","who":"Edilberto F. Rosario"},{"no":"H1-6073","plate":"AVA 7597","desc":"Toyota Pick-up Hi Lux 2.5L G 4x4","who":"Mario Martin Caesar G. Atiga II"},{"no":"H1-6074","plate":"AVA-6542","desc":"2015 Mitsubishi Strada GLS V.2","who":"Dexter L. Cavaneyro"},{"no":"H1-6129","plate":"ABI-1586","desc":"Nissan, Pick-up MP300 Navara 2","who":"Willer M. Bince"},{"no":"H1-6248","plate":"SCD-1655/B1-K147","desc":"Mitsubishi L300 FB Body Exceed 2.5L","who":"Jersel Froilan B. Rimando"},{"no":"H1-6509","plate":"FO-G953","desc":"Nissan NV 350Urvan 2.5","who":"Reina Mai R. Ruiz"},{"no":"H1-6510","plate":"FO-L408","desc":"Nissan NV 350Urvan 2.5","who":"Clarence B. Rimando"},{"no":"H1-6846","plate":"AAB-5586","desc":"Toyota Hilux 3.0L G 4X","who":"Jeffrey G. Mendoza"},{"no":"H1-7436","plate":"NDY-6792","desc":"Toyota Hilux, 2.8L 4x4 Pick up","who":"Julius M. Gaceta"},{"no":"H1-7802","plate":"ICL-1759","desc":"Toyota Hilux 2.4L G 4x2, Pick-up, D/cab","who":"Jose B. Eguilos, Jr."},{"no":"H1-8552","plate":"ARA-1584","desc":"Ford Ranger DBL 2.2L","who":"Larry Angelo L. Flores"},{"no":"H1-8878","plate":"ALA-6489","desc":"Toyota Hilux 2.5L J 4x2 M/T","who":"Arturo F. Prepose"},{"no":"H1-8879","plate":"CAM-6125","desc":"Toyota Rush 1.5G A/T","who":"Dexter D. Lomboy"},{"no":"H1-8912","plate":"NFQ-8536/ B9 B547","desc":"Mitsubishi L300 Exceed C/C 2.2D M/T","who":"Mary Rose N. Milo"},{"no":"H1-8913","plate":"NET-1121/ S2 J025","desc":"Toyota Hilux 2.4L 4x2 G M/T","who":"Rachelle G. Lomague"},{"no":"H1-8914","plate":"NET-7279/ S3 I963","desc":"Toyota Hilux 2.4L 4x2 G A/T","who":"Dianne Jean D. Eguilos"},{"no":"H1-8931","plate":"YAA-3599 / C1 0444","desc":"Ford Ranger 3.2L Wildtrak 4x4 AT","who":"Allan N. Hufana"},{"no":"H1-9108","plate":"AEX-373","desc":"Toyota Hilux 2.5L 4x2 Pick-Up","who":"Allan N.Hufana"},{"no":"H1-9133","plate":"NGF-2129","desc":"Mitsubishi L300 C/C 2.2D M FB","who":"Julian M. Narvas Jr."},{"no":"H1-9481","plate":"ABI-1148","desc":"Mitsubishi L300 Deluxe 2.5 FB","who":"Alexander Paul B. Villanueva"},{"no":"H1-9528","plate":"ABS-6277","desc":"Mitsubishi L300 Deluxe 2.5 FB","who":"Julian M. Narvas, Jr."},{"no":"H1-9529","plate":"IAE-4278","desc":"Toyota Hilux 2.4L 4x2","who":"Janette G. Ancheta"},{"no":"H1-9639","plate":"IDI-2146","desc":"Mitsubishi L300 Deluxe 2.5 FB MT","who":"Jose B. Eguilos, Jr."},{"no":"H1-9640","plate":"IDI-4012","desc":"Mitsubishi L300 Deluxe 2.5 FB MT","who":"Julian M. Narvas, Jr."},{"no":"H1-9778","plate":"ABI-2969","desc":"Mitsubishi L300 Deluxe 2.5 , Mdl. 2015","who":"Maria Monina P. Delizo"},{"no":"H1-9795","plate":"IAE-3961","desc":"Toyota Hilux 2.4L 4x4 J MT","who":"Eugene Y. Del Rosario"},{"no":"H1-9796","plate":"IAE-3150/S6D306","desc":"Toyota Hilux 2.4L 4x4 J MT","who":"Myrna T. Dulay"},{"no":"H1-9797","plate":"IAE-3463/S7R614","desc":"Toyota Hilux 2.4L 4x4 J MT","who":"Pablito R. Laurido, Jr."},{"no":"H1-9865","plate":"IAE-3604","desc":"Toyota Hilux 2.4L 4x4 J MT 2022","who":"Eugenio Q. Arquero IV"},{"no":"H1-9866","plate":"IAE-4077","desc":"Toyota Hilux 2.4L 4x4 J MT 2022","who":"Vilmaflor G. Gascon"},{"no":"H1-9868","plate":"IAE-8325","desc":"Toyota Hilux 2.8 Conquest 2023","who":"Chriselda E. Nicer"},{"no":"H1-9870","plate":"NFO-7614","desc":"Toyota Hilux 2.8L GR-S 4x4 AT - 0E-011 2023","who":"Dexter L. Cavaneyro"},{"no":"H1-9949","plate":"NIJ-8269","desc":"Toyota Hiace 2.8L GL Grandia A/T","who":"Mary Rose N. Milo"},{"no":"H1-10098","plate":"IAE-3602","desc":"Toyota Hilux 2.4L 4x4 2022","who":"Francisco B. Rebuldela Jr."},{"no":"H1-10099","plate":"IAE-8307","desc":"Isuzu D-Max 3.0 4x4 L","who":"Prima C. Laaguen"},{"no":"H1-10141","plate":"IAD-3667","desc":"Nissan Navarra 2.5 VL 4X4 AT","who":"Willer M. Bince"},{"no":"H1-10172","plate":"IAC-4705","desc":"Nissan Navarra 2.5 L","who":"Annalisa P. Simangan"},{"no":"H1-10226","plate":"IAE-3379","desc":"Toyota Hilux 2.4L 4x4 J MT","who":"Mario Martin Caesar G. Atiga II"},{"no":"H1-10228","plate":"IAE-9056","desc":"Isuzu D-Max 3.0 4x4 L","who":"Leila L. Collado"},{"no":"H1-10418","plate":"IAF-9379","desc":"Toyota HILUX 2.4 J 4x4 M/T","who":"Mario Martin Caesar G. Atiga II"},{"no":"H1-10419","plate":"IAF-9382","desc":"Toyota HILUX 2.4 J 4x4 M/T","who":"Mario Martin Caesar G. Atiga II"},{"no":"H1-10454","plate":"IAF-8234","desc":"Toyota HILUX 2.8 Conquest 4X4 AT","who":"Eugene Y. Del Rosario"},{"no":"H1-10499","plate":"IAE-9393","desc":"Toyota Fortuner2.4 G 4X2 A/T -3Y-008","who":"Clarence B. Rimando"},{"no":"H1-10584","plate":"IAF-8233","desc":"Hilux 2.8 Conquest 4X4 AT","who":"Arturo F. Prepose"},{"no":"H1-10589","plate":"NKM-3113","desc":"Toyota Hilux 2.4G 4X2 AT","who":"Alvin Barrey L. Taguicana"},{"no":"H1-10590","plate":"NKM-3409","desc":"Toyota Hilux 2.4G 4X2 AT","who":"Jasmin T. Palabay"},{"no":"H1-10591","plate":"NKM-3434","desc":"Toyota Hilux 2.4G 4X2 AT","who":"Jersel Froilan B. Rimando"},{"no":"H1-10616","plate":"NKS-4907","desc":"Toyota Hilux 2.4L 4x2 G A/T","who":"Jonalyn V. Dawey"},{"no":"H1-10718","plate":"NFO-9432","desc":"Toyota Innova 2.8 E DI","who":"Mary Rose N. Milo"},{"no":"H1-10737","plate":"IAE-9540","desc":"Toyota Hilux 2.8L Conquest 4x4 A/T","who":"Abraham A. Tinaza"},{"no":"EH1-2","plate":"SCA-2102","desc":"Foton Tunland V9 4X4 AT Hybrid","who":"Bryan P. Fernandez"},{"no":"EH1-19","plate":"SNG-1114","desc":"Foton Tunland V9 4x4 AT Mild Hybrid Electric Vehicle (MHEV)","who":"Myrna T. Dulay"},{"no":"EH1-20","plate":"SNG-1123","desc":"Foton Tunland V9 4X4 AT Hybrid","who":"Bon Carlo P. Dugayo"},{"no":"EH1-24","plate":"SNG-1125","desc":"Foton Tunland V9 4x4 AT Hybrid","who":"Charlie O. Sibaen"},{"no":"EH1-28","plate":"NNV-2844","desc":"Foton Tunland V9 4X4 AT Hybrid","who":"Kim Angelo K. Soy"},{"no":"H2-306","plate":"ACN-1049","desc":"Isuzu Elf Dropside Truck w/ Crane","who":"Arturo F. Prepose"},{"no":"H2-460","plate":"JOB-337 (SNA-6473)","desc":"Stake Truck, Hino Dropside","who":"Mary Rose N. Milo"},{"no":"H2-591","plate":"D2-R605","desc":"Isuzu NQR75L Boom Truck Crane, 2022","who":"Arturo F. Prepose"},{"no":"H3-6899","plate":"JM-9537","desc":"Hino FG8JP7A, 1-Way, 4x2 5.5 cu.m., Dump Truck","who":"Dianne Jean D. Eguilos"},{"no":"H3-6908","plate":"JM-9536","desc":"Hino FG8JP7A, 1-Way, 4x2 5.5 cu.m., Dump Truck","who":"Dianne Jean D. Eguilos"},{"no":"H3-7187","plate":"D2-J296","desc":"Isuzu FVR34 (Euro 4)","who":"Dianne Jean D. Eguilos"},{"no":"H3-7192","plate":"SND-4727","desc":"Hino FG8JP7A Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7193","plate":"SND-4728","desc":"Hino FG8JP7A Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7208","plate":"SNN-3968","desc":"Hino FG8JP7A Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7209","plate":"SNN-3969","desc":"Hino FG8JP7A, 1-Way, 4x2 5.5 cu.m., Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7210","plate":"SNN-3970","desc":"Hino Dumptruck FG8JJ7 Dump Truck","who":"Alvin-Barrey L. Taguicana"},{"no":"H3-7211","plate":"SNN-3971","desc":"Hino FG8JP7A, 1-Way, 4x2 5.5 cu.m., Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7238","plate":"SNN-2147","desc":"Isuzu FVR34 Q, 5.5 CU. M. Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H4-154","plate":"JM-5676","desc":"Hino SS2PKUA / Soosung 50T Bed, Prime Mover with low Bed Trailer","who":"Bon Carlo P. Dugayo"},{"no":"H4-155","plate":"JM5677","desc":"Hino SS2PKUA / Soosung 50T Bed, Prime Mover with low Bed Trailer","who":"Alvin-Barrey L. Taguicana"},{"no":"H4-186","plate":"D2-Q018","desc":"Prime Mover with Low Bed Trailer","who":"Jersel Froilan B. Rimando"},{"no":"H6-153","plate":"JM-9105","desc":"Hino FC9JJTA, Water Tank Truck","who":"Mary Rose N. Milo"},{"no":"H12-44","plate":"NP-1405","desc":"Mitsubishi Rosa Super Long 3.9L (30 seater)","who":"Mary Rose N. Milo"},{"no":"H14-6","plate":"1312-00000445299","desc":"Wrecker Truck w/ Crane","who":"Jersel Froilan B. Rimando"},{"no":"H16-12","plate":"SNI-4203","desc":"MOOG MBL 1800 on Scania Truck Chassis","who":"Jersel Froilan B. Rimando"},{"no":"H17-10","plate":"N/A","desc":"Truck, Mounted Flood Mitigation","who":"Jersel Froilan B. Rimando"},{"no":"H21-27","plate":"N/A","desc":"Giant G5000, Telehandler w/ Earth Bucket","who":"Jersel Froilan B. Rimando"},{"no":"J1-201","plate":"N/A","desc":"Lowbed Trailer, 1000kgs. Cap.","who":"Alvin-Barrey L. Taguicana"},{"no":"J1-202","plate":"N/A","desc":"Lowbed Trailer, 50T Bed","who":"Bon Carlo P. Dugayo"},{"no":"J1-263","plate":"N/A","desc":"Lowbed Trailer, CLW9403TPB","who":"Jersel Froilan B. Rimando"},{"no":"J6-48","plate":"N/A","desc":"Trailer Mounted Tower Floodlight, Atlas COPCP Hilight, Mdl. 2019 V4","who":"Dianne Jean D. Eguilos"},{"no":"J6-49","plate":"N/A","desc":"Trailer Mounted Tower Floodlight, Atlas COPCP Hilight, Mdl. 2019 V4","who":"Dianne Jean D. Eguilos"},{"no":"L1-1192","plate":"N/A","desc":"Komatzu Bulldozer, D65A-6","who":"Alvin-Barrey L. Taguicana"},{"no":"L1-1717","plate":"N/A","desc":"SU D65EX-16 Tractor Crawler","who":"Alvin-Barrey L. Taguicana"},{"no":"L1-1718","plate":"N/A","desc":"TDM15M Extra, Tractor Crawler","who":"Alvin-Barrey L. Taguicana"},{"no":"L2-1719","plate":"N/A","desc":"Wheel Loader, Komatsu WA320-6","who":"Alvin-Barrey L. Taguicana"},{"no":"L2-1458","plate":"N/A","desc":"Wheel Loader,Foton,Mdl. FL936F","who":"Alvin-Barrey L. Taguicana"},{"no":"LX-135","plate":"N/A","desc":"Backhoe Loader, MST 544S","who":"Rachelle G. Lomague"},{"no":"K3-19","plate":"N/A","desc":"Watermaster 18, Classic IV (SDA-21)","who":"Francis P. Albano"},{"no":"K4-33","plate":"N/A","desc":"Doosan (Amphibious Excavator)","who":"Adrian Christian C. Angadol"},{"no":"T1-106","plate":"N/A","desc":"STIHL MS440 24\", Chainsaw","who":"Rino G. Mazon"},{"no":"T1-107","plate":"N/A","desc":"STIHL MS440 24\", Chainsaw","who":"Rino G. Mazon"}];
+const FB_VER = '10.14.1';
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clean = o => JSON.parse(JSON.stringify(o));
+
+/* Vehicle helpers */
+const isNA = p => !p || String(p).trim().toUpperCase() === 'N/A';
+// Big label on the board: plate if it has one, otherwise the property number.
+const vTitle = e => !isNA(e.plate) ? e.plate : (e.vno || e.plate || '');
+const vLabel = v => v.no + (isNA(v.plate) ? '' : ' — ' + v.plate) + (v.desc ? ' — ' + v.desc : '');
+const BY_LABEL = {};
+VEHICLES.forEach(v => { BY_LABEL[vLabel(v)] = v; });
+function findVehicle(text){
+  const t = String(text || '').trim();
+  if (BY_LABEL[t]) return BY_LABEL[t];
+  const u = t.toUpperCase();
+  return VEHICLES.find(v => v.no.toUpperCase() === u || (!isNA(v.plate) && v.plate.toUpperCase() === u)) || null;
+}
+
+/* ============================================================
+   2. STORAGE — Firestore (shared, live) or localStorage (demo)
+   ============================================================ */
+async function cloudStore(){
+  const base = 'https://www.gstatic.com/firebasejs/' + FB_VER;
+  const appMod = await import(base + '/firebase-app.js');
+  const fs = await import(base + '/firebase-firestore.js');
+  const app = appMod.initializeApp(FIREBASE_CONFIG);
+  const db = fs.getFirestore(app);
+  const col = fs.collection(db, 'entries');
+  const rosterRef = fs.doc(db, 'meta', 'roster');
+  return {
+    mode: 'cloud',
+    subscribe(onEntries, onRoster, onError){
+      fs.onSnapshot(col, snap => onEntries(snap.docs.map(d => d.data())), onError);
+      fs.onSnapshot(rosterRef, s => onRoster(s.exists() ? (s.data().names || []) : null), onError);
+    },
+    saveEntry: e => fs.setDoc(fs.doc(db, 'entries', String(e.id)), clean(e)),
+    removeEntry: id => fs.deleteDoc(fs.doc(db, 'entries', String(id))),
+    saveRoster: names => fs.setDoc(rosterRef, { names: names })
+  };
+}
+
+function localStore(){
+  const K = 'bayBoardEntries2', R = 'bayBoardRoster2';
+  const read = (k, fallback) => {
+    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
+  };
+  const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} };
+  let list = read(K, null);
+  if (!list) {
+    const now = Date.now();
+    list = [
+      {id:1, plate:'SFC-1042', repair:'Preventive Maintenance', status:'bay', since: now - 45*60000, limitHrs:2, bay:'Bay 1', mechanics:['R. Santos']},
+      {id:2, plate:'EMD-0087', repair:'Corrective Maintenance', status:'bay', since: now - 130*60000, limitHrs:2, bay:'Bay 2', mechanics:['J. Cruz','M. Reyes']},
+      {id:3, plate:'RWL-2201', repair:'Express Maintenance', status:'wait', since: now - 10*60000, limitHrs:1},
+      {id:4, plate:'QAH-3315', repair:'Corrective Maintenance', status:'wait', since: now - 25*60000, limitHrs:3}
+    ];
+    write(K, list);
+  }
+  return {
+    mode: 'local',
+    subscribe(onEntries, onRoster){
+      const push = () => { onEntries(read(K, [])); onRoster(read(R, null)); };
+      window.addEventListener('storage', push);
+      push();
+    },
+    saveEntry(e){
+      const cur = read(K, []);
+      const i = cur.findIndex(x => x.id === e.id);
+      if (i >= 0) cur[i] = clean(e); else cur.push(clean(e));
+      write(K, cur);
+    },
+    removeEntry(id){ write(K, read(K, []).filter(x => x.id !== id)); },
+    saveRoster(names){ write(R, names); }
+  };
+}
+
+/* ============================================================
+   3. STATE + RENDERING
+   ============================================================ */
+let entries = [];
+let roster = DEFAULT_ROSTER.slice();
+let store = null;
+let staffDirty = false;
+
+const $ = id => document.getElementById(id);
+
+function fmtElapsed(ms){
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
+  const pad = n => n < 10 ? '0' + n : '' + n;
+  return h > 0 ? (h + 'h ' + pad(m) + 'm ' + pad(s) + 's') : (m + 'm ' + pad(s) + 's');
+}
+
+function renderBoard(){
+  const now = Date.now();
+  const bay = entries.filter(e => e.status === 'bay');
+  const wait = entries.filter(e => e.status === 'wait');
+  const bayEl = $('bayGrid'), qEl = $('queueList');
+
+  bayEl.innerHTML = bay.length ? '' : '<div class="empty">No vehicles in the bay right now.</div>';
+  bay.forEach(e => {
+    const elapsed = now - e.since;
+    const limitMs = e.limitHrs * 3600000;
+    const pct = Math.min(100, (elapsed / limitMs) * 100);
+    const over = elapsed > limitMs;
+    const card = document.createElement('div');
+    card.className = 'card' + (over ? ' over' : '');
+    const tag = over ? '<span class="over-label">OVER LIMIT</span>' : (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '');
+    const mechs = e.mechanics || [];
+    card.innerHTML =
+      '<div class="card-top"><span class="plate">' + esc(vTitle(e)) + '</span>' + tag + '</div>' +
+      (e.desc || (e.vno && e.vno !== vTitle(e)) ? '<div class="vdesc">' + [e.desc, (e.vno && e.vno !== vTitle(e)) ? e.vno : ''].filter(Boolean).map(esc).join(' · ') + '</div>' : '') +
+      '<div class="repair">' + esc(e.repair) + '</div>' +
+      (mechs.length ? '<div class="mechanic-block"><span class="mechanic-label">' + (mechs.length > 1 ? 'Mechanics' : 'Mechanic') + '</span><div class="mechanic-names">' + mechs.map(n => '<span class="mech-chip">' + esc(n) + '</span>').join('') + '</div></div>' : '') +
+      '<div class="timebox"><span>Elapsed</span><strong>' + fmtElapsed(elapsed) + '</strong></div>' +
+      '<div class="bar-track"><div class="bar-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="timebox"><span>Time limit</span><strong>' + esc(e.limitHrs) + 'h</strong></div>';
+    bayEl.appendChild(card);
+  });
+
+  qEl.innerHTML = wait.length ? '' : '<div class="empty">No vehicles waiting.</div>';
+  wait.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'qrow';
+    row.innerHTML =
+      '<div><div class="plate">' + esc(vTitle(e)) + '</div>' +
+      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') +
+      '<div class="repair">' + esc(e.repair) + '</div></div>' +
+      '<div class="waitsince">waiting ' + fmtElapsed(now - e.since) + '</div>';
+    qEl.appendChild(row);
+  });
+}
+
+function buildMechanicSelect(selected){
+  const sel = document.createElement('select');
+  sel.multiple = true;
+  sel.size = Math.min(5, Math.max(3, roster.length));
+  sel.className = 'limit-edit';
+  sel.style.width = '160px';
+  roster.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    if (selected && selected.indexOf(name) !== -1) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  return sel;
+}
+const mechanicValue = sel => Array.from(sel.selectedOptions).map(o => o.value).slice(0, 5);
+
+function saveEntry(e){ renderBoard(); store.saveEntry(e); }
+
+function renderRoster(){
+  const fMech = $('fMechanic');
+  fMech.innerHTML = '';
+  roster.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    fMech.appendChild(opt);
+  });
+  const listEl = $('rosterList');
+  listEl.innerHTML = '';
+  roster.forEach(name => {
+    const row = document.createElement('div');
+    row.className = 'entry';
+    row.innerHTML = '<span>' + esc(name) + '</span>';
+    const btn = document.createElement('button');
+    btn.textContent = 'Remove';
+    btn.onclick = () => {
+      roster = roster.filter(n => n !== name);
+      entries.forEach(e => {
+        if (e.mechanics && e.mechanics.indexOf(name) !== -1) {
+          e.mechanics = e.mechanics.filter(n => n !== name);
+          store.saveEntry(e);
+        }
+      });
+      store.saveRoster(roster);
+      renderRoster(); renderStaff(); renderBoard();
+    };
+    row.appendChild(btn);
+    listEl.appendChild(row);
+  });
+}
+
+function renderStaff(){
+  const colWait = $('colWait'), colBay = $('colBay');
+  colWait.innerHTML = '';
+  colBay.innerHTML = '';
+
+  entries.forEach(e => {
+    const row = document.createElement('div');
+    row.className = 'entry';
+    row.draggable = true;
+    row.ondragstart = ev => ev.dataTransfer.setData('text/plain', e.id);
+    row.innerHTML = '<span title="' + esc((e.vno ? e.vno + ' — ' : '') + (e.desc || '') + (e.who ? ' — ' + e.who : '')) + '">' +
+      esc(vTitle(e)) + (e.desc ? ' — ' + esc(e.desc) : '') + (e.who ? ' (' + esc(e.who) + ')' : '') + '</span>';
+
+    const bayIn = document.createElement('input');
+    bayIn.className = 'limit-edit'; bayIn.placeholder = 'Bay';
+    bayIn.value = e.bay || '';
+    bayIn.onchange = () => { e.bay = bayIn.value.trim(); saveEntry(e); };
+    row.appendChild(bayIn);
+
+    const mechIn = buildMechanicSelect(e.mechanics);
+    mechIn.onchange = () => { e.mechanics = mechanicValue(mechIn); saveEntry(e); };
+    row.appendChild(mechIn);
+
+    if (e.status === 'bay') {
+      const limitIn = document.createElement('input');
+      limitIn.type = 'number'; limitIn.step = '0.5';
+      limitIn.className = 'limit-edit';
+      limitIn.title = 'Time limit (hrs)';
+      limitIn.value = e.limitHrs;
+      limitIn.onchange = () => {
+        const v = parseFloat(limitIn.value);
+        if (!isNaN(v) && v > 0) { e.limitHrs = v; saveEntry(e); }
+      };
+      row.appendChild(limitIn);
+    }
+
+    const btn = document.createElement('button');
+    btn.textContent = 'Remove';
+    btn.onclick = () => {
+      entries = entries.filter(x => x.id !== e.id);
+      store.removeEntry(e.id);
+      renderBoard(); renderStaff();
+    };
+    row.appendChild(btn);
+
+    (e.status === 'wait' ? colWait : colBay).appendChild(row);
+  });
+
+  if (!entries.some(e => e.status === 'wait')) colWait.innerHTML = '<div class="empty-col">Drop a vehicle here to move it to waiting.</div>';
+  if (!entries.some(e => e.status === 'bay')) colBay.innerHTML = '<div class="empty-col">Drop a vehicle here to move it to a bay.</div>';
+
+  [colWait, colBay].forEach((col, i) => {
+    const target = i === 0 ? 'wait' : 'bay';
+    col.ondragover = ev => { ev.preventDefault(); col.classList.add('dragover'); };
+    col.ondragleave = () => col.classList.remove('dragover');
+    col.ondrop = ev => {
+      ev.preventDefault();
+      col.classList.remove('dragover');
+      const id = parseFloat(ev.dataTransfer.getData('text/plain'));
+      const e = entries.find(x => x.id === id);
+      if (!e || e.status === target) return;
+      e.status = target;
+      e.since = Date.now();
+      store.saveEntry(e);
+      renderBoard(); renderStaff();
+    };
+  });
+}
+
+/* Don't rebuild the staff panel while someone is typing in it. */
+function staffBusy(){
+  const a = document.activeElement;
+  return !!(a && $('staffPanel').contains(a) && (a.tagName === 'INPUT' || a.tagName === 'SELECT'));
+}
+function refreshStaff(){
+  if (staffBusy()) { staffDirty = true; return; }
+  staffDirty = false;
+  renderRoster();
+  renderStaff();
+}
+$('staffPanel').addEventListener('focusout', () => {
+  if (staffDirty) setTimeout(() => { if (!staffBusy()) refreshStaff(); }, 0);
+});
+
+function tickClock(){
+  $('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+/* ============================================================
+   4. WIRING
+   ============================================================ */
+$('staffToggle').onclick = () => $('staffPanel').classList.add('open');
+$('fClose').onclick = () => $('staffPanel').classList.remove('open');
+
+$('fAdd').onclick = () => {
+  const typed = $('fPlate').value.trim();
+  if (!typed) return;
+  const v = findVehicle(typed);
+  if (v && entries.some(x => x.vno === v.no)) { alert(vLabel(v) + ' is already on the board.'); return; }
+  const e = {
+    id: Date.now(),
+    plate: v ? v.plate : typed.toUpperCase(),
+    vno: v ? v.no : '',
+    desc: v ? v.desc : '',
+    who: v ? v.who : '',
+    repair: $('fRepair').value,
+    status: $('fStatus').value,
+    since: Date.now(),
+    limitHrs: parseFloat($('fLimit').value) || 2,
+    bay: $('fBay').value.trim(),
+    mechanics: mechanicValue($('fMechanic'))
+  };
+  entries.push(e);
+  store.saveEntry(e);
+  $('fPlate').value = '';
+  $('fBay').value = '';
+  Array.from($('fMechanic').options).forEach(o => { o.selected = false; });
+  renderBoard(); renderStaff();
+};
+
+$('fAddMechanic').onclick = () => {
+  const input = $('fNewMechanic');
+  const name = input.value.trim();
+  if (!name || roster.indexOf(name) !== -1) return;
+  roster.push(name);
+  input.value = '';
+  store.saveRoster(roster);
+  renderRoster(); renderStaff();
+};
+
+function banner(msg){
+  const b = $('modeBanner');
+  b.textContent = msg;
+  b.style.display = msg ? 'block' : 'none';
+}
+
+async function start(){
+  if (FIREBASE_CONFIG.apiKey) {
+    try {
+      store = await cloudStore();
+    } catch (err) {
+      store = localStore();
+      banner('Could not reach Firebase — showing local data only on this device.');
+    }
+  } else {
+    store = localStore();
+    banner('Demo mode: data stays on this device. Add your Firebase config in index.html to share it live across screens.');
+  }
+
+  const dl = $('vehicleList');
+  VEHICLES.forEach(v => {
+    const o = document.createElement('option');
+    o.value = vLabel(v);
+    if (v.who) o.label = v.who;
+    dl.appendChild(o);
+  });
+
+  store.subscribe(
+    list => {
+      entries = list.slice().sort((a, b) => a.id - b.id);
+      renderBoard();
+      refreshStaff();
+    },
+    names => {
+      if (names && names.length) roster = names;
+      refreshStaff();
+    },
+    err => banner('Live sync problem: ' + (err && err.code ? err.code : 'unknown') + '. Check firestore.rules and your config.')
+  );
+
+  renderRoster();
+  renderBoard();
+  renderStaff();
+  tickClock();
+  setInterval(renderBoard, 1000);
+  setInterval(tickClock, 1000);
+}
+start();
+</script>
+</body>
+</html>
