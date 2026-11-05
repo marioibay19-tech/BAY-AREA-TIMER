@@ -784,13 +784,43 @@ function workedMs(e, now){
 function totalHeldMs(e, now){
   return (e.heldMs || 0) + (e.hold && e.holdAt ? Math.max(0, now - e.holdAt) : 0);
 }
-function setHold(e, reason){
+function setHold(e, reason, pauseUntil){
   const now = nowMs();
   if (e.hold && e.holdAt) e.heldMs = (e.heldMs || 0) + Math.max(0, now - e.holdAt);
   e.hold = reason || '';
   e.holdAt = reason ? now : 0;
+  e.pauseUntil = reason === PAUSED ? (pauseUntil || '') : '';
   saveEntry(e);
   renderStaff();
+}
+
+/* ---------- Pause: can't finish today, continue on another day ----------
+   Uses the same hold timer (time paused doesn't count), with hold = PAUSED and
+   pauseUntil = 'YYYY-MM-DD' (the day work continues). */
+const PAUSED = 'Paused';
+function nextWorkday(){
+  const d = new Date(nowMs());
+  do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6);   // skip Sat/Sun
+  return ymdOf(d.getTime());
+}
+function continuesText(e){
+  if (!e.pauseUntil) return 'Paused';
+  const today = todayStr();
+  const t = new Date(nowMs()); t.setDate(t.getDate() + 1);
+  if (e.pauseUntil <= today) return 'Paused · continues today';
+  if (e.pauseUntil === ymdOf(t.getTime())) return 'Paused · continues tomorrow';
+  const [y, m, d] = e.pauseUntil.split('-').map(Number);
+  return 'Paused · continues ' + new Date(y, m - 1, d).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+}
+/* Text for the blue tag on the board. */
+const holdLabel = e => e.hold === PAUSED ? continuesText(e) : e.hold;
+function pauseJob(e){
+  const def = nextWorkday();
+  const ans = prompt('Pause ' + vTitle(e) + '? The timer stops until you press Resume.\n\nWhich day will work continue? (Year-Month-Day)', def);
+  if (ans === null) return;
+  const d = ans.trim() || def;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || isNaN(new Date(d).getTime())) { alert('Please type the date like ' + def + '.'); return; }
+  setHold(e, PAUSED, d);
 }
 
 /* ---------- Settings: bays and default time limits ---------- */
@@ -881,7 +911,7 @@ function renderBoard(){
     card.className = 'card' + (held ? ' hold' : over ? ' over' : near ? ' near' : '');
     // Keep the pulse smooth even though the card is redrawn every second.
     if (over && !held) card.style.animationDelay = -(now % 1600) + 'ms';
-    const tag = held ? '<span style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;"><span class="hold-tag">' + esc(e.hold) + '</span>' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') + '</span>'
+    const tag = held ? '<span style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;"><span class="hold-tag">' + esc(holdLabel(e)) + '</span>' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') + '</span>'
       : over ? '<span class="over-label">OVER LIMIT</span>'
       : near ? '<span class="near-label">' + Math.max(1, Math.ceil(left / 60000)) + ' MIN LEFT</span>'
       : (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '');
@@ -909,7 +939,7 @@ function renderBoard(){
       '<div><div class="plate">' + esc(vTitle(e)) + '</div>' +
       (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') +
       '<div class="repair">' + esc(e.repair) + '</div>' + workHtml(e) +
-      (e.hold ? '<span class="hold-tag">' + esc(e.hold) + '</span>' : '') + '</div>' +
+      (e.hold ? '<span class="hold-tag">' + esc(holdLabel(e)) + '</span>' : '') + '</div>' +
       '<div class="datein">Date in ' + esc(fmtDate(entryDateIn(e))) + '</div>';
     boardDraggable(row, e);
     qEl.appendChild(row);
@@ -1178,7 +1208,7 @@ function renderStaff(){
         e.bay ? esc(e.bay) : '',
         mechs.length ? esc(mechs.join(', ')) : 'No mechanic yet',
         e.status === 'bay' ? esc(e.limitHrs) + 'h limit' : '',
-        e.hold ? '<b style="color:var(--blue)">On hold: ' + esc(e.hold) + '</b>' : '',
+        e.hold ? '<b style="color:var(--blue)">' + (e.hold === PAUSED ? esc(continuesText(e)) : 'On hold: ' + esc(e.hold)) + '</b>' : '',
         e.status === 'sched' ? 'Scheduled ' + esc(schedWhen(e).text) : 'In ' + esc(fmtDate(entryDateIn(e)))
       ].filter(Boolean).join(' · ') +
       (e.work ? '<br>Work: <b>' + esc(e.work) + '</b>' : '') +
@@ -1209,7 +1239,8 @@ function renderStaff(){
       hs.className = 'hold';
       hs.title = 'Put on hold: the timer pauses while on hold';
       const reasons = HOLD_REASONS.slice();
-      if (e.hold && reasons.indexOf(e.hold) === -1) reasons.push(e.hold);
+      if (e.hold && e.hold !== PAUSED && reasons.indexOf(e.hold) === -1) reasons.push(e.hold);
+      if (e.hold === PAUSED) reasons.unshift(PAUSED);
       [['', e.hold ? 'Resume work' : 'Put on hold…']].concat(reasons.map(r => [r, r]), [['__other', 'Other reason…']]).forEach(([v, label]) => {
         const o = document.createElement('option');
         o.value = v; o.textContent = label;
@@ -1247,6 +1278,18 @@ function renderStaff(){
     row.appendChild(editBtn);
 
     if (e.status === 'bay') {
+      const pb = document.createElement('button');
+      if (e.hold === PAUSED) {
+        pb.className = 'done'; pb.textContent = '▶ Resume';
+        pb.title = 'Start working on it again: the timer continues';
+        pb.onclick = () => setHold(e, '');
+      } else {
+        pb.className = 'edit'; pb.textContent = '⏸ Pause';
+        pb.title = "Can't finish today? Pause it: the timer stops until you press Resume";
+        pb.onclick = () => pauseJob(e);
+      }
+      row.appendChild(pb);
+
       const doneBtn = document.createElement('button');
       doneBtn.className = 'done';
       doneBtn.textContent = 'Done';
@@ -1308,7 +1351,7 @@ function moveTo(e, target){
   e.since = nowMs();
   e.heldMs = 0;                                            // timer restarts, so does hold time
   if (e.hold) e.holdAt = e.since;
-  if (target === 'sched') { e.hold = ''; e.holdAt = 0; }
+  if (target === 'sched') { e.hold = ''; e.holdAt = 0; e.pauseUntil = ''; }
   store.saveEntry(e);
   renderBoard(); renderStaff();
 }
@@ -1330,7 +1373,7 @@ function finishJob(e){
     doneAt: now,
     bayMs: bayMs,
     holdMs: holdMs,
-    heldMs: holdMs, hold: '', holdAt: 0,
+    heldMs: holdMs, hold: '', holdAt: 0, pauseUntil: '',
     overLimit: limitMs > 0 && bayMs > limitMs
   });
   if (editingId === e.id) endEdit();

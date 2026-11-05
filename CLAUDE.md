@@ -31,6 +31,7 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 - Staff panel has three columns: Scheduled, Waiting, In bay. Each row has an amber "Move to…" dropdown (the other two lists: In bay / Waiting / Scheduled) because dragging was hard and does not work on touch screens; the user asked for a dropdown rather than separate buttons. Choosing Scheduled asks for the date. Dragging still works on computers. Both go through `moveTo()`.
 - Vehicles can also be dragged directly on the main board (not in TV mode, mouse only): drop zones `#bayZone`, `#queueZone`, `#schedZone`. While dragging, `boardDragging` pauses the 1-second `renderBoard()` redraw so the dragged card isn't replaced. Moving into Scheduled (board or Staff drag) asks for the date with a prompt (default tomorrow); cancelling leaves the vehicle where it was.
 - On hold: Staff row "Put on hold…" dropdown (Awaiting parts / Under observation / At outside shop / Other reason…, or Resume work). Bay cards on hold are blue with the reason tag and "Elapsed (paused)"; waiting rows show the reason tag.
+- Pause (can't finish today): In-bay Staff rows have "⏸ Pause" / "▶ Resume". Pause asks which day work continues (default `nextWorkday()`, skipping Sat/Sun) and sets `hold = 'Paused'` (`PAUSED`) plus `pauseUntil` ('YYYY-MM-DD'); it uses the hold timer, so paused time doesn't count. The board tag uses `holdLabel(e)`: "Paused · continues tomorrow / today / Mon, Nov 9". Resume = `setHold(e, '')`. Any other hold reason clears `pauseUntil`.
 - Bay is a dropdown from `settings.bays` (old free-text bays are kept as an extra option when editing). Adding/editing into an occupied bay asks for confirmation (`bayFreeOk`).
 - Time limit fills in from the repair type's default unless staff typed one (`limitTouched`).
 - Work and remarks are cut to 2 lines on the board (`.wtext`); full text in Staff panel, tooltip, and Finished page.
@@ -86,4 +87,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-05: Part 4 done: vehicle-list typos fixed; add/replace/remove vehicles from the Staff panel. All four improvement groups are finished.
 - 2026-11-05: TV improvements "number 2" done: pages instead of scrolling, always dark, header counts, TV display options. Other TV ideas offered and not yet chosen: ready-by time and Ready for release list, customer status words, announcement ticker, voice announcement, repeat chime/quiet hours, nightly auto-refresh, after-hours screen, QR code.
 - 2026-11-05: added Day/Night/Auto colors (staff button + TV setting).
+- 2026-11-05: added Pause/Resume for jobs that continue another day.
 - Ideas the user has not decided on: link to the user's PM/CM maintenance records.
