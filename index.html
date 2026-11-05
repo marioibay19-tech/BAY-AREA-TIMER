@@ -171,7 +171,7 @@
   .fin-toggle{right:184px;}
   .entry button.done{color:var(--green); border-color:var(--green); font-weight:600;}
   .entry button.edit{color:var(--blue); border-color:var(--blue); font-weight:600;}
-  .entry button.move{color:#1B1D21; background:var(--amber); border-color:var(--amber); font-weight:600; padding:6px 10px;}
+  .entry select.move{width:auto; flex:none; padding:6px 8px; font-size:12px; font-weight:600; color:#1B1D21; background:var(--amber); border-color:var(--amber); cursor:pointer;}
   .entry.editing{border-color:var(--amber); box-shadow:0 0 0 2px var(--amber-dim);}
   .entry .entry-info{flex:1 1 100%; color:var(--muted); font-size:12px; line-height:1.45; margin-bottom:4px;}
   .entry .entry-info b{color:var(--text); font-weight:500;}
@@ -857,17 +857,24 @@ function renderStaff(){
       (e.remarks ? '<br>Remarks: <b>' + esc(e.remarks) + '</b>' : '');
     row.appendChild(info);
 
-    // One-click moves (easier than dragging, and works on phones and tablets).
-    const moves = e.status === 'sched' ? [['wait', 'Arrived → Waiting'], ['bay', 'Arrived → In bay']]
-      : e.status === 'wait' ? [['bay', 'Move to In bay']]
-      : [['wait', 'Move to Waiting']];
-    moves.forEach(([target, label]) => {
-      const mv = document.createElement('button');
-      mv.className = 'move';
-      mv.textContent = label;
-      mv.onclick = () => moveTo(e, target);
-      row.appendChild(mv);
+    // "Move to…" dropdown (easier than dragging, and works on phones and tablets).
+    const mv = document.createElement('select');
+    mv.className = 'move';
+    mv.title = 'Move this vehicle to another list';
+    const opts = [['', 'Move to…'], ['bay', 'In bay'], ['wait', 'Waiting'], ['sched', 'Scheduled']]
+      .filter(([v]) => v !== e.status);
+    opts.forEach(([v, label]) => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = label;
+      mv.appendChild(o);
     });
+    mv.onchange = () => {
+      const target = mv.value;
+      mv.blur();
+      if (target) moveTo(e, target);
+      mv.value = '';                 // back to "Move to…" if the move was cancelled
+    };
+    row.appendChild(mv);
 
     const editBtn = document.createElement('button');
     editBtn.className = 'edit';
