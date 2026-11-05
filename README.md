@@ -68,7 +68,11 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 2. The vehicle leaves the board and is saved in **Finished maintenance**, with the time it spent in the bay and whether it was within the time limit.
 3. To see the list, click **Finished** at the bottom right of the board. You can search, pick a date range or repair type, and click **Export to Excel (CSV)** to download it.
 4. Pressed Done by mistake? On the Finished page, click **Undo** on that row to put the vehicle back in the bay.
-5. **Remove** in the Staff panel is only for vehicles added by mistake. It does not save anything to the Finished list.
+5. **Remove** in the Staff panel is only for vehicles added by mistake. It does not add anything to the Finished list, but the vehicle is kept in **Recently deleted** for 30 days.
+6. **Summary:** on the Finished page, click **Summary by month and by mechanic** to see jobs per month (PM / CM / Express), the share finished within the limit, and the average time, plus the same per mechanic. It follows the search and date filters, so you can pick a date range for a report.
+7. **Vehicle history:** click **History** on a vehicle in the Staff panel, or click a vehicle's name on the Finished page, to see all its past jobs.
+8. **Print:** click **Print** on a row to print a one-page job record with signature lines (Mechanic, Inspected by, Received by). If nothing opens, allow pop-ups for the site.
+9. **Delete and Recently deleted:** Delete moves a record to **Recently deleted** (button at the top of the Finished page). It stays there for 30 days, with a **Restore** button, and is then removed for good.
 
 ## Staff PIN
 - The **Staff** button, dragging on the board, and Undo/Delete/Export on the Finished page need the staff PIN. Looking at the board and the Finished list does not.

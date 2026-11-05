@@ -200,6 +200,19 @@
   .set-row{display:flex; gap:8px; align-items:center; margin-bottom:6px; font-size:13px;}
   .set-row span{flex:1;}
   .set-row input{width:90px; flex:none;}
+  /* Finished page: summary + recently deleted */
+  .fin-sum{margin-bottom:14px;}
+  .fin-sum summary{cursor:pointer; font-weight:600; font-size:14px; margin-bottom:8px;}
+  .sum-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media (max-width:900px){ .sum-grid{grid-template-columns:1fr;} }
+  table.mini{width:100%; border-collapse:collapse; font-size:13px;}
+  .mini th, .mini td{padding:7px 10px; border-bottom:1px solid var(--hair); text-align:right; white-space:nowrap;}
+  .mini th:first-child, .mini td:first-child{text-align:left;}
+  .mini th{color:var(--muted); font-weight:600; background:var(--surface2);}
+  .mini tr:last-child td{border-bottom:none;}
+  .vlink{background:none; border:none; padding:0; color:inherit; cursor:pointer; text-align:left; font:inherit;}
+  .vlink:hover .vt{text-decoration:underline;}
+  .bin-note{background:var(--red-dim); color:var(--red); border-radius:8px; padding:8px 12px; font-size:13px; margin-bottom:10px;}
   .settings-box{border-top:1px solid var(--hair); margin-top:18px; padding-top:14px;}
   .fin-toggle{right:184px;}
   .entry button.done{color:var(--green); border-color:var(--green); font-weight:600;}
@@ -320,6 +333,7 @@
     <div class="section-title">Finished maintenance</div>
     <div class="fin-actions">
       <button class="btn-sm unlock-btn" id="finUnlock">Unlock to edit</button>
+      <button class="btn-sm" id="finBinToggle">Recently deleted</button>
       <button class="btn-sm" id="finExport">Export to Excel (CSV)</button>
       <button class="btn-sm primary" id="finBack">Back to board</button>
     </div>
@@ -337,6 +351,14 @@
       </select></label>
   </div>
   <div class="fin-summary" id="finSummary">Loading…</div>
+  <details class="fin-sum" id="finSumBox">
+    <summary>Summary by month and by mechanic (uses the filters above)</summary>
+    <div class="sum-grid">
+      <div class="table-wrap"><table class="mini" id="sumMonth"></table></div>
+      <div class="table-wrap"><table class="mini" id="sumMech"></table></div>
+    </div>
+  </details>
+  <div class="bin-note" id="finBinNote" style="display:none;">Recently deleted: these records are kept for 30 days, then removed for good. Click Restore to bring one back.</div>
   <div class="table-wrap"><table class="fin">
     <thead><tr>
       <th>Finished</th><th>Vehicle</th><th>Repair type</th><th>Work / Remarks</th><th>Mechanics</th>
@@ -550,7 +572,8 @@ async function cloudStore(){
       b.delete(fs.doc(db, 'history', String(e.id)));
       return b.commit();
     },
-    removeHistory: id => fs.deleteDoc(fs.doc(db, 'history', String(id)))
+    removeHistory: id => fs.deleteDoc(fs.doc(db, 'history', String(id))),
+    saveHistory: r => fs.setDoc(fs.doc(db, 'history', String(r.id)), clean(r))
   };
 }
 
@@ -614,6 +637,10 @@ function localStore(){
     },
     removeHistory(id){
       write(H, read(H, []).filter(x => x.id !== id));
+      if (historyLocalPush) historyLocalPush();
+    },
+    saveHistory(r){
+      write(H, read(H, []).filter(x => x.id !== r.id).concat([clean(r)]));
       if (historyLocalPush) historyLocalPush();
     }
   };
@@ -1038,6 +1065,15 @@ function renderStaff(){
       row.appendChild(hs);
     }
 
+    if (e.vno || e.plate) {
+      const hb = document.createElement('button');
+      hb.className = 'edit';
+      hb.textContent = 'History';
+      hb.title = 'See past maintenance of this vehicle';
+      hb.onclick = () => openVehicleHistory(e);
+      row.appendChild(hb);
+    }
+
     const editBtn = document.createElement('button');
     editBtn.className = 'edit';
     editBtn.textContent = 'Edit';
@@ -1058,10 +1094,11 @@ function renderStaff(){
     btn.textContent = 'Remove';
     btn.title = 'Take off the board without saving it as finished (for mistakes)';
     btn.onclick = () => {
-      if (!confirm('Remove ' + vTitle(e) + ' from the board? It will NOT be saved as finished. Use Done for finished jobs.')) return;
+      if (!confirm('Remove ' + vTitle(e) + ' from the board? It will NOT be saved as finished (use Done for finished jobs).\n\nIt goes to "Recently deleted" on the Finished page for 30 days, in case you need it back.')) return;
       if (editingId === e.id) endEdit();
       entries = entries.filter(x => x.id !== e.id);
-      store.removeEntry(e.id);
+      // Keep a copy in the bin (history collection, marked deleted) instead of losing it.
+      store.finishEntry(Object.assign(clean(e), { doneAt: nowMs(), deletedAt: nowMs(), removedFromBoard: true, bayMs: workedMs(e, nowMs()) }));
       renderBoard(); renderStaff();
     };
     row.appendChild(btn);
@@ -1139,6 +1176,9 @@ function finishJob(e){
 
 let finishedList = [];
 let historyUnsub = null;
+let showBin = false;
+const BIN_DAYS = 30;
+const isDeleted = r => !!r.deletedAt;
 const isFinishedPage = () => location.hash === '#finished';
 
 function ymdOf(ms){
@@ -1165,6 +1205,7 @@ function filteredHistory(){
   const q = $('finSearch').value.trim().toLowerCase();
   const from = $('finFrom').value, to = $('finTo').value, rep = $('finRepair').value;
   return finishedList.filter(r => {
+    if (isDeleted(r) !== showBin) return false;
     const day = ymdOf(r.doneAt);
     if (from && day < from) return false;
     if (to && day > to) return false;
@@ -1177,17 +1218,85 @@ function filteredHistory(){
   });
 }
 
+/* Records deleted more than 30 days ago are removed for good. */
+function purgeOldDeleted(){
+  const cutoff = nowMs() - BIN_DAYS * 86400000;
+  finishedList.filter(r => r.deletedAt && r.deletedAt < cutoff).forEach(r => store.removeHistory(r.id));
+}
+
+function openVehicleHistory(e){
+  $('staffPanel').classList.remove('open');
+  endEdit();
+  showBin = false;
+  $('finSearch').value = e.vno || e.plate || '';
+  $('finFrom').value = ''; $('finTo').value = ''; $('finRepair').value = '';
+  location.hash = 'finished';
+  showPage();
+}
+
+function summaryTables(list){
+  const months = {}, mechs = {};
+  list.forEach(r => {
+    const d = new Date(r.doneAt);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const m = months[key] || (months[key] = { label: d.toLocaleDateString('en-US', {month:'long', year:'numeric'}), n:0, pm:0, cm:0, em:0, ok:0, ms:0 });
+    m.n++; m.ms += r.bayMs || 0; if (!r.overLimit) m.ok++;
+    if (r.repair === 'Preventive Maintenance') m.pm++; else if (r.repair === 'Corrective Maintenance') m.cm++; else if (r.repair === 'Express Maintenance') m.em++;
+    (r.mechanics && r.mechanics.length ? r.mechanics : ['(no mechanic)']).forEach(name => {
+      const x = mechs[name] || (mechs[name] = { n:0, ok:0, ms:0 });
+      x.n++; x.ms += r.bayMs || 0; if (!r.overLimit) x.ok++;
+    });
+  });
+  const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '—';
+  $('sumMonth').innerHTML = '<tr><th>Month</th><th>Jobs</th><th>PM</th><th>CM</th><th>Express</th><th>Within limit</th><th>Avg time</th></tr>' +
+    (Object.keys(months).sort().reverse().map(k => { const m = months[k];
+      return '<tr><td>' + esc(m.label) + '</td><td>' + m.n + '</td><td>' + m.pm + '</td><td>' + m.cm + '</td><td>' + m.em + '</td><td>' + pct(m.ok, m.n) + '</td><td>' + esc(fmtDuration(m.ms / m.n)) + '</td></tr>';
+    }).join('') || '<tr><td colspan="7">No jobs.</td></tr>');
+  $('sumMech').innerHTML = '<tr><th>Mechanic</th><th>Jobs</th><th>Within limit</th><th>Avg time</th></tr>' +
+    (Object.keys(mechs).sort((a, b) => mechs[b].n - mechs[a].n || a.localeCompare(b)).map(k => { const x = mechs[k];
+      return '<tr><td>' + esc(k) + '</td><td>' + x.n + '</td><td>' + pct(x.ok, x.n) + '</td><td>' + esc(fmtDuration(x.ms / x.n)) + '</td></tr>';
+    }).join('') || '<tr><td colspan="4">No jobs.</td></tr>');
+}
+
+function printJob(r){
+  const w = window.open('', '_blank');
+  if (!w) { alert('Your browser blocked the print window. Allow pop-ups for this site and try again.'); return; }
+  const row = (k, v) => '<tr><th>' + esc(k) + '</th><td>' + (v ? esc(v) : '—') + '</td></tr>';
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Job record ' + esc(vTitle(r)) + '</title><style>' +
+    'body{font-family:Arial,sans-serif;color:#111;margin:32px;font-size:14px}h1{font-size:20px;margin:0}h2{font-size:14px;font-weight:normal;color:#555;margin:4px 0 18px}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:24px}th,td{border:1px solid #999;padding:7px 9px;text-align:left;vertical-align:top}th{width:32%;background:#f2f2f2}' +
+    '.sig{display:flex;gap:28px;margin-top:48px}.sig div{flex:1;border-top:1px solid #111;padding-top:6px;text-align:center;font-size:12px}' +
+    '@media print{body{margin:12mm}}</style></head><body>' +
+    '<h1>DPWH Equipment Management Division — Job Record</h1><h2>Regional Office 1 · Vehicle maintenance bay</h2><table>' +
+    row('Plate no.', isNA(r.plate) ? '' : r.plate) + row('Property no.', r.vno) + row('Vehicle / equipment', r.desc) + row('End-user', r.who) +
+    row('Repair type', r.repair) + row('Work description', r.work) + row('Remarks', r.remarks) +
+    row('Mechanic(s)', (r.mechanics || []).join(', ')) + row('Bay', r.bay) + row('Date in', fmtDate(entryDateIn(r))) +
+    row('Finished', fmtDateTime(r.doneAt)) + row('Time in bay', fmtDuration(r.bayMs) + (r.holdMs > 60000 ? ' (plus ' + fmtDuration(r.holdMs) + ' on hold)' : '')) +
+    row('Time limit', r.limitHrs + 'h') + row('Result', resultText(r)) +
+    '</table><div class="sig"><div>Mechanic</div><div>Inspected by</div><div>Received by (end-user)</div></div>' +
+    '<script>window.onload=function(){window.print();}<\/script></body></html>');
+  w.document.close();
+}
+
 function renderFinished(){
   if (!isFinishedPage()) return;
   const list = filteredHistory();
+  const binCount = finishedList.filter(isDeleted).length;
+  $('finBinToggle').textContent = showBin ? 'Back to finished jobs' : 'Recently deleted' + (binCount ? ' (' + binCount + ')' : '');
+  $('finBinNote').style.display = showBin ? '' : 'none';
+  $('finSumBox').style.display = showBin ? 'none' : '';
+  if (!showBin) summaryTables(list);
   const over = list.filter(r => r.overLimit).length;
   const avg = list.length ? list.reduce((t, r) => t + (r.bayMs || 0), 0) / list.length : 0;
-  $('finSummary').innerHTML = list.length
+  const allCount = finishedList.filter(r => !isDeleted(r)).length;
+  if (showBin) {
+    $('finSummary').innerHTML = list.length ? '<strong>' + list.length + '</strong> deleted record' + (list.length > 1 ? 's' : '') : 'Nothing in Recently deleted.';
+  } else $('finSummary').innerHTML = list.length
     ? '<strong>' + list.length + '</strong> finished job' + (list.length > 1 ? 's' : '') +
       ' · <strong>' + (list.length - over) + '</strong> within the time limit · <strong>' + over + '</strong> over the limit' +
       ' · average time in bay <strong>' + fmtDuration(avg) + '</strong>' +
-      (list.length !== finishedList.length ? ' (filtered from ' + finishedList.length + ')' : '')
-    : (finishedList.length ? 'No finished jobs match these filters.' : 'No finished jobs yet. Press Done on a vehicle in the Staff panel to record one here.');
+      (list.length !== allCount ? ' (filtered from ' + allCount + ')' : '')
+    : (allCount ? 'No finished jobs match these filters.' : 'No finished jobs yet. Press Done on a vehicle in the Staff panel to record one here.');
 
   const body = $('finBody');
   body.innerHTML = '';
@@ -1198,7 +1307,8 @@ function renderFinished(){
     const work = [r.work ? esc(r.work) : '', r.remarks ? '<span class="subtxt">Remarks: ' + esc(r.remarks) + '</span>' : ''].filter(Boolean).join('<br>');
     tr.innerHTML =
       '<td class="nowrap">' + esc(fmtDateTime(r.doneAt)) + '</td>' +
-      '<td><div class="vt">' + esc(title) + '</div>' + (sub ? '<div class="subtxt">' + sub + '</div>' : '') + '</td>' +
+      '<td><button class="vlink" title="Show all jobs for this vehicle"><div class="vt">' + esc(title) + '</div>' + (sub ? '<div class="subtxt">' + sub + '</div>' : '') + '</button>' +
+        (r.removedFromBoard ? '<div class="subtxt" style="color:var(--red)">Removed from board (not finished)</div>' : '') + '</td>' +
       '<td>' + esc(r.repair) + '</td>' +
       '<td>' + (work || '<span class="subtxt">—</span>') + '</td>' +
       '<td>' + ((r.mechanics || []).map(esc).join(', ') || '<span class="subtxt">—</span>') + '</td>' +
@@ -1206,7 +1316,9 @@ function renderFinished(){
       '<td class="nowrap">' + esc(fmtDate(entryDateIn(r))) + '</td>' +
       '<td class="nowrap">' + esc(fmtDuration(r.bayMs)) + (r.holdMs > 60000 ? '<div class="subtxt">+' + esc(fmtDuration(r.holdMs)) + ' on hold</div>' : '') + '</td>' +
       '<td class="nowrap">' + esc(r.limitHrs) + 'h</td>' +
-      '<td><span class="pill ' + (r.overLimit ? 'late' : 'ok') + '">' + esc(resultText(r)) + '</span></td>';
+      '<td>' + (r.removedFromBoard ? '<span class="subtxt">—</span>' : '<span class="pill ' + (r.overLimit ? 'late' : 'ok') + '">' + esc(resultText(r)) + '</span>') +
+        (r.deletedAt ? '<div class="subtxt">Deleted ' + esc(fmtDateTime(r.deletedAt)) + '<br>Gone for good ' + esc(fmtDate(ymdOf(r.deletedAt + BIN_DAYS * 86400000))) + '</div>' : '') + '</td>';
+    tr.querySelector('.vlink').onclick = () => { $('finSearch').value = r.vno || r.plate || ''; renderFinished(); window.scrollTo(0, 0); };
     const act = document.createElement('td');
     act.className = 'nowrap';
     const back = document.createElement('button');
@@ -1226,10 +1338,34 @@ function renderFinished(){
     const del = document.createElement('button');
     del.className = 'btn-sm danger'; del.textContent = 'Delete';
     del.onclick = () => {
-      if (!confirm('Delete this finished record for ' + title + '? This cannot be undone.')) return;
-      store.removeHistory(r.id);
+      if (!confirm('Delete this finished record for ' + title + '?\n\nIt goes to "Recently deleted" for 30 days, in case you need it back.')) return;
+      store.saveHistory(Object.assign(clean(r), { deletedAt: nowMs() }));
     };
-    if (isUnlocked()) { act.appendChild(back); act.appendChild(del); }
+    const prt = document.createElement('button');
+    prt.className = 'btn-sm'; prt.textContent = 'Print';
+    prt.title = 'Print a one-page job record';
+    prt.onclick = () => printJob(r);
+    const restore = document.createElement('button');
+    restore.className = 'btn-sm'; restore.textContent = 'Restore';
+    restore.onclick = () => {
+      if (r.removedFromBoard) {
+        if (entries.some(x => x.id === r.id || (r.vno && x.vno === r.vno))) { alert(title + ' is already on the board.'); return; }
+        const e = clean(r);
+        ['doneAt', 'bayMs', 'overLimit', 'deletedAt', 'removedFromBoard', 'holdMs'].forEach(k => delete e[k]);
+        entries.push(e); entries.sort((x, y) => x.id - y.id);
+        store.unfinishEntry(e);
+        renderBoard(); refreshStaff();
+        alert(title + ' is back on the board.');
+      } else {
+        const rr = clean(r); delete rr.deletedAt;
+        store.saveHistory(rr);
+      }
+    };
+    if (showBin) { if (isUnlocked()) act.appendChild(restore); }
+    else {
+      if (!r.removedFromBoard) act.appendChild(prt);
+      if (isUnlocked()) { act.appendChild(back); act.appendChild(del); }
+    }
     tr.appendChild(act);
     body.appendChild(tr);
   });
@@ -1258,7 +1394,7 @@ function showPage(){
     $('staffPanel').classList.remove('open');
     if (!historyUnsub && store) {
       historyUnsub = store.subscribeHistory(
-        list => { finishedList = list; renderFinished(); },
+        list => { finishedList = list; renderFinished(); purgeOldDeleted(); },
         err => { $('finSummary').textContent = 'Could not load finished jobs: ' + (err && err.code ? err.code : 'unknown error') + '.'; }
       );
     }
@@ -1270,6 +1406,7 @@ function showPage(){
 }
 window.addEventListener('hashchange', showPage);
 ['finSearch', 'finFrom', 'finTo', 'finRepair'].forEach(id => $(id).addEventListener('input', renderFinished));
+$('finBinToggle').onclick = () => { showBin = !showBin; renderFinished(); window.scrollTo(0, 0); };
 
 /* Don't rebuild the staff panel while someone is typing in it. */
 function staffBusy(){

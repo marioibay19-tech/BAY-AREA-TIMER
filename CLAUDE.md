@@ -54,9 +54,12 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 ## Finished maintenance page
 - `#finished` in the URL (or the "Finished" button) shows the page instead of the board; "Back to board" clears the hash. Hidden in TV mode.
 - Filters: text search, finished from/to date, repair type. Summary line counts jobs, within/over limit, average time in bay.
-- Per row: Undo (puts it back in the bay with its original `since`, blocked if the vehicle is already on the board) and Delete (with confirm).
+- Per row: Print (opens a one-page job record with signature lines: Mechanic / Inspected by / Received by), Undo (puts it back in the bay with its original `since`, blocked if the vehicle is already on the board) and Delete.
+- Soft delete: Delete sets `deletedAt` on the history doc instead of deleting it. "Recently deleted" (`showBin`) lists those with Restore; records deleted more than 30 days ago are removed for good when the Finished page loads (`purgeOldDeleted`). Staff-panel Remove also goes to the bin: the entry is written to `history` with `deletedAt` and `removedFromBoard: true` (restore puts it back on the board).
+- Summary (collapsible, follows the filters): by month (jobs, PM/CM/Express, % within limit, average time) and by mechanic.
+- Vehicle history: "History" button on each Staff row, and clicking a vehicle on the Finished page, filter the list to that vehicle's property no. (or plate).
 - "Export to Excel (CSV)" downloads the filtered list (UTF-8 BOM so Excel reads it). The CSV includes the end-user; the on-screen table does not.
-- "Remove" in the Staff panel still deletes without recording (now asks for confirmation); "Done" is the normal way to finish a job.
+- "Remove" in the Staff panel is for mistakes (goes to Recently deleted, not the finished list); "Done" is the normal way to finish a job.
 - Never name a module variable `history` — it would hide `window.history`, which TV mode uses.
 
 ## Testing
@@ -76,4 +79,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-05: move buttons replaced by a "Move to…" dropdown.
 - 2026-11-05: user asked to do all four groups of improvements. Part 1 done: staff PIN, offline warning, shared server clock (tested in demo mode and against a mock Firestore with a skewed server clock and offline switch).
 - 2026-11-05: Part 2 done: hold/awaiting parts with paused timer, bay picker + bay settings, default limits per repair type, 2-line clamp on the board.
+- 2026-11-05: Part 3 done: monthly/mechanic summary, vehicle history, printable job record, Recently deleted (30 days) for finished records and removed vehicles.
 - Ideas the user has not decided on: staff PIN, link to the user's PM/CM maintenance records.
