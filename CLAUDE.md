@@ -26,7 +26,7 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 ## Behaviors to preserve
 - Elapsed time ticks every second; the card turns red with "OVER LIMIT" past the limit.
 - Staff panel has two columns (Waiting, In bay); vehicles are dragged between them. Dragging resets the timer (`since`).
-- Mechanics, bay and time limit are editable at any time, including while waiting.
+- Every field is editable at any time, including while waiting, via the **Edit** button on each vehicle in the Staff panel (In bay and Waiting). Edit loads the vehicle into the top form (title "Edit …", "Save changes" / "Cancel edit"); it can change the vehicle (duplicate guard applies), repair type, work, remarks, date in, status, bay, mechanics, time limit and the timer start (`fSince`). Changing status without touching the timer start resets `since`, like dragging. The Staff rows show a read-only summary; the old inline editors were replaced.
 - Adding a vehicle already on the board (same property no.) is blocked.
 - All user-supplied text goes through `esc()` before `innerHTML`, because the data is public and shared.
 - The Staff panel is not rebuilt while someone is typing in it (`staffBusy()`), so live updates don't wipe input.
@@ -57,4 +57,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-05: added work description and date-in fields (form, Staff panel editors, bay cards and waiting rows).
 - 2026-11-05: added Remarks field (same places as work description).
 - 2026-11-05: added Done button and Finished maintenance page (tested headless: done, filters, CSV export, undo, delete, hidden in TV mode).
+- 2026-11-05: added Edit button for In bay and Waiting vehicles (tested headless: edit all fields, timer start, vehicle swap with duplicate guard, status change, cancel).
 - Ideas the user has not decided on: staff PIN, link to the user's PM/CM maintenance records.
