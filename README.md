@@ -39,13 +39,13 @@ What TV mode shows:
 To leave TV mode, move the mouse and click **Exit TV mode** (top right).
 
 ## Moving vehicles
-In the Staff panel, each vehicle has an amber button to move it in one click: **Move to In bay** (from Waiting), **Move to Waiting** (from In bay), or **Arrived → Waiting / Arrived → In bay** (from Scheduled). Moving restarts the vehicle's timer. On a computer you can also drag a vehicle with the mouse, either in the Staff panel or directly on the main board, between **In the bay now**, **Waiting** and **Scheduled**. Dropping into Scheduled asks for the date. (Dragging doesn't work on phones or tablets, and is turned off in TV mode.)
+In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In bay**, **Waiting** or **Scheduled** and it moves right away (Scheduled asks for the date). Moving restarts the vehicle's timer. On a computer you can also drag a vehicle with the mouse, either in the Staff panel or directly on the main board, between **In the bay now**, **Waiting** and **Scheduled**. Dropping into Scheduled asks for the date. (Dragging doesn't work on phones or tablets, and is turned off in TV mode.)
 
 ## Scheduling a vehicle
 1. Click **Staff**, choose the vehicle, and set the status box to **Scheduled (future date)**.
 2. Pick the **Scheduled date** (and a time if you have one), then click **Add to board**.
 3. It shows on the board under **Scheduled**: "Today" in amber, "Tomorrow", the date, or "Overdue" in red if the date has passed.
-4. When the vehicle arrives, click **Arrived → Waiting** or **Arrived → In bay** on it in the Staff panel. (Dragging also works on a computer.) Its date in becomes today and its timer starts.
+4. When the vehicle arrives, open its **Move to…** dropdown in the Staff panel and pick **Waiting** or **In bay**. (Dragging also works on a computer.) Its date in becomes today and its timer starts.
 
 ## Fixing a mistake (Edit)
 1. Click **Staff** and find the vehicle in the **Waiting** or **In bay** list.
