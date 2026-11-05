@@ -50,6 +50,12 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 3. It shows on the board under **Scheduled**: "Today" in amber, "Tomorrow", the date, or "Overdue" in red if the date has passed.
 4. When the vehicle arrives, open its **Move to…** dropdown in the Staff panel and pick **Waiting** or **In bay**. (Dragging also works on a computer.) Its date in becomes today and its timer starts.
 
+## Can't finish today? Pause it
+1. At the end of the day, click **Staff** and find the vehicle in **In bay**.
+2. Click **⏸ Pause**. It asks which day work will continue and suggests the next working day (Friday → Monday). Click **OK**.
+3. The timer stops, and the board shows **"Paused · continues tomorrow"** (or the day you chose). The vehicle stays in its bay.
+4. Next morning, click **▶ Resume**. The timer continues where it stopped, so the night doesn't count against the time limit.
+
 ## Awaiting parts (on hold)
 1. In the Staff panel, open the blue **Put on hold…** dropdown on the vehicle and pick **Awaiting parts**, **Under observation**, **At outside shop**, or **Other reason…**.
 2. On the board the card turns blue with the reason, and the timer **pauses**, so time on hold doesn't count against the time limit.
