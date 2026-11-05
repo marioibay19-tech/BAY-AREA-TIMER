@@ -47,6 +47,16 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 3. It shows on the board under **Scheduled**: "Today" in amber, "Tomorrow", the date, or "Overdue" in red if the date has passed.
 4. When the vehicle arrives, open its **Move to…** dropdown in the Staff panel and pick **Waiting** or **In bay**. (Dragging also works on a computer.) Its date in becomes today and its timer starts.
 
+## Awaiting parts (on hold)
+1. In the Staff panel, open the blue **Put on hold…** dropdown on the vehicle and pick **Awaiting parts**, **Under observation**, **At outside shop**, or **Other reason…**.
+2. On the board the card turns blue with the reason, and the timer **pauses**, so time on hold doesn't count against the time limit.
+3. When work starts again, open the same dropdown and pick **Resume work**.
+4. On the Finished page, the time in bay is the working time, with the time on hold shown underneath.
+
+## Bays and default time limits
+- **Bay** is now a dropdown. Add or remove bays in the Staff panel under **Bays**. If you choose a bay that already has a vehicle, the board asks you to confirm.
+- Each repair type has a **default time limit** (Preventive 2h, Corrective 4h, Express 1h to start). It fills in automatically when you pick the repair type. Change the defaults in the Staff panel under **Default time limit**. You can still type a different limit for one vehicle.
+
 ## Fixing a mistake (Edit)
 1. Click **Staff** and find the vehicle in the **Waiting** or **In bay** list.
 2. Click the blue **Edit** button. The vehicle's details load into the form at the top.

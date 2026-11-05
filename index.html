@@ -188,6 +188,18 @@
   .pin-err{color:var(--red); font-size:13px; min-height:18px; margin-top:6px;}
   .unlock-btn{display:none !important;}
   body.locked .unlock-btn{display:inline-block !important;}
+  /* On hold (Awaiting parts etc.): timer paused, shown in blue */
+  .card.hold{border-color:var(--blue);}
+  .bar-fill.hold{background:var(--blue);}
+  .hold-tag{font-size:11px; font-weight:700; color:var(--blue); background:var(--blue-dim); border-radius:5px; padding:2px 8px; white-space:nowrap; text-transform:uppercase; letter-spacing:0.3px;}
+  .qrow .hold-tag{display:inline-block; margin-top:4px;}
+  body.tv .hold-tag{font-size:clamp(13px,1vw,20px);}
+  .entry select.hold{width:auto; flex:none; padding:6px 8px; font-size:12px; color:var(--blue); border-color:var(--blue);}
+  /* Long work/remarks text: 2 lines on the board (full text in Staff and Finished) */
+  .work .wtext{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .set-row{display:flex; gap:8px; align-items:center; margin-bottom:6px; font-size:13px;}
+  .set-row span{flex:1;}
+  .set-row input{width:90px; flex:none;}
   .settings-box{border-top:1px solid var(--hair); margin-top:18px; padding-top:14px;}
   .fin-toggle{right:184px;}
   .entry button.done{color:var(--green); border-color:var(--green); font-weight:600;}
@@ -390,7 +402,7 @@
         <input id="fSince" type="datetime-local"></label>
     </div>
     <div class="row">
-      <input id="fBay" placeholder="Bay (e.g. Bay 1)">
+      <select id="fBay" title="Bay"></select>
       <select id="fMechanic" class="full" multiple size="4"></select>
     </div>
     <div class="btnrow">
@@ -406,6 +418,18 @@
       <button class="action close" id="fAddMechanic">Add to roster</button>
     </div>
     <div class="entry-list" id="rosterList"></div>
+    <div class="settings-box">
+      <div class="col-label">Bays</div>
+      <div class="row">
+        <input id="fNewBay" placeholder="Add a bay (e.g. Bay 5)">
+        <button class="action close" id="fAddBay">Add bay</button>
+      </div>
+      <div class="entry-list" id="bayList" style="margin-top:6px;"></div>
+    </div>
+    <div class="settings-box">
+      <div class="col-label">Default time limit for each repair type (hours)</div>
+      <div id="limitList"></div>
+    </div>
     <div class="settings-box" id="settingsBox">
       <div class="col-label">Security</div>
       <div class="btnrow">
@@ -633,9 +657,39 @@ function fmtDate(ymd){
   return new Date(y, m - 1, d).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 }
 function workHtml(e){
-  return (e.work ? '<div class="work"><span class="wlabel">Work</span>' + esc(e.work) + '</div>' : '') +
-    (e.remarks ? '<div class="work"><span class="wlabel">Remarks</span>' + esc(e.remarks) + '</div>' : '');
+  return (e.work ? '<div class="work" title="' + esc(e.work) + '"><span class="wlabel">Work</span><span class="wtext">' + esc(e.work) + '</span></div>' : '') +
+    (e.remarks ? '<div class="work" title="' + esc(e.remarks) + '"><span class="wlabel">Remarks</span><span class="wtext">' + esc(e.remarks) + '</span></div>' : '');
 }
+
+/* ---------- On hold (Awaiting parts, etc.) ----------
+   hold = reason ('' when working), holdAt = when the current hold started,
+   heldMs = time already spent on hold. Time on hold doesn't count against the limit. */
+const HOLD_REASONS = ['Awaiting parts', 'Under observation', 'At outside shop'];
+function workedMs(e, now){
+  const end = e.hold && e.holdAt ? e.holdAt : now;
+  return Math.max(0, end - e.since - (e.heldMs || 0));
+}
+function totalHeldMs(e, now){
+  return (e.heldMs || 0) + (e.hold && e.holdAt ? Math.max(0, now - e.holdAt) : 0);
+}
+function setHold(e, reason){
+  const now = nowMs();
+  if (e.hold && e.holdAt) e.heldMs = (e.heldMs || 0) + Math.max(0, now - e.holdAt);
+  e.hold = reason || '';
+  e.holdAt = reason ? now : 0;
+  saveEntry(e);
+  renderStaff();
+}
+
+/* ---------- Settings: bays and default time limits ---------- */
+const DEFAULT_BAYS = ['Bay 1', 'Bay 2', 'Bay 3', 'Bay 4'];
+const REPAIRS = ['Preventive Maintenance', 'Corrective Maintenance', 'Express Maintenance'];
+const DEFAULT_LIMITS = {'Preventive Maintenance': 2, 'Corrective Maintenance': 4, 'Express Maintenance': 1};
+const bayNames = () => (settings.bays && settings.bays.length ? settings.bays : DEFAULT_BAYS);
+const defaultLimit = repair => {
+  const v = settings.limits && Number(settings.limits[repair]);
+  return v > 0 ? v : (DEFAULT_LIMITS[repair] || 2);
+};
 
 /* Scheduled vehicles: schedDate 'YYYY-MM-DD', schedTime 'HH:MM' (optional). */
 const schedKey = e => (e.schedDate || '9999-99-99') + ' ' + (e.schedTime || '99:99');
@@ -703,18 +757,20 @@ function renderBoard(){
   bayEl.innerHTML = bay.length ? '' : '<div class="empty">No vehicles in the bay right now.</div>';
   const overNow = [];
   bay.forEach(e => {
-    const elapsed = now - e.since;
+    const elapsed = workedMs(e, now);
+    const held = !!e.hold;
     const limitMs = e.limitHrs * 3600000;
     const pct = Math.min(100, (elapsed / limitMs) * 100);
     const over = elapsed > limitMs;
     const left = limitMs - elapsed;
-    const near = !over && left <= NEAR_MS;
+    const near = !over && !held && left <= NEAR_MS;
     if (over) overNow.push(e);
     const card = document.createElement('div');
-    card.className = 'card' + (over ? ' over' : near ? ' near' : '');
+    card.className = 'card' + (held ? ' hold' : over ? ' over' : near ? ' near' : '');
     // Keep the pulse smooth even though the card is redrawn every second.
-    if (over) card.style.animationDelay = -(now % 1600) + 'ms';
-    const tag = over ? '<span class="over-label">OVER LIMIT</span>'
+    if (over && !held) card.style.animationDelay = -(now % 1600) + 'ms';
+    const tag = held ? '<span style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;"><span class="hold-tag">' + esc(e.hold) + '</span>' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') + '</span>'
+      : over ? '<span class="over-label">OVER LIMIT</span>'
       : near ? '<span class="near-label">' + Math.max(1, Math.ceil(left / 60000)) + ' MIN LEFT</span>'
       : (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '');
     const mechs = e.mechanics || [];
@@ -725,8 +781,8 @@ function renderBoard(){
       workHtml(e) +
       (mechs.length ? '<div class="mechanic-block"><span class="mechanic-label">' + (mechs.length > 1 ? 'Mechanics' : 'Mechanic') + '</span><div class="mechanic-names">' + mechs.map(n => '<span class="mech-chip">' + esc(n) + '</span>').join('') + '</div></div>' : '') +
       '<div class="timebox"><span>Date in</span><strong>' + esc(fmtDate(entryDateIn(e))) + '</strong></div>' +
-      '<div class="timebox"><span>Elapsed</span><strong>' + fmtElapsed(elapsed) + '</strong></div>' +
-      '<div class="bar-track"><div class="bar-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="timebox"><span>' + (held ? 'Elapsed (paused)' : 'Elapsed') + '</span><strong>' + fmtElapsed(elapsed) + '</strong></div>' +
+      '<div class="bar-track"><div class="bar-fill' + (held ? ' hold' : over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
       '<div class="timebox"><span>Time limit</span><strong>' + esc(e.limitHrs) + 'h</strong></div>';
     boardDraggable(card, e);
     bayEl.appendChild(card);
@@ -739,7 +795,8 @@ function renderBoard(){
     row.innerHTML =
       '<div><div class="plate">' + esc(vTitle(e)) + '</div>' +
       (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') +
-      '<div class="repair">' + esc(e.repair) + '</div>' + workHtml(e) + '</div>' +
+      '<div class="repair">' + esc(e.repair) + '</div>' + workHtml(e) +
+      (e.hold ? '<span class="hold-tag">' + esc(e.hold) + '</span>' : '') + '</div>' +
       '<div class="datein">Date in ' + esc(fmtDate(entryDateIn(e))) + '</div>';
     boardDraggable(row, e);
     qEl.appendChild(row);
@@ -929,6 +986,7 @@ function renderStaff(){
         e.bay ? esc(e.bay) : '',
         mechs.length ? esc(mechs.join(', ')) : 'No mechanic yet',
         e.status === 'bay' ? esc(e.limitHrs) + 'h limit' : '',
+        e.hold ? '<b style="color:var(--blue)">On hold: ' + esc(e.hold) + '</b>' : '',
         e.status === 'sched' ? 'Scheduled ' + esc(schedWhen(e).text) : 'In ' + esc(fmtDate(entryDateIn(e)))
       ].filter(Boolean).join(' · ') +
       (e.work ? '<br>Work: <b>' + esc(e.work) + '</b>' : '') +
@@ -953,6 +1011,32 @@ function renderStaff(){
       mv.value = '';                 // back to "Move to…" if the move was cancelled
     };
     row.appendChild(mv);
+
+    if (e.status !== 'sched') {
+      const hs = document.createElement('select');
+      hs.className = 'hold';
+      hs.title = 'Put on hold: the timer pauses while on hold';
+      const reasons = HOLD_REASONS.slice();
+      if (e.hold && reasons.indexOf(e.hold) === -1) reasons.push(e.hold);
+      [['', e.hold ? 'Resume work' : 'Put on hold…']].concat(reasons.map(r => [r, r]), [['__other', 'Other reason…']]).forEach(([v, label]) => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = label;
+        if (v === (e.hold || '') && v) o.selected = true;
+        hs.appendChild(o);
+      });
+      if (e.hold) hs.value = e.hold;
+      hs.onchange = () => {
+        let reason = hs.value;
+        hs.blur();
+        if (reason === '__other') {
+          const t = prompt('Why is ' + vTitle(e) + ' on hold?', '');
+          if (!t || !t.trim()) { hs.value = e.hold || ''; return; }
+          reason = t.trim().slice(0, 40);
+        }
+        setHold(e, reason);
+      };
+      row.appendChild(hs);
+    }
 
     const editBtn = document.createElement('button');
     editBtn.className = 'edit';
@@ -1020,6 +1104,9 @@ function moveTo(e, target){
   if (e.status === 'sched') e.dateIn = todayStr();         // it arrived today
   e.status = target;
   e.since = nowMs();
+  e.heldMs = 0;                                            // timer restarts, so does hold time
+  if (e.hold) e.holdAt = e.since;
+  if (target === 'sched') { e.hold = ''; e.holdAt = 0; }
   store.saveEntry(e);
   renderBoard(); renderStaff();
 }
@@ -1029,15 +1116,19 @@ function moveTo(e, target){
    ============================================================ */
 function finishJob(e){
   const now = nowMs();
-  const bayMs = Math.max(0, now - e.since);
+  const bayMs = workedMs(e, now);
+  const holdMs = totalHeldMs(e, now);
   const limitMs = (Number(e.limitHrs) || 0) * 3600000;
   const msg = 'Mark ' + vTitle(e) + ' as done?\n\nTime in bay: ' + fmtElapsed(bayMs) +
+    (holdMs > 60000 ? ' (plus ' + fmtDuration(holdMs) + ' on hold)' : '') +
     '\nIt will be taken off the board and saved in Finished maintenance.';
   if (!confirm(msg)) return;
   const rec = Object.assign(clean(e), {
     dateIn: entryDateIn(e),
     doneAt: now,
     bayMs: bayMs,
+    holdMs: holdMs,
+    heldMs: holdMs, hold: '', holdAt: 0,
     overLimit: limitMs > 0 && bayMs > limitMs
   });
   if (editingId === e.id) endEdit();
@@ -1113,7 +1204,7 @@ function renderFinished(){
       '<td>' + ((r.mechanics || []).map(esc).join(', ') || '<span class="subtxt">—</span>') + '</td>' +
       '<td class="nowrap">' + (esc(r.bay) || '<span class="subtxt">—</span>') + '</td>' +
       '<td class="nowrap">' + esc(fmtDate(entryDateIn(r))) + '</td>' +
-      '<td class="nowrap">' + esc(fmtDuration(r.bayMs)) + '</td>' +
+      '<td class="nowrap">' + esc(fmtDuration(r.bayMs)) + (r.holdMs > 60000 ? '<div class="subtxt">+' + esc(fmtDuration(r.holdMs)) + ' on hold</div>' : '') + '</td>' +
       '<td class="nowrap">' + esc(r.limitHrs) + 'h</td>' +
       '<td><span class="pill ' + (r.overLimit ? 'late' : 'ok') + '">' + esc(resultText(r)) + '</span></td>';
     const act = document.createElement('td');
@@ -1148,10 +1239,10 @@ function exportFinished(){
   const list = filteredHistory();
   if (!list.length) { alert('Nothing to export.'); return; }
   const cols = ['Finished', 'Plate', 'Property No.', 'Vehicle', 'End-user', 'Repair type', 'Work description', 'Remarks',
-    'Mechanics', 'Bay', 'Date in', 'Time in bay (hrs)', 'Time limit (hrs)', 'Result'];
+    'Mechanics', 'Bay', 'Date in', 'Time in bay (hrs)', 'On hold (hrs)', 'Time limit (hrs)', 'Result'];
   const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
   const rows = list.map(r => [fmtDateTime(r.doneAt), isNA(r.plate) ? '' : r.plate, r.vno, r.desc, r.who, r.repair, r.work, r.remarks,
-    (r.mechanics || []).join(', '), r.bay, entryDateIn(r), ((r.bayMs || 0) / 3600000).toFixed(2), r.limitHrs, resultText(r)].map(q).join(','));
+    (r.mechanics || []).join(', '), r.bay, entryDateIn(r), ((r.bayMs || 0) / 3600000).toFixed(2), ((r.holdMs || 0) / 3600000).toFixed(2), r.limitHrs, resultText(r)].map(q).join(','));
   const csv = '﻿' + cols.map(q).join(',') + '\r\n' + rows.join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
@@ -1354,6 +1445,7 @@ function addVehicle(){
   if (v && entries.some(x => x.vno === v.no)) { alert(vLabel(v) + ' is already on the board.'); return; }
   const isSched = $('fStatus').value === 'sched';
   if (isSched && !$('fSchedDate').value) { alert('Please choose the scheduled date.'); return; }
+  if (!bayFreeOk($('fBay').value, $('fStatus').value, null)) return;
   const e = {
     id: Date.now(),
     plate: v ? v.plate : typed.toUpperCase(),
@@ -1368,8 +1460,8 @@ function addVehicle(){
     schedDate: isSched ? $('fSchedDate').value : '',
     schedTime: isSched ? $('fSchedTime').value : '',
     since: nowMs(),
-    limitHrs: parseFloat($('fLimit').value) || 2,
-    bay: $('fBay').value.trim(),
+    limitHrs: parseFloat($('fLimit').value) || defaultLimit($('fRepair').value),
+    bay: $('fBay').value,
     mechanics: mechanicValue($('fMechanic'))
   };
   entries.push(e);
@@ -1378,6 +1470,8 @@ function addVehicle(){
   $('fBay').value = '';
   $('fWork').value = '';
   $('fRemarks').value = '';
+  $('fLimit').value = defaultLimit($('fRepair').value);
+  limitTouched = false;
   $('fDateIn').value = todayStr();
   $('fSchedDate').value = '';
   $('fSchedTime').value = '';
@@ -1415,7 +1509,7 @@ function startEdit(e){
   $('fSchedTime').value = e.schedTime || '';
   syncStatusFields();
   $('fLimit').value = e.limitHrs;
-  $('fBay').value = e.bay || '';
+  renderBayOptions(e.bay || '');
   Array.from($('fMechanic').options).forEach(o => { o.selected = (e.mechanics || []).indexOf(o.value) !== -1; });
   $('fSince').value = editOrig.sinceText;
   $('formTitle').textContent = 'Edit ' + vTitle(e);
@@ -1441,8 +1535,9 @@ function endEdit(){
   clearForm();
   $('fStatus').value = 'bay';
   syncStatusFields();
-  $('fLimit').value = 2;
   $('fRepair').selectedIndex = 0;
+  $('fLimit').value = defaultLimit($('fRepair').value);
+  limitTouched = false;
   $('formTitle').textContent = 'Update board';
   $('fAdd').textContent = 'Add to board';
   document.querySelector('.staff-sheet').classList.remove('editing');
@@ -1457,6 +1552,7 @@ function saveEdit(){
   if (isNaN(limit) || limit <= 0) { alert('Please enter a time limit in hours, for example 2 or 1.5.'); return; }
   const newStatus = $('fStatus').value;
   if (newStatus === 'sched' && !$('fSchedDate').value) { alert('Please choose the scheduled date.'); return; }
+  if (!bayFreeOk($('fBay').value, newStatus, e.id)) return;
   let since = e.since;
   const sinceText = $('fSince').value;
   if (sinceText && sinceText !== editOrig.sinceText) {
@@ -1483,7 +1579,7 @@ function saveEdit(){
   e.schedTime = newStatus === 'sched' ? $('fSchedTime').value : (e.schedTime || '');
   e.since = since;
   e.limitHrs = limit;
-  e.bay = $('fBay').value.trim();
+  e.bay = $('fBay').value;
   e.mechanics = mechanicValue($('fMechanic'));
   saveEntry(e);
   endEdit();
@@ -1502,8 +1598,80 @@ $('fAddMechanic').onclick = () => {
   renderRoster(); renderStaff();
 };
 
-/* Hook for settings that change the form (bays, time limits); filled in below. */
-function applySettings(){}
+/* Bay dropdown in the form. Keeps an old free-text bay (e.g. "1") so editing doesn't lose it. */
+function renderBayOptions(selected){
+  const sel = $('fBay');
+  const cur = selected !== undefined ? selected : sel.value;
+  const names = bayNames().slice();
+  if (cur && names.indexOf(cur) === -1) names.push(cur);
+  sel.innerHTML = '';
+  [['', 'No bay yet']].concat(names.map(n => [n, n])).forEach(([v, label]) => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = label;
+    sel.appendChild(o);
+  });
+  sel.value = cur || '';
+}
+/* Warn if another vehicle is already in that bay. */
+function bayFreeOk(bayName, status, selfId){
+  if (!bayName || status !== 'bay') return true;
+  const other = entries.find(x => x.id !== selfId && x.status === 'bay' && x.bay === bayName);
+  return !other || confirm(bayName + ' already has ' + vTitle(other) + '. Put this vehicle in ' + bayName + ' too?');
+}
+function renderSettingsUI(){
+  const list = $('bayList');
+  list.innerHTML = '';
+  bayNames().forEach(name => {
+    const row = document.createElement('div');
+    row.className = 'entry';
+    row.innerHTML = '<span>' + esc(name) + '</span>';
+    const btn = document.createElement('button');
+    btn.textContent = 'Remove';
+    btn.onclick = () => {
+      if (bayNames().length <= 1) { alert('Keep at least one bay.'); return; }
+      store.saveSettings({ bays: bayNames().filter(n => n !== name) });
+    };
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+  const lim = $('limitList');
+  if (!lim.contains(document.activeElement)) {
+    lim.innerHTML = '';
+    REPAIRS.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'set-row';
+      row.innerHTML = '<span>' + esc(r) + '</span>';
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.step = '0.5'; inp.min = '0.5';
+      inp.value = defaultLimit(r);
+      inp.onchange = () => {
+        const v = parseFloat(inp.value);
+        if (isNaN(v) || v <= 0) { inp.value = defaultLimit(r); return; }
+        const limits = Object.assign({}, settings.limits || {}); limits[r] = v;
+        store.saveSettings({ limits: limits });
+      };
+      row.appendChild(inp);
+      lim.appendChild(row);
+    });
+  }
+}
+let limitTouched = false;
+function applySettings(){
+  if (!$('staffPanel').contains(document.activeElement) || document.activeElement !== $('fBay')) renderBayOptions();
+  renderSettingsUI();
+  if (editingId === null && !limitTouched) $('fLimit').value = defaultLimit($('fRepair').value);
+}
+$('fLimit').addEventListener('input', () => { if (editingId === null) limitTouched = true; });
+$('fRepair').addEventListener('change', () => {
+  if (editingId === null) { $('fLimit').value = defaultLimit($('fRepair').value); limitTouched = false; }
+});
+$('fAddBay').onclick = () => {
+  const name = $('fNewBay').value.trim();
+  if (!name) return;
+  if (bayNames().indexOf(name) !== -1) { alert(name + ' is already in the list.'); return; }
+  store.saveSettings({ bays: bayNames().concat([name]) });
+  $('fNewBay').value = '';
+};
 
 function banner(msg){
   const b = $('modeBanner');
