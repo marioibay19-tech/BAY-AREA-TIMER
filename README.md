@@ -38,6 +38,12 @@ What TV mode shows:
 
 To leave TV mode, move the mouse and click **Exit TV mode** (top right).
 
+## Fixing a mistake (Edit)
+1. Click **Staff** and find the vehicle in the **Waiting** or **In bay** list.
+2. Click the blue **Edit** button. The vehicle's details load into the form at the top.
+3. Change what is wrong. You can change the vehicle, repair type, work, remarks, date in, In bay/Waiting, bay, mechanics, time limit, or, if the timer is wrong, the time it started.
+4. Click **Save changes**, or **Cancel edit** to leave it as it was.
+
 ## Finishing a job and the Finished list
 1. When a job is finished (even early), click **Staff**, find the vehicle in the **In bay** list, and click the green **Done** button. Click **OK** to confirm.
 2. The vehicle leaves the board and is saved in **Finished maintenance**, with the time it spent in the bay and whether it was within the time limit.

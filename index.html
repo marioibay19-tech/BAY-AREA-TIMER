@@ -158,6 +158,14 @@
   .tv-toggle{right:90px;}
   .fin-toggle{right:184px;}
   .entry button.done{color:var(--green); border-color:var(--green); font-weight:600;}
+  .entry button.edit{color:var(--blue); border-color:var(--blue); font-weight:600;}
+  .entry.editing{border-color:var(--amber); box-shadow:0 0 0 2px var(--amber-dim);}
+  .entry .entry-info{flex:1 1 100%; color:var(--muted); font-size:12px; line-height:1.45; margin-bottom:4px;}
+  .entry .entry-info b{color:var(--text); font-weight:500;}
+  .edit-only{display:none;}
+  .staff-sheet.editing .edit-only{display:block;}
+  .staff-sheet.editing .add-only{display:none;}
+  .edit-note{background:var(--amber-dim); color:var(--amber); font-size:12px; border-radius:8px; padding:8px 10px; margin-bottom:10px;}
 
   /* ---------- Finished maintenance page (#finished) ---------- */
   .page{display:none; max-width:1400px; margin:0 auto; padding:clamp(16px,3vw,32px);}
@@ -289,7 +297,8 @@
 
 <div class="staff-panel" id="staffPanel">
   <div class="staff-sheet">
-    <h3>Update board</h3>
+    <h3 id="formTitle">Update board</h3>
+    <div class="edit-only edit-note" id="editNote">Editing a vehicle on the board. Change what's wrong, then click Save changes.</div>
     <div class="row">
       <input id="fPlate" class="full" list="vehicleList" autocomplete="off" placeholder="Search vehicle: property no., plate, description or name">
       <datalist id="vehicleList"></datalist>
@@ -310,7 +319,11 @@
         <option value="bay">In bay</option>
         <option value="wait">Waiting</option>
       </select>
-      <input id="fLimit" type="number" placeholder="Time limit (hrs)" value="2">
+      <input id="fLimit" type="number" step="0.5" min="0.5" placeholder="Time limit (hrs)" value="2">
+    </div>
+    <div class="row edit-only">
+      <label class="full"><span class="field-label">Timer started (change only if the timer is wrong)</span>
+        <input id="fSince" type="datetime-local"></label>
     </div>
     <div class="row">
       <input id="fBay" placeholder="Bay (e.g. Bay 1)">
@@ -318,7 +331,8 @@
     </div>
     <div class="btnrow">
       <button class="action add" id="fAdd">Add to board</button>
-      <button class="action close" id="fClose">Close</button>
+      <button class="action close edit-only" id="fCancelEdit">Cancel edit</button>
+      <button class="action close add-only" id="fClose">Close</button>
     </div>
     <div class="col-label" style="margin-top:16px;">Mechanics roster</div>
     <div class="row">
@@ -674,30 +688,18 @@ function tvScroll(){
   } else if (++scrollWait > 160) { window.scrollTo(0, 0); scrollPhase = 'top'; scrollWait = 0; }
 }
 
-function buildMechanicSelect(selected){
-  const sel = document.createElement('select');
-  sel.multiple = true;
-  sel.size = Math.min(5, Math.max(3, roster.length));
-  sel.className = 'limit-edit';
-  sel.style.width = '160px';
-  roster.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name; opt.textContent = name;
-    if (selected && selected.indexOf(name) !== -1) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  return sel;
-}
 const mechanicValue = sel => Array.from(sel.selectedOptions).map(o => o.value).slice(0, 5);
 
 function saveEntry(e){ renderBoard(); store.saveEntry(e); }
 
 function renderRoster(){
   const fMech = $('fMechanic');
+  const picked = mechanicValue(fMech);   // keep what's selected when the roster refreshes
   fMech.innerHTML = '';
   roster.forEach(name => {
     const opt = document.createElement('option');
     opt.value = name; opt.textContent = name;
+    if (picked.indexOf(name) !== -1) opt.selected = true;
     fMech.appendChild(opt);
   });
   const listEl = $('rosterList');
@@ -737,49 +739,27 @@ function renderStaff(){
     row.innerHTML = '<span title="' + esc((e.vno ? e.vno + ' — ' : '') + (e.desc || '') + (e.who ? ' — ' + e.who : '')) + '">' +
       esc(vTitle(e)) + (e.desc ? ' — ' + esc(e.desc) : '') + (e.who ? ' (' + esc(e.who) + ')' : '') + '</span>';
 
-    const workIn = document.createElement('input');
-    workIn.className = 'limit-edit work-edit'; workIn.maxLength = 300;
-    workIn.placeholder = 'Work description';
-    workIn.value = e.work || '';
-    workIn.onchange = () => { e.work = workIn.value.trim(); saveEntry(e); };
-    row.appendChild(workIn);
+    if (e.id === editingId) row.classList.add('editing');
+    const mechs = e.mechanics || [];
+    const info = document.createElement('div');
+    info.className = 'entry-info';
+    info.innerHTML = [
+        esc(e.repair),
+        e.bay ? esc(e.bay) : '',
+        mechs.length ? esc(mechs.join(', ')) : 'No mechanic yet',
+        e.status === 'bay' ? esc(e.limitHrs) + 'h limit' : '',
+        'In ' + esc(fmtDate(entryDateIn(e)))
+      ].filter(Boolean).join(' · ') +
+      (e.work ? '<br>Work: <b>' + esc(e.work) + '</b>' : '') +
+      (e.remarks ? '<br>Remarks: <b>' + esc(e.remarks) + '</b>' : '');
+    row.appendChild(info);
 
-    const remIn = document.createElement('input');
-    remIn.className = 'limit-edit work-edit'; remIn.maxLength = 300;
-    remIn.placeholder = 'Remarks';
-    remIn.value = e.remarks || '';
-    remIn.onchange = () => { e.remarks = remIn.value.trim(); saveEntry(e); };
-    row.appendChild(remIn);
-
-    const dateIn = document.createElement('input');
-    dateIn.type = 'date'; dateIn.className = 'date-edit';
-    dateIn.title = 'Date entered the bay area';
-    dateIn.value = entryDateIn(e);
-    dateIn.onchange = () => { if (dateIn.value) { e.dateIn = dateIn.value; saveEntry(e); } };
-    row.appendChild(dateIn);
-
-    const bayIn = document.createElement('input');
-    bayIn.className = 'limit-edit'; bayIn.placeholder = 'Bay';
-    bayIn.value = e.bay || '';
-    bayIn.onchange = () => { e.bay = bayIn.value.trim(); saveEntry(e); };
-    row.appendChild(bayIn);
-
-    const mechIn = buildMechanicSelect(e.mechanics);
-    mechIn.onchange = () => { e.mechanics = mechanicValue(mechIn); saveEntry(e); };
-    row.appendChild(mechIn);
-
-    if (e.status === 'bay') {
-      const limitIn = document.createElement('input');
-      limitIn.type = 'number'; limitIn.step = '0.5';
-      limitIn.className = 'limit-edit';
-      limitIn.title = 'Time limit (hrs)';
-      limitIn.value = e.limitHrs;
-      limitIn.onchange = () => {
-        const v = parseFloat(limitIn.value);
-        if (!isNaN(v) && v > 0) { e.limitHrs = v; saveEntry(e); }
-      };
-      row.appendChild(limitIn);
-    }
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit';
+    editBtn.textContent = 'Edit';
+    editBtn.title = 'Change the details of this vehicle';
+    editBtn.onclick = () => startEdit(e);
+    row.appendChild(editBtn);
 
     if (e.status === 'bay') {
       const doneBtn = document.createElement('button');
@@ -795,6 +775,7 @@ function renderStaff(){
     btn.title = 'Take off the board without saving it as finished (for mistakes)';
     btn.onclick = () => {
       if (!confirm('Remove ' + vTitle(e) + ' from the board? It will NOT be saved as finished. Use Done for finished jobs.')) return;
+      if (editingId === e.id) endEdit();
       entries = entries.filter(x => x.id !== e.id);
       store.removeEntry(e.id);
       renderBoard(); renderStaff();
@@ -841,6 +822,7 @@ function finishJob(e){
     bayMs: bayMs,
     overLimit: limitMs > 0 && bayMs > limitMs
   });
+  if (editingId === e.id) endEdit();
   entries = entries.filter(x => x.id !== e.id);
   Promise.resolve(store.finishEntry(rec)).catch(err => alert('Could not save the finished job: ' + (err && err.message || err)));
   renderBoard(); renderStaff();
@@ -1022,9 +1004,9 @@ document.addEventListener('click', ev => {
 document.addEventListener('fullscreenchange', () => {
   if (isTV()) $('tvStart').classList.toggle('show', !document.fullscreenElement || !audioCtx);
 });
-$('fClose').onclick = () => $('staffPanel').classList.remove('open');
+$('fClose').onclick = () => { endEdit(); $('staffPanel').classList.remove('open'); };
 
-$('fAdd').onclick = () => {
+function addVehicle(){
   const typed = $('fPlate').value.trim();
   if (!typed) return;
   const v = findVehicle(typed);
@@ -1054,7 +1036,94 @@ $('fAdd').onclick = () => {
   $('fDateIn').value = todayStr();
   Array.from($('fMechanic').options).forEach(o => { o.selected = false; });
   renderBoard(); renderStaff();
-};
+}
+
+/* ---------- Edit a vehicle already on the board ---------- */
+let editingId = null, editOrig = null;
+function toLocalInput(ms){
+  const d = new Date(ms), p = n => (n < 10 ? '0' : '') + n;
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function startEdit(e){
+  editingId = e.id;
+  const v = e.vno ? VEHICLES.find(x => x.no === e.vno) : null;
+  editOrig = { plateText: v ? vLabel(v) : (e.plate || ''), sinceText: toLocalInput(e.since), status: e.status };
+  $('fPlate').value = editOrig.plateText;
+  $('fRepair').value = e.repair;
+  $('fWork').value = e.work || '';
+  $('fRemarks').value = e.remarks || '';
+  $('fDateIn').value = entryDateIn(e);
+  $('fStatus').value = e.status;
+  $('fLimit').value = e.limitHrs;
+  $('fBay').value = e.bay || '';
+  Array.from($('fMechanic').options).forEach(o => { o.selected = (e.mechanics || []).indexOf(o.value) !== -1; });
+  $('fSince').value = editOrig.sinceText;
+  $('formTitle').textContent = 'Edit ' + vTitle(e);
+  $('fAdd').textContent = 'Save changes';
+  document.querySelector('.staff-sheet').classList.add('editing');
+  document.querySelector('.staff-sheet').scrollTop = 0;
+  renderStaff();
+}
+function clearForm(){
+  $('fPlate').value = '';
+  $('fWork').value = '';
+  $('fRemarks').value = '';
+  $('fBay').value = '';
+  $('fDateIn').value = todayStr();
+  $('fSince').value = '';
+  Array.from($('fMechanic').options).forEach(o => { o.selected = false; });
+}
+function endEdit(){
+  if (editingId === null) return;
+  editingId = null; editOrig = null;
+  clearForm();
+  $('fStatus').value = 'bay';
+  $('fLimit').value = 2;
+  $('fRepair').selectedIndex = 0;
+  $('formTitle').textContent = 'Update board';
+  $('fAdd').textContent = 'Add to board';
+  document.querySelector('.staff-sheet').classList.remove('editing');
+  renderStaff();
+}
+function saveEdit(){
+  const e = entries.find(x => x.id === editingId);
+  if (!e) { alert('This vehicle is no longer on the board (it may have been finished or removed on another screen).'); endEdit(); return; }
+  const typed = $('fPlate').value.trim();
+  if (!typed) { alert('Please choose the vehicle.'); return; }
+  const limit = parseFloat($('fLimit').value);
+  if (isNaN(limit) || limit <= 0) { alert('Please enter a time limit in hours, for example 2 or 1.5.'); return; }
+  let since = e.since;
+  const sinceText = $('fSince').value;
+  if (sinceText && sinceText !== editOrig.sinceText) {
+    const t = new Date(sinceText).getTime();
+    if (isNaN(t) || t > Date.now() + 60000) { alert('The timer start time cannot be in the future.'); return; }
+    since = t;
+  } else if ($('fStatus').value !== editOrig.status) {
+    since = Date.now();   // same as dragging to the other column
+  }
+  if (typed !== editOrig.plateText) {
+    const v = findVehicle(typed);
+    if (v && entries.some(x => x.id !== e.id && x.vno === v.no)) { alert(vLabel(v) + ' is already on the board.'); return; }
+    e.plate = v ? v.plate : typed.toUpperCase();
+    e.vno = v ? v.no : '';
+    e.desc = v ? v.desc : '';
+    e.who = v ? v.who : '';
+  }
+  e.repair = $('fRepair').value;
+  e.work = $('fWork').value.trim();
+  e.remarks = $('fRemarks').value.trim();
+  e.dateIn = $('fDateIn').value || entryDateIn(e);
+  e.status = $('fStatus').value;
+  e.since = since;
+  e.limitHrs = limit;
+  e.bay = $('fBay').value.trim();
+  e.mechanics = mechanicValue($('fMechanic'));
+  saveEntry(e);
+  endEdit();
+}
+
+$('fAdd').onclick = () => { if (editingId !== null) saveEdit(); else addVehicle(); };
+$('fCancelEdit').onclick = endEdit;
 
 $('fAddMechanic').onclick = () => {
   const input = $('fNewMechanic');
