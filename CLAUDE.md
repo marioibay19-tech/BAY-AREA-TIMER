@@ -18,6 +18,7 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 ## Data model (Firestore)
 - Collection `entries`, one doc per vehicle on the board, doc id = `String(entry.id)`.
   Fields: `id` (ms timestamp), `plate`, `vno` (property no.), `desc`, `who` (assigned person), `repair` (Preventive / Corrective / Express Maintenance), `status` (`bay` or `wait`), `since` (ms timestamp, reset when moved between columns), `limitHrs`, `bay` (text such as "Bay 1"), `mechanics` (array, max 5 names).
+  `work` (work description text, shown on the customer board), `dateIn` ('YYYY-MM-DD', date the vehicle entered the bay area; set on add, defaults to today, editable in Staff panel, never reset by dragging). Entries without `dateIn` fall back to the date of `id` (or `since` for small demo ids).
 - Doc `meta/roster` with `{ names: [...] }`, the mechanics list used by the pickers.
 - `VEHICLES` (127 items: `no`, `plate`, `desc`, `who`) is embedded in `index.html`. It powers the searchable vehicle field. Plate `N/A` means no plate, so the board shows the property number as the main label. The assigned person's name is shown in the Staff panel only, not on the customer display.
 
@@ -44,4 +45,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - As of 2026-11-05: files delivered to the user; they were creating the GitHub repo and turning on Pages.
 - 2026-11-05: the upload landed as `index (1).html` (and `index.html` was deleted), which Pages can't serve. Renamed back to `index.html`, added README/CLAUDE.md/firestore.rules to the repo, and changed README so it no longer tells the user to paste `firestore.rules` into Firebase (that would have replaced the bid monitoring site's rules).
 - 2026-11-05: user renamed the file on main themselves; site is live. TV display mode added (tested headless: alert bar, near/over badges, one chime per crossing, auto-scroll).
+- 2026-11-05: added work description and date-in fields (form, Staff panel editors, bay cards and waiting rows).
 - Ideas the user has not decided on: staff PIN, link to the user's PM/CM maintenance records.
