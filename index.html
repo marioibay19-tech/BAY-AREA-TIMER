@@ -238,6 +238,7 @@
         <option>Express Maintenance</option>
       </select>
       <input id="fWork" class="full" maxlength="300" placeholder="Work description (e.g. Change oil, check brakes)">
+      <input id="fRemarks" class="full" maxlength="300" placeholder="Remarks (e.g. Waiting for parts)">
     </div>
     <div class="row">
       <label class="full"><span class="field-label">Date entered the bay area</span>
@@ -409,7 +410,8 @@ function fmtDate(ymd){
   return new Date(y, m - 1, d).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 }
 function workHtml(e){
-  return e.work ? '<div class="work"><span class="wlabel">Work</span>' + esc(e.work) + '</div>' : '';
+  return (e.work ? '<div class="work"><span class="wlabel">Work</span>' + esc(e.work) + '</div>' : '') +
+    (e.remarks ? '<div class="work"><span class="wlabel">Remarks</span>' + esc(e.remarks) + '</div>' : '');
 }
 
 function renderBoard(){
@@ -639,6 +641,13 @@ function renderStaff(){
     workIn.onchange = () => { e.work = workIn.value.trim(); saveEntry(e); };
     row.appendChild(workIn);
 
+    const remIn = document.createElement('input');
+    remIn.className = 'limit-edit work-edit'; remIn.maxLength = 300;
+    remIn.placeholder = 'Remarks';
+    remIn.value = e.remarks || '';
+    remIn.onchange = () => { e.remarks = remIn.value.trim(); saveEntry(e); };
+    row.appendChild(remIn);
+
     const dateIn = document.createElement('input');
     dateIn.type = 'date'; dateIn.className = 'date-edit';
     dateIn.title = 'Date entered the bay area';
@@ -753,6 +762,7 @@ $('fAdd').onclick = () => {
     who: v ? v.who : '',
     repair: $('fRepair').value,
     work: $('fWork').value.trim(),
+    remarks: $('fRemarks').value.trim(),
     dateIn: $('fDateIn').value || todayStr(),
     status: $('fStatus').value,
     since: Date.now(),
@@ -765,6 +775,7 @@ $('fAdd').onclick = () => {
   $('fPlate').value = '';
   $('fBay').value = '';
   $('fWork').value = '';
+  $('fRemarks').value = '';
   $('fDateIn').value = todayStr();
   Array.from($('fMechanic').options).forEach(o => { o.selected = false; });
   renderBoard(); renderStaff();
