@@ -98,6 +98,12 @@ If a vehicle isn't found when you search:
 ## Day and Night colors
 On staff computers and phones, click the small button under the clock to switch between **☀ Day** (light), **☾ Night** (dark) and **◐ Auto** (Day from 6 AM to 6 PM, Night after). Each device remembers its own choice.
 
+## End-user and division
+- Each vehicle on the board shows its **end-user** and **division**.
+- Divisions are typed once per end-user: **Staff → Settings → End-users and their divisions**. Use the search box to find a name, type the division, then click somewhere else to save. It appears on every screen within a few seconds.
+- When you add a vehicle, the **End-user** and **Division** boxes fill in by themselves. You can change them for that one job, for example if someone else from another division brought the vehicle.
+- The division is also on the Finished page, the printed job record and the Excel export. To hide it on the lobby TV, untick **Show end-user and division** under **TV display**.
+
 ## Staff PIN
 - The **Staff** button, dragging on the board, and Undo/Delete/Export on the Finished page need the staff PIN. Looking at the board and the Finished list does not.
 - The starting PIN is **1234**. Change it right away: click **Staff**, enter 1234, open the **Settings** tab, and click **Change staff PIN** (under Security).

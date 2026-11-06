@@ -199,6 +199,14 @@
   .mechanic-label svg{width:15px; height:15px;}
   .mechanic-names{display:flex; flex-wrap:wrap; gap:5px;}
   .mech-chip{background:var(--surface2); color:var(--text); font-size:12px; font-weight:500; border-radius:999px; padding:2px 9px;}
+  .enduser{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); min-width:0;}
+  .enduser svg{width:14px; height:14px; color:var(--faint); flex:none;}
+  .enduser{flex-wrap:wrap; row-gap:1px;}
+  .enduser .eu-name{color:var(--text); font-weight:600;}
+  .enduser .eu-div{min-width:0;}
+  .div-list{max-height:420px; overflow-y:auto; margin-top:6px; border-top:1px solid var(--hair);}
+  .div-list .set-row span{font-size:13px;}
+  .div-list .set-row input{width:55%; height:34px;}
   .card-foot{margin-top:auto; padding-top:10px; border-top:1px solid var(--hair); display:flex; flex-direction:column; gap:8px;}
   .time-row{display:flex; align-items:baseline; justify-content:space-between; gap:8px;}
   .elapsed{font-size:22px; font-weight:700; letter-spacing:-.3px; line-height:1;}
@@ -412,6 +420,7 @@
   body.tv .qrow .work .wtext{-webkit-line-clamp:1;}
   body.tv .vdesc, body.tv .work, body.tv .qrow .datein, body.tv .qrow .datein b, body.tv .qrow .sched-when, body.tv .empty,
   body.tv .foot-meta, body.tv .limit{font-size:clamp(14px,1.05vw,21px);}
+  body.tv .enduser{font-size:clamp(13px,1vw,20px);}
   body.tv .repair, body.tv .status, body.tv .mech-chip, body.tv .bay-tag, body.tv .work .wlabel{font-size:clamp(12px,.9vw,18px);}
   body.tv .elapsed{font-size:clamp(24px,2vw,42px);}
   body.tv .bar-track{height:clamp(8px,.6vw,12px);}
@@ -428,6 +437,7 @@
   body.tv #schedZone{flex:2 1 0;}
   body.tv #queueList, body.tv #schedList{flex:1; min-height:0; overflow:hidden; position:relative;}
   /* What the TV shows (set in the Staff panel) */
+  body.tv.tvh-who .enduser,
   body.tv.tvh-mech .mechanic-block, body.tv.tvh-pno .pno, body.tv.tvh-work .w-work,
   body.tv.tvh-rem .w-rem, body.tv.tvh-datein .datein-row, body.tv.tvh-datein .qrow .datein,
   body.tv.tvh-desc .vdesc .vd, body.tv.tvh-desc .qrow .vdesc, body.tv.tvh-desc .pno .sep{display:none !important;}
@@ -574,6 +584,11 @@
             <label class="full"><span class="field-label">Vehicle</span>
               <input id="fPlate" list="vehicleList" autocomplete="off" placeholder="Search property no., plate, model or end-user"></label>
             <datalist id="vehicleList"></datalist>
+            <label><span class="field-label">End-user</span>
+              <input id="fWho" maxlength="80" placeholder="Fills in from the vehicle"></label>
+            <label><span class="field-label">Division</span>
+              <input id="fDiv" maxlength="80" list="divisionList" placeholder="e.g. Maintenance Division"></label>
+            <datalist id="divisionList"></datalist>
             <label class="full"><span class="field-label">Repair type</span>
               <select id="fRepair">
                 <option>Preventive Maintenance</option>
@@ -669,6 +684,12 @@
       <div class="col-label">TV display: what the lobby TV shows</div>
       <div id="tvOptList"></div>
     </div>
+    <div class="settings-box">
+      <div class="col-label">End-users and their divisions</div>
+      <div style="font-size:12.5px; color:var(--muted);">Type each end-user's division once. It shows on the board for all their vehicles.</div>
+      <input id="divFilter" placeholder="Find an end-user" style="margin-top:10px;">
+      <div class="div-list" id="divList"></div>
+    </div>
     <div class="settings-box" id="settingsBox">
       <div class="col-label">Security</div>
       <div class="btnrow">
@@ -710,6 +731,7 @@ const ICON = {
   auto: svgI('<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>'),
   pause: svgI('<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'),
   play: svgI('<path d="M7 4l13 8-13 8z" fill="currentColor"/>'),
+  org: svgI('<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M14 9h1M9 13h1M14 13h1M9 17h1M14 17h1"/>'),
   alert: svgI('<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>')
 };
 const shortRepair = r => String(r || '').replace(' Maintenance', '');
@@ -920,6 +942,20 @@ function fmtDate(ymd){
   const [y, m, d] = ymd.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
 }
+/* ---------- End-user and division ----------
+   Divisions are kept per end-user in meta/settings.divisions ({name: division}).
+   An entry can also carry its own `division` (typed in the form), which wins. */
+const normName = n => String(n || '').replace(/\s+/g, ' ').trim();
+const divisionOf = who => { const d = settings.divisions || {}; return d[normName(who)] || ''; };
+const entryDivision = e => e.division || divisionOf(e.who);
+function endUserHtml(e){
+  const who = normName(e.who), div = entryDivision(e);
+  if (!who && !div) return '';
+  return '<div class="enduser" title="End-user' + (div ? ' · Division' : '') + '">' + ICON.org +
+    (who ? '<span class="eu-name">' + esc(who) + '</span>' : '') +
+    (div ? '<span class="eu-div">' + (who ? '· ' : '') + esc(div) + '</span>' : '') + '</div>';
+}
+
 function workHtml(e){
   return (e.work ? '<div class="work w-work" title="' + esc(e.work) + '"><span class="wlabel">Work</span><span class="wtext">' + esc(e.work) + '</span></div>' : '') +
     (e.remarks ? '<div class="work w-rem" title="' + esc(e.remarks) + '"><span class="wlabel">Remarks</span><span class="wtext">' + esc(e.remarks) + '</span></div>' : '');
@@ -1075,6 +1111,7 @@ function renderBoard(){
       '<div class="card-top"><span class="plate" title="' + esc(vTitle(e)) + '">' + esc(vTitle(e)) + '</span>' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') + '</div>' +
       (e.desc || (e.vno && e.vno !== vTitle(e)) ? '<div class="vdesc">' + (e.desc ? '<span class="vd">' + esc(e.desc) + '</span>' : '') +
         ((e.vno && e.vno !== vTitle(e)) ? '<span class="pno">' + (e.desc ? '<span class="sep"> · </span>' : '') + esc(e.vno) + '</span>' : '') + '</div>' : '') +
+      endUserHtml(e) +
       '<div class="chips"><span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span>' + status + '</div>' +
       workHtml(e) +
       (mechs.length ? '<div class="mechanic-block"><span class="mechanic-label" title="' + (mechs.length > 1 ? 'Mechanics' : 'Mechanic') + '">' + ICON.user + '</span><div class="mechanic-names">' + mechs.map(n => '<span class="mech-chip">' + esc(n) + '</span>').join('') + '</div></div>' : '') +
@@ -1094,7 +1131,7 @@ function renderBoard(){
     row.innerHTML =
       '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span>' +
         (e.hold ? '<span class="status hold-tag">' + esc(holdLabel(e)) + '</span>' : '') + '</div>' +
-      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + workHtml(e) + '</div>' +
+      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + endUserHtml(e) + workHtml(e) + '</div>' +
       '<div class="q-side"><span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span>' +
         '<div class="datein">Date in<b>' + esc(fmtDate(entryDateIn(e))) + '</b></div></div>';
     boardDraggable(row, e);
@@ -1110,7 +1147,7 @@ function renderBoard(){
     row.className = 'qrow' + (w.cls ? ' q-' + w.cls : '');
     row.innerHTML =
       '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span></div>' +
-      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + workHtml(e) + '</div>' +
+      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + endUserHtml(e) + workHtml(e) + '</div>' +
       '<div class="q-side"><div class="sched-when ' + w.cls + '">' + esc(w.text) + '</div>' +
         '<span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span></div>';
     boardDraggable(row, e);
@@ -1167,6 +1204,7 @@ window.addEventListener('resize', () => { if (isTV()) renderBoard(); });
 
 /* ---------- What the TV shows (meta/settings.tv; true = show) ---------- */
 const TV_OPTS = [
+  ['who', '', 'End-user and division'],
   ['mech', 'mechanic-block', 'Mechanic names'],
   ['pno', '', 'Property no. (when the vehicle has a plate)'],
   ['desc', '', 'Vehicle make & model'],
@@ -1379,7 +1417,7 @@ function renderStaff(){
     row.draggable = true;
     row.ondragstart = ev => ev.dataTransfer.setData('text/plain', e.id);
     row.innerHTML = '<span title="' + esc((e.vno ? e.vno + ' — ' : '') + (e.desc || '') + (e.who ? ' — ' + e.who : '')) + '">' +
-      '<b>' + esc(vTitle(e)) + '</b>' + (e.desc ? ' <em>— ' + esc(e.desc) + '</em>' : '') + (e.who ? ' <em>(' + esc(e.who) + ')</em>' : '') + '</span>';
+      '<b>' + esc(vTitle(e)) + '</b>' + (e.desc ? ' <em>— ' + esc(e.desc) + '</em>' : '') + ((e.who || entryDivision(e)) ? ' <em>(' + [e.who, entryDivision(e)].filter(Boolean).map(esc).join(' · ') + ')</em>' : '') + '</span>';
 
     if (e.id === editingId) row.classList.add('editing');
     const mechs = e.mechanics || [];
@@ -1559,6 +1597,7 @@ function finishJob(e){
     bayMs: bayMs,
     holdMs: holdMs,
     heldMs: holdMs, hold: '', holdAt: 0, pauseUntil: '',
+    division: entryDivision(e),
     overLimit: limitMs > 0 && bayMs > limitMs
   });
   if (editingId === e.id) endEdit();
@@ -1604,7 +1643,7 @@ function filteredHistory(){
     if (to && day > to) return false;
     if (rep && r.repair !== rep) return false;
     if (q) {
-      const hay = [r.plate, r.vno, r.desc, r.who, r.work, r.remarks, r.bay, r.repair, (r.mechanics || []).join(' ')].join(' ').toLowerCase();
+      const hay = [r.plate, r.vno, r.desc, r.who, entryDivision(r), r.work, r.remarks, r.bay, r.repair, (r.mechanics || []).join(' ')].join(' ').toLowerCase();
       if (hay.indexOf(q) === -1) return false;
     }
     return true;
@@ -1661,7 +1700,7 @@ function printJob(r){
     '.sig{display:flex;gap:28px;margin-top:48px}.sig div{flex:1;border-top:1px solid #111;padding-top:6px;text-align:center;font-size:12px}' +
     '@media print{body{margin:12mm}}</style></head><body>' +
     '<h1>DPWH Equipment Management Division — Job Record</h1><h2>Regional Office 1 · Vehicle maintenance bay</h2><table>' +
-    row('Plate no.', isNA(r.plate) ? '' : r.plate) + row('Property no.', r.vno) + row('Vehicle / equipment', r.desc) + row('End-user', r.who) +
+    row('Plate no.', isNA(r.plate) ? '' : r.plate) + row('Property no.', r.vno) + row('Vehicle / equipment', r.desc) + row('End-user', r.who) + row('Division', entryDivision(r)) +
     row('Repair type', r.repair) + row('Work description', r.work) + row('Remarks', r.remarks) +
     row('Mechanic(s)', (r.mechanics || []).join(', ')) + row('Bay', r.bay) + row('Date in', fmtDate(entryDateIn(r))) +
     row('Finished', fmtDateTime(r.doneAt)) + row('Time in bay', fmtDuration(r.bayMs) + (r.holdMs > 60000 ? ' (plus ' + fmtDuration(r.holdMs) + ' on hold)' : '')) +
@@ -1696,7 +1735,8 @@ function renderFinished(){
   list.forEach(r => {
     const tr = document.createElement('tr');
     const title = vTitle(r);
-    const sub = [r.vno && r.vno !== title ? r.vno : '', r.desc].filter(Boolean).map(esc).join(' · ');
+    const sub = [r.vno && r.vno !== title ? r.vno : '', r.desc].filter(Boolean).map(esc).join(' · ') +
+      ((r.who || entryDivision(r)) ? '<br>' + [r.who, entryDivision(r)].filter(Boolean).map(esc).join(' · ') : '');
     const work = [r.work ? esc(r.work) : '', r.remarks ? '<span class="subtxt">Remarks: ' + esc(r.remarks) + '</span>' : ''].filter(Boolean).join('<br>');
     tr.innerHTML =
       '<td class="nowrap">' + esc(fmtDateTime(r.doneAt)) + '</td>' +
@@ -1767,10 +1807,10 @@ function renderFinished(){
 function exportFinished(){
   const list = filteredHistory();
   if (!list.length) { alert('Nothing to export.'); return; }
-  const cols = ['Finished', 'Plate', 'Property No.', 'Vehicle', 'End-user', 'Repair type', 'Work description', 'Remarks',
+  const cols = ['Finished', 'Plate', 'Property No.', 'Vehicle', 'End-user', 'Division', 'Repair type', 'Work description', 'Remarks',
     'Mechanics', 'Bay', 'Date in', 'Time in bay (hrs)', 'On hold (hrs)', 'Time limit (hrs)', 'Result'];
   const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-  const rows = list.map(r => [fmtDateTime(r.doneAt), isNA(r.plate) ? '' : r.plate, r.vno, r.desc, r.who, r.repair, r.work, r.remarks,
+  const rows = list.map(r => [fmtDateTime(r.doneAt), isNA(r.plate) ? '' : r.plate, r.vno, r.desc, r.who, entryDivision(r), r.repair, r.work, r.remarks,
     (r.mechanics || []).join(', '), r.bay, entryDateIn(r), ((r.bayMs || 0) / 3600000).toFixed(2), ((r.holdMs || 0) / 3600000).toFixed(2), r.limitHrs, resultText(r)].map(q).join(','));
   const csv = '﻿' + cols.map(q).join(',') + '\r\n' + rows.join('\r\n');
   const a = document.createElement('a');
@@ -2022,7 +2062,8 @@ function addVehicle(){
     plate: v ? v.plate : typed.toUpperCase(),
     vno: v ? v.no : '',
     desc: v ? v.desc : '',
-    who: v ? v.who : '',
+    who: normName($('fWho').value) || (v ? v.who : ''),
+    division: (d => d && d !== divisionOf(normName($('fWho').value) || (v ? v.who : '')) ? d : '')(normName($('fDiv').value)),
     repair: $('fRepair').value,
     work: $('fWork').value.trim(),
     remarks: $('fRemarks').value.trim(),
@@ -2038,6 +2079,8 @@ function addVehicle(){
   entries.push(e);
   store.saveEntry(e);
   $('fPlate').value = '';
+  $('fWho').value = '';
+  $('fDiv').value = '';
   $('fBay').value = '';
   $('fWork').value = '';
   $('fRemarks').value = '';
@@ -2072,6 +2115,8 @@ function startEdit(e){
   const v = e.vno ? ALL_VEHICLES.find(x => x.no === e.vno) : null;
   editOrig = { plateText: v ? vLabel(v) : (e.plate || ''), sinceText: toLocalInput(e.since), status: e.status };
   $('fPlate').value = editOrig.plateText;
+  $('fWho').value = e.who || '';
+  $('fDiv').value = entryDivision(e);
   $('fRepair').value = e.repair;
   $('fWork').value = e.work || '';
   $('fRemarks').value = e.remarks || '';
@@ -2094,6 +2139,8 @@ function startEdit(e){
 }
 function clearForm(){
   $('fPlate').value = '';
+  $('fWho').value = '';
+  $('fDiv').value = '';
   $('fWork').value = '';
   $('fRemarks').value = '';
   $('fBay').value = '';
@@ -2143,8 +2190,11 @@ function saveEdit(){
     e.plate = v ? v.plate : typed.toUpperCase();
     e.vno = v ? v.no : '';
     e.desc = v ? v.desc : '';
-    e.who = v ? v.who : '';
   }
+  e.who = normName($('fWho').value);
+  // Only store a division on the job if it differs from the end-user's usual one.
+  const dv = normName($('fDiv').value);
+  e.division = dv && dv !== divisionOf(e.who) ? dv : '';
   e.repair = $('fRepair').value;
   e.work = $('fWork').value.trim();
   e.remarks = $('fRemarks').value.trim();
@@ -2159,6 +2209,16 @@ function saveEdit(){
   saveEntry(e);
   endEdit();
 }
+
+function fillWhoFromVehicle(){
+  const v = findVehicle($('fPlate').value);
+  if (!v) return;
+  $('fWho').value = v.who || '';
+  $('fDiv').value = divisionOf(v.who);
+}
+$('fPlate').addEventListener('change', fillWhoFromVehicle);
+$('fPlate').addEventListener('input', () => { if (BY_LABEL[$('fPlate').value.trim()]) fillWhoFromVehicle(); });
+$('fWho').addEventListener('change', () => { if (!$('fDiv').value) $('fDiv').value = divisionOf($('fWho').value); });
 
 $('fAdd').onclick = () => { if (editingId !== null) saveEdit(); else addVehicle(); };
 $('fCancelEdit').onclick = endEdit;
@@ -2270,8 +2330,44 @@ $('vAdd').onclick = () => {
   alert(no + ' was added. You can now search for it when adding a vehicle to the board.');
 };
 
+function renderDivisions(){
+  const box = $('divList');
+  if (!box || box.contains(document.activeElement)) return;
+  const q = $('divFilter').value.trim().toLowerCase();
+  const names = Array.from(new Set(ALL_VEHICLES.map(v => normName(v.who)).filter(Boolean)
+    .concat(entries.map(e => normName(e.who)).filter(Boolean),
+            Object.keys(settings.divisions || {})))).sort((a, b) => a.localeCompare(b));
+  box.innerHTML = '';
+  names.filter(n => !q || n.toLowerCase().indexOf(q) !== -1 || divisionOf(n).toLowerCase().indexOf(q) !== -1).forEach(n => {
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.innerHTML = '<span>' + esc(n) + '</span>';
+    const inp = document.createElement('input');
+    inp.placeholder = 'Division'; inp.setAttribute('list', 'divisionList'); inp.maxLength = 80;
+    inp.value = divisionOf(n);
+    inp.onchange = () => {
+      const d = Object.assign({}, settings.divisions || {});
+      const val = normName(inp.value);
+      if (val) d[n] = val; else delete d[n];
+      settings.divisions = d;             // show it right away on this screen
+      store.saveSettings({ divisions: d });
+      renderBoard();
+    };
+    row.appendChild(inp);
+    box.appendChild(row);
+  });
+  // Suggestions for division boxes: every division typed so far.
+  const dl = $('divisionList');
+  dl.innerHTML = '';
+  Array.from(new Set(Object.values(settings.divisions || {}).concat(entries.map(e => e.division).filter(Boolean)))).sort().forEach(d => {
+    const o = document.createElement('option'); o.value = d; dl.appendChild(o);
+  });
+}
+$('divFilter').addEventListener('input', renderDivisions);
+
 let limitTouched = false;
 function applySettings(){
+  renderDivisions();
   applyTvOptions();
   rebuildVehicles(addedVehicles());
   renderAddedVehicles();
