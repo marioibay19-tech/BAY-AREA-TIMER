@@ -8,334 +8,444 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* ==========================================================
+     DESIGN TOKENS
+     One spacing scale (4px steps), one radius scale, two type
+     families: Bebas Neue for plates and the clock (display),
+     Inter for everything else. Status colors: amber = working,
+     red = over limit, blue = on hold / paused, green = done / live.
+     ========================================================== */
   :root{
-    --bg:#1B1D21; --surface:#24262B; --surface2:#2C2F35;
-    --text:#ECEDEF; --muted:#8B909A; --hair:#3A3D44;
-    --amber:#E8A33D; --amber-dim:#4A3A22;
-    --blue:#5B8DEF; --blue-dim:#22304F;
-    --red:#E2544B; --red-dim:#4A2422;
-    --green:#4CB782; --green-dim:#1F3A2C;
+    --bg:#14161A; --surface:#1D2025; --surface2:#262A30; --surface3:#2F343B;
+    --text:#EDEEF0; --muted:#949AA4; --faint:#6B717B; --hair:#30343B; --hair2:#3B4048;
+    --amber:#EAA53F; --amber-dim:#3D3020; --amber-ink:#1B1406;
+    --blue:#6B9BF2; --blue-dim:#1E2A45;
+    --red:#EF5A50; --red-dim:#3F201E;
+    --green:#4CC08A; --green-dim:#183527;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 4px 16px rgba(0,0,0,.18);
+    --shadow-lg:0 12px 48px rgba(0,0,0,.45);
+    --r-sm:6px; --r:10px; --r-lg:14px;
+    --gutter:clamp(16px,3vw,32px);
     box-sizing:border-box;
     padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
   }
-  /* Day colors: used when the device is in light mode, or when Day is chosen (data-theme="light").
-     Amber, blue and red are a little darker than at night so they stay readable on white. */
+  /* Day colors (device in light mode, or Day chosen). Accents are darker for contrast on white. */
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
-      --bg:#EEF0F3; --surface:#FFFFFF; --surface2:#F4F5F7;
-      --text:#1B1D21; --muted:#5F6470; --hair:#D3D7DD;
-      --amber:#C98A1E; --amber-dim:#FCEBCE; --blue:#2F6BD8; --blue-dim:#DCE6FC;
-      --red:#C8372D; --red-dim:#FBDBD8; --green:#2E8B57; --green-dim:#D6F0E2;
+      --bg:#F1F3F6; --surface:#FFFFFF; --surface2:#F4F6F9; --surface3:#E9EDF2;
+      --text:#14171C; --muted:#5A616C; --faint:#868D98; --hair:#E1E5EA; --hair2:#CDD3DB;
+      --amber:#C2810F; --amber-dim:#FDF0D8; --amber-ink:#1B1406;
+      --blue:#2D66D3; --blue-dim:#E2EBFD; --red:#C9362B; --red-dim:#FCE3E0; --green:#23874F; --green-dim:#DCF2E5;
+      --shadow:0 1px 2px rgba(20,23,28,.06), 0 4px 14px rgba(20,23,28,.06);
+      --shadow-lg:0 16px 48px rgba(20,23,28,.18);
       color-scheme:light;
     }
   }
   :root[data-theme="light"]{
-    --bg:#EEF0F3; --surface:#FFFFFF; --surface2:#F4F5F7;
-    --text:#1B1D21; --muted:#5F6470; --hair:#D3D7DD;
-    --amber:#C98A1E; --amber-dim:#FCEBCE; --blue:#2F6BD8; --blue-dim:#DCE6FC;
-    --red:#C8372D; --red-dim:#FBDBD8; --green:#2E8B57; --green-dim:#D6F0E2;
+    --bg:#F1F3F6; --surface:#FFFFFF; --surface2:#F4F6F9; --surface3:#E9EDF2;
+    --text:#14171C; --muted:#5A616C; --faint:#868D98; --hair:#E1E5EA; --hair2:#CDD3DB;
+    --amber:#C2810F; --amber-dim:#FDF0D8; --amber-ink:#1B1406;
+    --blue:#2D66D3; --blue-dim:#E2EBFD; --red:#C9362B; --red-dim:#FCE3E0; --green:#23874F; --green-dim:#DCF2E5;
+    --shadow:0 1px 2px rgba(20,23,28,.06), 0 4px 14px rgba(20,23,28,.06);
+    --shadow-lg:0 16px 48px rgba(20,23,28,.18);
     color-scheme:light;
   }
-  /* Night colors */
   :root[data-theme="dark"]{
-    --bg:#1B1D21; --surface:#24262B; --surface2:#2C2F35; --text:#ECEDEF; --muted:#8B909A; --hair:#3A3D44;
-    --amber:#E8A33D; --amber-dim:#4A3A22; --blue:#5B8DEF; --blue-dim:#22304F;
-    --red:#E2544B; --red-dim:#4A2422; --green:#4CB782; --green-dim:#1F3A2C;
+    --bg:#14161A; --surface:#1D2025; --surface2:#262A30; --surface3:#2F343B;
+    --text:#EDEEF0; --muted:#949AA4; --faint:#6B717B; --hair:#30343B; --hair2:#3B4048;
+    --amber:#EAA53F; --amber-dim:#3D3020; --blue:#6B9BF2; --blue-dim:#1E2A45;
+    --red:#EF5A50; --red-dim:#3F201E; --green:#4CC08A; --green-dim:#183527;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 4px 16px rgba(0,0,0,.18);
+    --shadow-lg:0 12px 48px rgba(0,0,0,.45);
     color-scheme:dark;
   }
-  .theme-btn{background:none; border:1px solid var(--hair); color:var(--muted); border-radius:14px; padding:2px 10px; font-size:12px; cursor:pointer; font-family:inherit;}
-  .theme-btn:hover{color:var(--text);}
-  body.tv .theme-btn{display:none;}
+
+  /* ---------- Base ---------- */
   *{box-sizing:border-box;}
   html,body{height:100%; margin:0;}
   body{
     background:var(--bg); color:var(--text);
-    font-family:'Inter',system-ui,sans-serif;
-    min-height:100%;
+    font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif; font-size:14px; line-height:1.45;
+    min-height:100%; -webkit-font-smoothing:antialiased;
+    font-variant-numeric:tabular-nums;
   }
+  svg.i{width:1em; height:1em; vertical-align:-0.14em; flex:none;}
+  button{font-family:inherit;}
+  :focus-visible{outline:2px solid var(--amber); outline-offset:2px;}
+  #modeBanner{font-weight:500;}
+
+  /* ---------- Header ---------- */
   .head{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:20px clamp(16px,4vw,40px);
-    padding-top:calc(20px + env(safe-area-inset-top,0px));
-    border-bottom:1px solid var(--hair);
+    display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:clamp(12px,2.4vw,32px);
+    padding:14px var(--gutter);
+    padding-top:calc(14px + env(safe-area-inset-top,0px));
+    background:var(--surface); border-bottom:1px solid var(--hair);
   }
-  .brand{display:flex; flex-direction:column; gap:2px;}
-  .brand .name{font-family:'Bebas Neue',sans-serif; font-size:clamp(24px,3.2vw,34px); letter-spacing:0.5px; line-height:1;}
-  .brand .sub{color:var(--muted); font-size:13px;}
-  .clock{font-family:'Bebas Neue',sans-serif; font-size:clamp(28px,4vw,42px); letter-spacing:1px;}
-  .layout{
-    display:grid; grid-template-columns:1fr; gap:0;
-    max-width:1400px; margin:0 auto;
+  .brand{display:flex; align-items:center; gap:12px; min-width:0;}
+  .brand-mark{width:42px; height:42px; border-radius:11px; background:var(--amber); color:var(--amber-ink);
+    display:grid; place-items:center; flex:none;}
+  .brand-mark svg{width:24px; height:24px;}
+  .brand-text{display:flex; flex-direction:column; gap:1px; min-width:0;}
+  .brand .name{font-family:'Bebas Neue',sans-serif; font-size:clamp(24px,2.4vw,30px); letter-spacing:0.8px; line-height:1;}
+  .brand .sub{color:var(--muted); font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  /* Count chips */
+  .counts{display:flex; flex-wrap:wrap; gap:8px; justify-content:center;}
+  .stat{display:flex; align-items:baseline; gap:6px; padding:6px 12px; border-radius:999px;
+    background:var(--surface2); border:1px solid var(--hair); font-size:12.5px; color:var(--muted); white-space:nowrap;}
+  .stat b{font-size:16px; font-weight:700; color:var(--text);}
+  .stat .sd{width:7px; height:7px; border-radius:50%; align-self:center; background:var(--faint);}
+  .stat.s-bay .sd{background:var(--amber);} .stat.s-wait .sd{background:var(--muted);}
+  .stat.s-hold .sd{background:var(--blue);} .stat.s-sched .sd{background:var(--green);}
+  .clockbox{display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
+  .clock{font-family:'Bebas Neue',sans-serif; font-size:clamp(30px,3.2vw,40px); letter-spacing:1px; line-height:1;}
+  .today{font-size:12px; color:var(--muted); white-space:nowrap;}
+  .head-meta{display:flex; gap:10px; align-items:center; margin-top:2px;}
+  .theme-btn{display:inline-flex; align-items:center; gap:5px; background:none; border:1px solid var(--hair2); color:var(--muted);
+    border-radius:999px; padding:2px 10px 2px 8px; font-size:12px; cursor:pointer; line-height:18px;}
+  .theme-btn:hover{color:var(--text); border-color:var(--muted);}
+  .conn{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; white-space:nowrap;}
+  .conn .dot{width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-dim);}
+  .conn.off{color:var(--red); font-weight:600;}
+  .conn.off .dot{background:var(--red); box-shadow:0 0 0 3px var(--red-dim);}
+  /* Header actions (Finished / TV mode / Staff) */
+  .nav{display:flex; gap:8px;}
+  .staff-toggle{display:inline-flex; align-items:center; gap:7px; height:38px; padding:0 14px; border-radius:var(--r);
+    background:var(--surface2); color:var(--text); border:1px solid var(--hair); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;}
+  .staff-toggle:hover{border-color:var(--hair2); background:var(--surface3);}
+  .staff-toggle svg{width:16px; height:16px; color:var(--muted);}
+  #staffToggle{background:var(--amber); border-color:var(--amber); color:var(--amber-ink);}
+  #staffToggle svg{color:var(--amber-ink);}
+  #staffToggle:hover{filter:brightness(1.05);}
+  @media (max-width:1180px){
+    .head{grid-template-columns:1fr auto auto;}
+    .counts{grid-column:1/-1; grid-row:2; justify-content:flex-start;}
   }
-  @media (min-width:900px){
-    .layout{grid-template-columns:1.7fr 1fr;}
-    .queue{border-left:1px solid var(--hair);}
+  @media (max-width:720px){
+    .head{grid-template-columns:1fr auto; gap:12px;}
+    .clockbox{grid-column:2; grid-row:1;}
+    .counts{grid-row:2;}
+    .nav{grid-column:1/-1; grid-row:3;}
+    .nav .staff-toggle{flex:1; justify-content:center; padding:0 8px;}
+    .brand .sub{white-space:normal;}
+    .brand-mark{width:36px; height:36px;}
   }
-  .panel{padding:clamp(16px,3vw,32px);}
-  .layout{padding-bottom:64px;}   /* room for the floating buttons */
-  body.tv .layout{padding-bottom:0;}
+
+  /* ---------- Bars under the header ---------- */
+  .offline-bar{display:none; background:var(--red-dim); color:var(--red); font-weight:600; text-align:center;
+    padding:9px 16px; font-size:clamp(13px,1.2vw,22px); border-bottom:1px solid var(--red);}
+  .offline-bar.show{display:block;}
+  .alert-bar{display:none; align-items:center; gap:10px; background:var(--red); color:#fff; font-weight:600;
+    padding:10px var(--gutter); font-size:clamp(14px,1.4vw,26px);}
+  .alert-bar.show{display:flex;}
+
+  /* ---------- Board layout ---------- */
+  .layout{display:grid; grid-template-columns:1fr; gap:var(--gutter); max-width:1560px; margin:0 auto; padding:var(--gutter);}
+  @media (min-width:980px){ .layout{grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);} }
+  .panel{min-width:0;}
+  .queue{display:flex; flex-direction:column; gap:var(--gutter);}
+  .section-title{display:flex; align-items:center; gap:10px; margin:0 0 12px;
+    font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.6px; color:var(--text); line-height:1.1;}
+  .sec-count{font-family:'Inter',sans-serif; font-size:12px; font-weight:700; letter-spacing:0; color:var(--muted);
+    background:var(--surface2); border:1px solid var(--hair); border-radius:999px; padding:1px 9px; line-height:18px;}
+  .section-title.next{margin-top:0;}
+  .page-ind{margin-left:auto; display:inline-flex; align-items:center; font-family:'Inter',sans-serif; font-size:13px; letter-spacing:0; color:var(--amber); font-weight:600;}
+  .page-ind:empty{display:none;}
+  .page-dots{display:inline-flex; gap:5px; margin-left:8px;}
+  .page-dots i{width:8px; height:8px; border-radius:50%; background:var(--hair2); display:inline-block;}
+  .page-dots i.on{background:var(--amber);}
+  .empty{color:var(--muted); font-size:13.5px; padding:22px 16px; text-align:center; border:1px dashed var(--hair2); border-radius:var(--r); grid-column:1/-1;}
+
   /* Drag on the main board (computers; not in TV mode) */
   .board-drag{cursor:grab;}
   .board-drag:active{cursor:grabbing;}
   .board-drag.dragging{opacity:0.45;}
-  .drop-zone{border-radius:12px; transition:background .15s, box-shadow .15s;}
-  .drop-zone.dragover{background:var(--amber-dim); box-shadow:0 0 0 2px var(--amber);}
-  .queue-list{min-height:48px;}
-  .section-title{
-    font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.5px;
-    color:var(--muted); margin:0 0 16px 0;
-  }
-  .bay-grid{
-    display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-    gap:14px;
-  }
-  .card{
-    background:var(--surface); border:1px solid var(--hair); border-radius:10px;
-    padding:16px 18px; display:flex; flex-direction:column; gap:10px;
-  }
-  .card.over{border-color:var(--red);}
-  .card-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap;}
-  .card-top .plate{white-space:nowrap;}
-  .plate{font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1px;}
-  .bay-tag{
-    font-size:11px; font-weight:600; color:var(--amber); background:var(--amber-dim);
-    border-radius:5px; padding:2px 8px; white-space:nowrap;
-  }
-  .repair{color:var(--muted); font-size:13px;}
-  .vdesc{color:var(--text); font-size:13px; line-height:1.35; opacity:.85;}
+  .drop-zone{border-radius:var(--r-lg); transition:background .15s, box-shadow .15s;}
+  .drop-zone.dragover{background:var(--amber-dim); box-shadow:0 0 0 2px var(--amber), 0 0 0 8px var(--amber-dim);}
+
+  /* ---------- Bay cards ---------- */
+  .bay-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px;}
+  .card{position:relative; display:flex; flex-direction:column; gap:10px;
+    background:var(--surface); border:1px solid var(--hair); border-radius:var(--r-lg); box-shadow:var(--shadow);
+    padding:16px 16px 14px; min-height:min-content;}
+  .card::before{content:''; position:absolute; left:-1px; top:-1px; right:-1px; height:4px; background:var(--amber);
+    border-radius:var(--r-lg) var(--r-lg) 0 0;}
+  .card.near{border-color:color-mix(in srgb, var(--amber) 55%, var(--hair));}
+  .card.over{border-color:var(--red); background:color-mix(in srgb, var(--red-dim) 45%, var(--surface));}
+  .card.over::before{background:var(--red);}
+  .card.hold{border-color:color-mix(in srgb, var(--blue) 55%, var(--hair));}
+  .card.hold::before{background:var(--blue);}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .card-top .plate{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
+  .plate{font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:1px; line-height:1;}
+  .bay-tag{flex:none; font-size:11.5px; font-weight:700; color:var(--text); background:var(--surface2); border:1px solid var(--hair2);
+    border-radius:var(--r-sm); padding:2px 8px; white-space:nowrap; letter-spacing:.2px;}
+  .vdesc{color:var(--muted); font-size:13px; line-height:1.35; margin-top:-4px;}
+  .card .vdesc{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .chips{display:flex; flex-wrap:wrap; gap:6px; align-items:center;}
+  .repair{display:inline-flex; align-items:center; font-size:11.5px; font-weight:600; color:var(--muted);
+    background:var(--surface2); border-radius:var(--r-sm); padding:2px 8px; white-space:nowrap;}
+  .status{display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:700; border-radius:var(--r-sm);
+    padding:2px 8px; white-space:nowrap; text-transform:uppercase; letter-spacing:.3px;}
+  .status::before{content:''; width:6px; height:6px; border-radius:50%; background:currentColor;}
+  .st-work{color:var(--green); background:var(--green-dim);}
+  .over-label{color:#fff; background:var(--red);}
+  .near-label{color:var(--amber); background:var(--amber-dim);}
+  .hold-tag{color:var(--blue); background:var(--blue-dim);}
   .work{font-size:13px; line-height:1.4; color:var(--text);}
-  .work .wlabel{display:block; font-size:12px; color:var(--muted); margin-bottom:2px;}
-  .qrow .work{margin-top:4px;}
-  .qrow .datein{color:var(--muted); font-size:12px; margin-top:2px; text-align:right; white-space:nowrap; flex:none;}
-  .entry .work-edit{flex:1 1 100%; width:100%;}
-  .entry .date-edit{width:140px; padding:5px 6px; font-size:12px; flex:none;}
-  .field-label{font-size:12px; color:var(--muted); display:block; margin-bottom:3px;}
-  .mechanic{display:flex; justify-content:space-between; gap:8px; font-size:13px; color:var(--muted);}
-  .mechanic strong{color:var(--text); font-weight:600; text-align:right;}
-  .mechanic-block{display:flex; flex-direction:column; gap:6px;}
-  .mechanic-label{font-size:12px; color:var(--muted);}
-  .mechanic-names{display:flex; flex-wrap:wrap; gap:6px;}
-  .mech-chip{
-    background:var(--surface2); color:var(--text); font-size:12px; font-weight:500;
-    border-radius:6px; padding:3px 9px;
-  }
-  .timebox{display:flex; justify-content:space-between; font-size:13px; color:var(--muted);}
-  .timebox strong{color:var(--text); font-weight:600;}
-  .bar-track{height:8px; border-radius:5px; background:var(--surface2); overflow:hidden;}
-  .bar-fill{height:100%; border-radius:5px; background:var(--amber); transition:width .4s ease;}
+  .work .wlabel{display:block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.4px; color:var(--faint); margin-bottom:1px;}
+  .work .wtext{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .mechanic-block{display:flex; align-items:center; gap:8px;}
+  .mechanic-label{display:inline-flex; color:var(--faint);}
+  .mechanic-label svg{width:15px; height:15px;}
+  .mechanic-names{display:flex; flex-wrap:wrap; gap:5px;}
+  .mech-chip{background:var(--surface2); color:var(--text); font-size:12px; font-weight:500; border-radius:999px; padding:2px 9px;}
+  .card-foot{margin-top:auto; padding-top:10px; border-top:1px solid var(--hair); display:flex; flex-direction:column; gap:8px;}
+  .time-row{display:flex; align-items:baseline; justify-content:space-between; gap:8px;}
+  .elapsed{font-size:22px; font-weight:700; letter-spacing:-.3px; line-height:1;}
+  .card.over .elapsed{color:var(--red);}
+  .card.hold .elapsed{color:var(--blue);}
+  .limit{font-size:12.5px; color:var(--muted); white-space:nowrap;}
+  .bar-track{height:6px; border-radius:999px; background:var(--surface3); overflow:hidden;}
+  .bar-fill{height:100%; border-radius:999px; background:var(--amber); transition:width .4s ease;}
   .bar-fill.over{background:var(--red);}
-  .over-label{color:var(--red); font-size:12px; font-weight:600;}
-  .queue-list{display:flex; flex-direction:column; gap:10px;}
-  .qrow{
-    display:flex; justify-content:space-between; align-items:center; gap:14px;
-    background:var(--surface); border:1px solid var(--hair); border-radius:10px;
-    padding:12px 16px;
-  }
-  .qrow .plate{font-size:20px;}
-  .qrow .sched-when{font-size:13px; font-weight:600; text-align:right; white-space:nowrap;}
-  .qrow .sched-when.today{color:var(--amber);}
-  .qrow .sched-when.late{color:var(--red);}
-  .section-title.next{margin-top:28px;}
-  .empty{color:var(--muted); font-size:14px; padding:12px 0;}
-  .staff-toggle{
-    position:fixed; bottom:calc(16px + env(safe-area-inset-bottom,0px)); right:16px;
-    background:var(--surface2); color:var(--muted); border:1px solid var(--hair);
-    border-radius:20px; padding:8px 14px; font-size:12px; cursor:pointer;
-  }
-  .staff-panel{
-    position:fixed; inset:0; background:rgba(0,0,0,0.55); display:none;
-    align-items:flex-end; justify-content:center; z-index:10;
-  }
-  .staff-panel.open{display:flex;}
-  .staff-sheet{
-    background:var(--bg); border-top:1px solid var(--hair); width:100%; max-width:560px;
-    max-height:82vh; overflow-y:auto; border-radius:16px 16px 0 0; padding:20px;
-    padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));
-  }
-  .staff-sheet h3{font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:0.5px; margin:0 0 12px;}
-  .row{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;}
-  input,select{
-    width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--hair);
+  .bar-fill.hold{background:var(--blue);}
+  .foot-meta{display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--muted);}
+  .foot-meta b{color:var(--text); font-weight:600;}
+
+  /* ---------- Waiting / Scheduled rows ---------- */
+  .queue-list{display:flex; flex-direction:column; gap:8px; min-height:48px;}
+  .qrow{display:flex; justify-content:space-between; align-items:flex-start; gap:14px;
+    background:var(--surface); border:1px solid var(--hair); border-radius:var(--r); box-shadow:var(--shadow);
+    padding:12px 14px; border-left:3px solid var(--hair2);}
+  .qrow.q-hold{border-left-color:var(--blue);}
+  .qrow.q-today{border-left-color:var(--amber);}
+  .qrow.q-late{border-left-color:var(--red);}
+  .q-main{min-width:0; display:flex; flex-direction:column; gap:4px;}
+  .q-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .qrow .plate{font-size:22px;}
+  .qrow .vdesc{margin-top:0;}
+  .qrow .work .wlabel{display:none;}
+  .qrow .work .wtext{-webkit-line-clamp:2;}
+  .q-side{flex:none; text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px;}
+  .qrow .datein{color:var(--muted); font-size:12px; white-space:nowrap;}
+  .qrow .datein b{display:block; color:var(--text); font-size:13px; font-weight:600;}
+  .qrow .sched-when{font-size:13px; font-weight:700; white-space:nowrap; padding:3px 9px; border-radius:var(--r-sm); background:var(--surface2);}
+  .qrow .sched-when.today{color:var(--amber); background:var(--amber-dim);}
+  .qrow .sched-when.late{color:var(--red); background:var(--red-dim);}
+
+  /* ---------- Buttons & form controls ---------- */
+  input,select,textarea{
+    width:100%; height:40px; padding:0 12px; border-radius:var(--r-sm); border:1px solid var(--hair2);
     background:var(--surface); color:var(--text); font-size:14px; font-family:inherit;
   }
+  input:focus,select:focus{outline:none; border-color:var(--amber); box-shadow:0 0 0 3px var(--amber-dim);}
+  input::placeholder{color:var(--faint);}
+  select[multiple]{height:auto; padding:6px;}
+  .field-label{display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:5px;}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;}
+  .row label{display:block; min-width:0;}
   .full{grid-column:1/-1;}
-  .btnrow{display:flex; gap:8px; margin-top:10px;}
-  button.action{
-    flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;
-    font-weight:600; font-size:14px;
-  }
-  .add{background:var(--amber); color:#1B1D21;}
-  .close{background:var(--surface2); color:var(--text);}
-  .entry-list{display:flex; flex-direction:column; gap:8px; margin-top:14px;}
-  .entry-cols{display:flex; flex-direction:column; gap:16px; margin-top:14px;}
-  .col-label{font-size:12px; color:var(--muted); margin-bottom:6px;}
-  .entry-col{
-    display:flex; flex-direction:column; gap:8px;
-    background:var(--surface2); border:1px dashed var(--hair); border-radius:10px;
-    padding:10px; min-height:48px;
-  }
-  .entry-col.dragover{border-color:var(--amber); background:var(--amber-dim);}
-  .entry-col .empty-col{color:var(--muted); font-size:12px; padding:4px 2px;}
-  .entry{cursor:grab;}
-  .entry:active{cursor:grabbing;}
-  .entry{display:flex; flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--hair); border-radius:8px; padding:8px 12px; font-size:13px;}
-  .entry span{flex:1 1 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:2px;}
-  .entry .limit-edit{width:80px; padding:5px 6px; font-size:12px; flex:none;}
-  .entry button{background:none; border:1px solid var(--hair); border-radius:6px; padding:4px 8px; color:var(--red); cursor:pointer; font-size:12px; flex:none;}
-
-  /* Nearing the time limit */
-  .card.near{border-color:var(--amber);}
-  .near-label{color:var(--amber); font-size:12px; font-weight:600; white-space:nowrap;}
-  .tv-toggle{right:90px;}
-  /* Connection status under the clock */
-  .clockbox{display:flex; flex-direction:column; align-items:flex-end; gap:4px;}
-  .conn{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; white-space:nowrap;}
-  .conn .dot{width:8px; height:8px; border-radius:50%; background:var(--green);}
-  .conn.off{color:var(--red); font-weight:600;}
-  .conn.off .dot{background:var(--red);}
-  body.tv .conn{font-size:clamp(13px,1vw,20px);}
-  .offline-bar{display:none; background:var(--red-dim); color:var(--red); font-weight:600; text-align:center;
-    padding:8px 16px; font-size:clamp(13px,1.2vw,22px); border-bottom:1px solid var(--red);}
-  .offline-bar.show{display:block;}
-  /* PIN box */
-  .pin-modal{position:fixed; inset:0; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; z-index:30; padding:16px;}
-  .pin-modal.open{display:flex;}
-  .pin-box{background:var(--bg); border:1px solid var(--hair); border-radius:14px; padding:20px; width:100%; max-width:340px;}
-  .pin-box h3{font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.5px; margin:0 0 6px;}
-  .pin-box p{color:var(--muted); font-size:13px; margin:0 0 12px;}
-  .pin-box input{font-size:22px; letter-spacing:6px; text-align:center;}
-  .pin-err{color:var(--red); font-size:13px; min-height:18px; margin-top:6px;}
+  .btnrow{display:flex; gap:8px; margin-top:4px;}
+  button.action{flex:1; height:40px; padding:0 14px; border-radius:var(--r-sm); border:1px solid transparent; cursor:pointer; font-weight:600; font-size:14px;}
+  .add{background:var(--amber); color:var(--amber-ink);}
+  .add:hover{filter:brightness(1.05);}
+  .close{background:var(--surface2); color:var(--text); border-color:var(--hair2) !important;}
+  .close:hover{background:var(--surface3);}
+  .btn-sm{display:inline-flex; align-items:center; gap:6px; height:36px; background:var(--surface); color:var(--text); border:1px solid var(--hair2);
+    border-radius:var(--r-sm); padding:0 12px; font-size:13px; font-weight:500; cursor:pointer;}
+  .btn-sm:hover{background:var(--surface2);}
+  .btn-sm.primary{background:var(--amber); color:var(--amber-ink); border-color:var(--amber); font-weight:600;}
   .unlock-btn{display:none !important;}
-  body.locked .unlock-btn{display:inline-block !important;}
-  /* On hold (Awaiting parts etc.): timer paused, shown in blue */
-  .card.hold{border-color:var(--blue);}
-  .bar-fill.hold{background:var(--blue);}
-  .hold-tag{font-size:11px; font-weight:700; color:var(--blue); background:var(--blue-dim); border-radius:5px; padding:2px 8px; white-space:nowrap; text-transform:uppercase; letter-spacing:0.3px;}
-  .qrow .hold-tag{display:inline-block; margin-top:4px;}
-  body.tv .hold-tag{font-size:clamp(13px,1vw,20px);}
-  .entry select.hold{width:auto; flex:none; padding:6px 8px; font-size:12px; color:var(--blue); border-color:var(--blue);}
-  /* Long work/remarks text: 2 lines on the board (full text in Staff and Finished) */
-  .work .wtext{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
-  .set-row{display:flex; gap:8px; align-items:center; margin-bottom:6px; font-size:13px;}
-  .set-row span{flex:1;}
-  .set-row input{width:90px; flex:none;}
-  /* Finished page: summary + recently deleted */
-  .fin-sum{margin-bottom:14px;}
-  .fin-sum summary{cursor:pointer; font-weight:600; font-size:14px; margin-bottom:8px;}
-  .sum-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
-  @media (max-width:900px){ .sum-grid{grid-template-columns:1fr;} }
-  table.mini{width:100%; border-collapse:collapse; font-size:13px;}
-  .mini th, .mini td{padding:7px 10px; border-bottom:1px solid var(--hair); text-align:right; white-space:nowrap;}
-  .mini th:first-child, .mini td:first-child{text-align:left;}
-  .mini th{color:var(--muted); font-weight:600; background:var(--surface2);}
-  .mini tr:last-child td{border-bottom:none;}
-  .vlink{background:none; border:none; padding:0; color:inherit; cursor:pointer; text-align:left; font:inherit;}
-  .vlink:hover .vt{text-decoration:underline;}
-  .bin-note{background:var(--red-dim); color:var(--red); border-radius:8px; padding:8px 12px; font-size:13px; margin-bottom:10px;}
-  .settings-box{border-top:1px solid var(--hair); margin-top:18px; padding-top:14px;}
-  .fin-toggle{right:184px;}
-  .entry button.done{color:var(--green); border-color:var(--green); font-weight:600;}
-  .entry button.edit{color:var(--blue); border-color:var(--blue); font-weight:600;}
-  .entry select.move{width:auto; flex:none; padding:6px 8px; font-size:12px; font-weight:600; color:#1B1D21; background:var(--amber); border-color:var(--amber); cursor:pointer;}
-  .entry.editing{border-color:var(--amber); box-shadow:0 0 0 2px var(--amber-dim);}
-  .entry .entry-info{flex:1 1 100%; color:var(--muted); font-size:12px; line-height:1.45; margin-bottom:4px;}
-  .entry .entry-info b{color:var(--text); font-weight:500;}
+  body.locked .unlock-btn{display:inline-flex !important;}
+
+  /* ---------- Staff panel (dialog with tabs) ---------- */
+  .staff-panel{position:fixed; inset:0; background:rgba(8,10,14,0.6); display:none; align-items:center; justify-content:center;
+    z-index:10; padding:clamp(0px,2vw,24px); backdrop-filter:blur(2px);}
+  .staff-panel.open{display:flex;}
+  .staff-sheet{background:var(--bg); border:1px solid var(--hair); width:100%; max-width:1240px; height:100%; max-height:940px;
+    overflow-y:auto; border-radius:var(--r-lg); box-shadow:var(--shadow-lg); padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));}
+  @media (max-width:700px){ .staff-sheet{border-radius:0; max-height:none;} }
+  .sheet-head{position:sticky; top:0; z-index:3; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:12px clamp(14px,2vw,22px); background:var(--surface); border-bottom:1px solid var(--hair);}
+  .sheet-title{font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:.6px; margin-right:auto; line-height:1;}
+  .tabs{display:flex; gap:4px; padding:3px; background:var(--surface2); border-radius:var(--r); border:1px solid var(--hair);}
+  .tab{height:32px; padding:0 14px; border:none; border-radius:7px; background:none; color:var(--muted); font-size:13px; font-weight:600; cursor:pointer;}
+  .tab.on{background:var(--surface); color:var(--text); box-shadow:var(--shadow);}
+  .icon-btn{width:38px; height:38px; border-radius:var(--r-sm); border:1px solid var(--hair2); background:var(--surface); color:var(--text);
+    cursor:pointer; display:grid; place-items:center; font-size:18px; padding:0;}
+  .icon-btn:hover{background:var(--surface2);}
+  .sheet-body{padding:clamp(14px,2vw,22px);}
+  .staff-sheet[data-tab="settings"] .tab-board, .staff-sheet[data-tab="board"] .tab-settings{display:none;}
+  .board-tab{display:grid; grid-template-columns:minmax(300px,380px) minmax(0,1fr); gap:20px; align-items:start;}
+  @media (max-width:860px){ .board-tab{grid-template-columns:1fr;} }
+  .form-card{background:var(--surface); border:1px solid var(--hair); border-radius:var(--r-lg); padding:16px; box-shadow:var(--shadow);}
+  .staff-sheet h3{font-family:'Bebas Neue',sans-serif; font-size:21px; letter-spacing:.5px; margin:0 0 12px;}
   .edit-only{display:none;}
   .staff-sheet.editing .edit-only{display:block;}
+  .staff-sheet.editing .row.edit-only{display:grid;}
+  .staff-sheet.editing .btnrow .edit-only{display:inline-block;}
   .staff-sheet.editing .add-only{display:none;}
-  .edit-note{background:var(--amber-dim); color:var(--amber); font-size:12px; border-radius:8px; padding:8px 10px; margin-bottom:10px;}
+  .staff-sheet.editing .form-card{border-color:var(--amber); box-shadow:0 0 0 3px var(--amber-dim), var(--shadow);}
+  .edit-note{background:var(--amber-dim); color:var(--amber); font-size:12.5px; font-weight:500; border-radius:var(--r-sm); padding:8px 10px; margin-bottom:12px;}
+  /* Mechanic picker chips (they drive the hidden #fMechanic list) */
+  .mech-pick{display:flex; flex-wrap:wrap; gap:6px;}
+  .mech-pick button{height:32px; padding:0 12px; border-radius:999px; border:1px solid var(--hair2); background:var(--surface);
+    color:var(--text); font-size:13px; cursor:pointer;}
+  .mech-pick button.on{background:var(--amber); border-color:var(--amber); color:var(--amber-ink); font-weight:600;}
+  .mech-pick .hint{font-size:12px; color:var(--faint); align-self:center;}
+  #fMechanic{display:none;}
+  /* Lists in the Staff panel */
+  .entry-cols{display:flex; flex-direction:column; gap:18px;}
+  .col-label{display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); margin-bottom:8px;}
+  .entry-col{display:flex; flex-direction:column; gap:8px; min-height:48px; border-radius:var(--r);}
+  .entry-col.dragover{background:var(--amber-dim); box-shadow:0 0 0 2px var(--amber);}
+  .entry-col .empty-col{color:var(--muted); font-size:13px; padding:14px; border:1px dashed var(--hair2); border-radius:var(--r); text-align:center;}
+  .entry{display:flex; flex-wrap:wrap; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--hair);
+    border-radius:var(--r); padding:10px 12px; font-size:13px; cursor:grab; box-shadow:var(--shadow);}
+  .entry:active{cursor:grabbing;}
+  .entry.editing{border-color:var(--amber); box-shadow:0 0 0 3px var(--amber-dim);}
+  .entry > span{flex:1 1 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .entry > span b{font-size:14px; font-weight:700;}
+  .entry > span em{font-style:normal; color:var(--muted);}
+  .entry .entry-info{flex:1 1 100%; color:var(--muted); font-size:12.5px; line-height:1.5; margin-bottom:4px;}
+  .entry .entry-info b{color:var(--text); font-weight:500;}
+  .entry button, .entry select.move, .entry select.hold{height:30px; font-size:12.5px; border-radius:var(--r-sm); flex:none; cursor:pointer;}
+  .entry button{background:var(--surface); border:1px solid var(--hair2); padding:0 10px; color:var(--text); font-weight:500;}
+  .entry button:hover{background:var(--surface2);}
+  .entry > button:last-child{margin-left:auto; color:var(--red); border-color:transparent; background:none;}
+  .entry > button:last-child:hover{background:var(--red-dim);}
+  .entry button.done{background:var(--green); border-color:var(--green); color:#fff; font-weight:600;}
+  .entry button.edit{color:var(--text);}
+  .entry button.done.resume{background:var(--blue); border-color:var(--blue);}
+  .entry select.move{width:auto; padding:0 26px 0 10px; font-weight:700; color:var(--amber-ink); background-color:var(--amber); border:1px solid var(--amber);}
+  .entry select.hold{width:auto; padding:0 26px 0 10px; color:var(--blue); background-color:var(--surface); border:1px solid color-mix(in srgb, var(--blue) 50%, var(--hair2));}
+  .entry .limit-edit{width:80px; height:30px; font-size:12px; flex:none;}
+  .entry-list{display:flex; flex-direction:column; gap:6px; margin-top:10px;}
+  .entry-list .entry{cursor:default; box-shadow:none; padding:6px 6px 6px 12px;}
+  .entry-list .entry > span{flex:1 1 auto; width:auto;}
+  .entry-list .entry > button:last-child{margin-left:0;}
+  /* Settings tab: cards in a grid */
+  .settings-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:16px; align-items:start;}
+  .settings-box{background:var(--surface); border:1px solid var(--hair); border-radius:var(--r-lg); padding:16px; box-shadow:var(--shadow);}
+  .settings-box .col-label{margin-bottom:12px;}
+  .settings-box .row:last-child{margin-bottom:0;}
+  .settings-box .row:has(> button){grid-template-columns:1fr auto;}
+  .settings-box .row > button.action{flex:none; padding:0 16px;}
+  .set-row{display:flex; gap:10px; align-items:center; padding:6px 0; font-size:13.5px; border-bottom:1px solid var(--hair);}
+  .set-row:last-child{border-bottom:none;}
+  .set-row span{flex:1;}
+  .set-row input{width:90px; flex:none;}
+  .set-row input[type=checkbox]{width:18px; height:18px; accent-color:var(--amber);}
+  .set-row select{width:auto; max-width:60%;}
+
+  /* ---------- PIN box ---------- */
+  .pin-modal{position:fixed; inset:0; background:rgba(8,10,14,0.6); display:none; align-items:center; justify-content:center; z-index:30; padding:16px; backdrop-filter:blur(2px);}
+  .pin-modal.open{display:flex;}
+  .pin-box{background:var(--surface); border:1px solid var(--hair); border-radius:var(--r-lg); padding:22px; width:100%; max-width:360px; box-shadow:var(--shadow-lg);}
+  .pin-box h3{font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:0.5px; margin:0 0 6px;}
+  .pin-box p{color:var(--muted); font-size:13px; margin:0 0 14px;}
+  .pin-box input{height:48px; font-size:22px; letter-spacing:8px; text-align:center;}
+  .pin-err{color:var(--red); font-size:13px; min-height:20px; margin:6px 0 4px;}
 
   /* ---------- Finished maintenance page (#finished) ---------- */
-  .page{display:none; max-width:1400px; margin:0 auto; padding:clamp(16px,3vw,32px);}
+  .page{display:none; max-width:1560px; margin:0 auto; padding:var(--gutter);}
   body.show-finished .layout, body.show-finished .alert-bar, body.show-finished .staff-toggle{display:none !important;}
   body.show-finished #finishedPage{display:block;}
   .fin-head{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;}
-  .fin-head .section-title{margin:0;}
+  .fin-head .section-title{margin:0; font-size:28px;}
   .fin-actions{display:flex; gap:8px; flex-wrap:wrap;}
-  .btn-sm{background:var(--surface2); color:var(--text); border:1px solid var(--hair); border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer; font-family:inherit;}
-  .btn-sm.primary{background:var(--amber); color:#1B1D21; border-color:var(--amber); font-weight:600;}
-  .fin-filters{display:grid; grid-template-columns:2fr 1fr 1fr 1.3fr; gap:8px; margin-bottom:12px; align-items:end;}
+  .fin-filters{display:grid; grid-template-columns:2fr 1fr 1fr 1.3fr; gap:10px; margin-bottom:14px; align-items:end;
+    background:var(--surface); border:1px solid var(--hair); border-radius:var(--r-lg); padding:14px; box-shadow:var(--shadow);}
   @media (max-width:700px){ .fin-filters{grid-template-columns:1fr 1fr;} .fin-filters .wide{grid-column:1/-1;} }
   .fin-summary{color:var(--muted); font-size:14px; margin-bottom:12px;}
   .fin-summary strong{color:var(--text);}
-  .table-wrap{overflow-x:auto; border:1px solid var(--hair); border-radius:10px; background:var(--surface);}
+  .table-wrap{overflow-x:auto; border:1px solid var(--hair); border-radius:var(--r-lg); background:var(--surface); box-shadow:var(--shadow);}
   table.fin{width:100%; border-collapse:collapse; font-size:13px; min-width:1100px;}
-  .fin th{text-align:left; color:var(--muted); font-weight:600; padding:10px 12px; border-bottom:1px solid var(--hair); white-space:nowrap; background:var(--surface2);}
-  .fin td{padding:10px 12px; border-bottom:1px solid var(--hair); vertical-align:top; line-height:1.4;}
+  .fin th{text-align:left; color:var(--muted); font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;
+    padding:11px 12px; border-bottom:1px solid var(--hair); white-space:nowrap; background:var(--surface2);}
+  .fin td{padding:11px 12px; border-bottom:1px solid var(--hair); vertical-align:top; line-height:1.4;}
+  .fin tbody tr:hover td{background:var(--surface2);}
   .fin tr:last-child td{border-bottom:none;}
-  .fin .vt{font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:0.5px; line-height:1.1;}
+  .fin .vt{font-family:'Bebas Neue',sans-serif; font-size:21px; letter-spacing:0.5px; line-height:1.1;}
   .fin .subtxt{color:var(--muted); font-size:12px;}
   .fin .nowrap{white-space:nowrap;}
-  .fin td .btn-sm{padding:4px 8px; font-size:12px; margin:0 4px 4px 0;}
+  .fin td .btn-sm{height:28px; padding:0 9px; font-size:12px; margin:0 4px 4px 0;}
   .fin td .btn-sm.danger{color:var(--red);}
-  .pill{display:inline-block; border-radius:5px; padding:2px 8px; font-size:11px; font-weight:600; white-space:nowrap;}
+  .pill{display:inline-block; border-radius:var(--r-sm); padding:2px 8px; font-size:11.5px; font-weight:700; white-space:nowrap;}
   .pill.ok{background:var(--green-dim); color:var(--green);}
   .pill.late{background:var(--red-dim); color:var(--red);}
+  .fin-sum{margin-bottom:14px;}
+  .fin-sum summary{cursor:pointer; font-weight:600; font-size:14px; margin-bottom:10px;}
+  .sum-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media (max-width:900px){ .sum-grid{grid-template-columns:1fr;} }
+  table.mini{width:100%; border-collapse:collapse; font-size:13px;}
+  .mini th, .mini td{padding:8px 12px; border-bottom:1px solid var(--hair); text-align:right; white-space:nowrap;}
+  .mini th:first-child, .mini td:first-child{text-align:left;}
+  .mini th{color:var(--muted); font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; background:var(--surface2);}
+  .mini tr:last-child td{border-bottom:none;}
+  .vlink{background:none; border:none; padding:0; color:inherit; cursor:pointer; text-align:left; font:inherit;}
+  .vlink:hover .vt{text-decoration:underline;}
+  .bin-note{background:var(--red-dim); color:var(--red); border-radius:var(--r-sm); padding:9px 12px; font-size:13px; margin-bottom:12px;}
 
   /* ---------- TV display mode (?tv in the link) ---------- */
-  .alert-bar{
-    display:none; background:var(--red); color:#fff; font-weight:600;
-    padding:10px clamp(16px,4vw,40px); font-size:clamp(16px,1.6vw,26px);
-  }
-  body.tv .alert-bar.show{display:block;}
-  body.tv .staff-toggle{display:none;}
+  body.tv .staff-toggle, body.tv .theme-btn{display:none;}
+  body.tv .head{grid-template-columns:auto 1fr auto; padding:clamp(12px,1.1vw,22px) var(--gutter);}
+  body.tv .counts{grid-column:auto; grid-row:auto; justify-content:center;}
+  body.tv .brand-mark{width:clamp(44px,3.2vw,64px); height:clamp(44px,3.2vw,64px); border-radius:14px;}
+  body.tv .brand-mark svg{width:60%; height:60%;}
+  body.tv .brand .name{font-size:clamp(30px,2.8vw,56px);}
+  body.tv .brand .sub{font-size:clamp(13px,1vw,20px);}
+  body.tv .stat{font-size:clamp(13px,1vw,20px); padding:clamp(6px,.5vw,10px) clamp(12px,1vw,20px);}
+  body.tv .stat b{font-size:clamp(18px,1.5vw,30px);}
+  body.tv .clock{font-size:clamp(40px,3.8vw,76px);}
+  body.tv .today, body.tv .conn{font-size:clamp(13px,.95vw,19px);}
   body.tv .layout{max-width:none;}
-  body.tv .brand .name{font-size:clamp(34px,3.4vw,64px);}
-  body.tv .brand .sub{font-size:clamp(14px,1.2vw,22px);}
-  body.tv .clock{font-size:clamp(40px,4.2vw,80px);}
-  body.tv .section-title{font-size:clamp(26px,2.2vw,40px);}
-  body.tv .bay-grid{grid-template-columns:repeat(auto-fill,minmax(clamp(260px,16.5vw,420px),1fr)); gap:clamp(12px,1vw,22px);}
-  body.tv .card{padding:clamp(14px,1.1vw,24px); gap:clamp(6px,0.55vw,12px); border-width:2px;}
-  body.tv .plate{font-size:clamp(30px,2.4vw,52px);}
-  body.tv .qrow{padding:clamp(10px,0.75vw,16px) clamp(14px,1vw,22px);}
-  body.tv .queue-list{gap:clamp(8px,0.6vw,12px);}
+  body.tv .section-title{font-size:clamp(24px,2vw,38px); margin-bottom:clamp(10px,.8vw,16px);}
+  body.tv .sec-count{font-size:clamp(12px,.9vw,18px); line-height:1.5;}
+  body.tv .page-ind{font-size:clamp(13px,1vw,20px);}
+  body.tv .bay-grid{grid-template-columns:repeat(auto-fill,minmax(clamp(250px,16.5vw,420px),1fr)); gap:clamp(12px,1vw,22px);}
+  body.tv .card{padding:clamp(14px,1.1vw,24px); gap:clamp(7px,.6vw,12px); border-width:2px;}
+  body.tv .plate{font-size:clamp(32px,2.5vw,54px);}
+  body.tv .qrow{padding:clamp(10px,.75vw,16px) clamp(14px,1vw,22px);}
+  body.tv .queue-list{gap:clamp(8px,.6vw,12px);}
   body.tv .qrow .plate{font-size:clamp(24px,1.8vw,38px);}
   body.tv .qrow .work .wtext{-webkit-line-clamp:1;}
-  body.tv .qrow .work .wlabel{display:none;}
-  body.tv .repair, body.tv .vdesc, body.tv .timebox, body.tv .mechanic-label, body.tv .work, body.tv .work .wlabel, body.tv .qrow .datein,
-  body.tv .qrow .sched-when, body.tv .empty{font-size:clamp(15px,1.1vw,22px);}
-  body.tv .mech-chip, body.tv .bay-tag, body.tv .over-label, body.tv .near-label{font-size:clamp(14px,1vw,20px);}
-  body.tv .bar-track{height:clamp(10px,0.7vw,14px);}
+  body.tv .vdesc, body.tv .work, body.tv .qrow .datein, body.tv .qrow .datein b, body.tv .qrow .sched-when, body.tv .empty,
+  body.tv .foot-meta, body.tv .limit{font-size:clamp(14px,1.05vw,21px);}
+  body.tv .repair, body.tv .status, body.tv .mech-chip, body.tv .bay-tag, body.tv .work .wlabel{font-size:clamp(12px,.9vw,18px);}
+  body.tv .elapsed{font-size:clamp(24px,2vw,42px);}
+  body.tv .bar-track{height:clamp(8px,.6vw,12px);}
   body.tv .card.over{animation:overPulse 1.6s ease-in-out infinite;}
   /* TV: fit the screen exactly (no scrolling); each list shows pages instead */
   body.tv{height:100vh; overflow:hidden; display:flex; flex-direction:column;}
   body.tv .head, body.tv .offline-bar, body.tv .alert-bar, body.tv #modeBanner{flex:none;}
   body.tv .layout{flex:1; min-height:0; width:100%; grid-template-rows:minmax(0,1fr);}
-  @media (max-width:899px){ body.tv .layout{grid-template-rows:minmax(0,1fr) minmax(0,1fr);} }
+  @media (max-width:979px){ body.tv .layout{grid-template-rows:minmax(0,1fr) minmax(0,1fr);} }
   body.tv .panel{display:flex; flex-direction:column; min-height:0; overflow:hidden;}
   body.tv #bayGrid{flex:1; min-height:0; overflow:hidden; align-content:start; position:relative;}
   body.tv #queueZone, body.tv #schedZone{min-height:0; display:flex; flex-direction:column;}
   body.tv #queueZone{flex:3 1 0;}
   body.tv #schedZone{flex:2 1 0;}
   body.tv #queueList, body.tv #schedList{flex:1; min-height:0; overflow:hidden; position:relative;}
-  body.tv .section-title.next{margin-top:clamp(12px,1.4vw,24px);}
-  .page-ind{font-family:'Inter',system-ui,sans-serif; font-size:0.55em; letter-spacing:0; color:var(--amber); margin-left:10px; vertical-align:middle; font-weight:600;}
-  .page-dots{display:inline-flex; gap:5px; margin-left:8px; vertical-align:middle;}
-  .page-dots i{width:9px; height:9px; border-radius:50%; background:var(--hair); display:inline-block;}
-  .page-dots i.on{background:var(--amber);}
-  /* Counts in the header */
-  .counts{color:var(--muted); font-size:13px; margin-top:4px;}
-  .counts b{color:var(--text); font-weight:600;}
-  body.tv .counts{font-size:clamp(15px,1.3vw,26px);}
   /* What the TV shows (set in the Staff panel) */
   body.tv.tvh-mech .mechanic-block, body.tv.tvh-pno .pno, body.tv.tvh-work .w-work,
   body.tv.tvh-rem .w-rem, body.tv.tvh-datein .datein-row, body.tv.tvh-datein .qrow .datein,
   body.tv.tvh-desc .vdesc .vd, body.tv.tvh-desc .qrow .vdesc, body.tv.tvh-desc .pno .sep{display:none !important;}
   @keyframes overPulse{
-    0%,100%{box-shadow:0 0 0 0 rgba(226,84,75,0);}
-    50%{box-shadow:0 0 0 6px rgba(226,84,75,0.45);}
+    0%,100%{box-shadow:0 0 0 0 rgba(239,90,80,0);}
+    50%{box-shadow:0 0 0 6px rgba(239,90,80,0.40);}
   }
   body.tv.idle, body.tv.idle *{cursor:none !important;}
   .tv-start{
     display:none; position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:20;
-    background:var(--surface2); color:var(--text); border:1px solid var(--hair); border-radius:24px;
-    padding:12px 22px; font-size:16px; cursor:pointer; font-family:inherit;
+    background:var(--surface); color:var(--text); border:1px solid var(--hair2); border-radius:999px; box-shadow:var(--shadow-lg);
+    padding:12px 22px; font-size:16px; cursor:pointer;
   }
   body.tv .tv-start.show{display:block;}
   .tv-exit{
     display:none; position:fixed; top:12px; right:12px; z-index:20;
-    background:var(--surface2); color:var(--muted); border:1px solid var(--hair);
-    border-radius:20px; padding:8px 14px; font-size:13px; cursor:pointer; font-family:inherit;
+    background:var(--surface); color:var(--muted); border:1px solid var(--hair2);
+    border-radius:999px; padding:8px 14px; font-size:13px; cursor:pointer; box-shadow:var(--shadow);
   }
   body.tv:not(.idle) .tv-exit{display:block;}
 </style>
@@ -346,17 +456,26 @@
 
 <div class="head">
   <div class="brand">
-    <div class="name">BAY STATUS</div>
-    <div class="sub">Equipment Management Division</div>
-    <div class="counts" id="counts"></div>
+    <div class="brand-mark"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3.6 17.2a1.6 1.6 0 0 0 2.3 2.3l5.7-5.7a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.1-.5-.5-2.1z"/></svg></div>
+    <div class="brand-text">
+      <div class="name">Bay Status</div>
+      <div class="sub">Equipment Management Division</div>
+    </div>
   </div>
+  <div class="counts" id="counts"></div>
   <div class="clockbox">
     <div class="clock" id="clock">--:--</div>
-    <div style="display:flex; gap:10px; align-items:center;">
-      <button class="theme-btn" id="themeBtn" title="Switch between Day colors, Night colors, and Auto (Day 6 AM–6 PM)">◐ Auto</button>
+    <div class="today" id="today"></div>
+    <div class="head-meta">
+      <button class="theme-btn" id="themeBtn" title="Switch between Day colors, Night colors, and Auto (Day 6 AM–6 PM)">Auto</button>
       <div class="conn" id="conn" title="Connection to the shared board"><span class="dot"></span><span id="connText">Connecting…</span></div>
     </div>
   </div>
+  <nav class="nav" aria-label="Board actions">
+    <button class="staff-toggle fin-toggle" id="finToggle" title="List of finished maintenance"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>Finished</button>
+    <button class="staff-toggle tv-toggle" id="tvToggle" title="Full-screen display for the lobby TV"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg>TV mode</button>
+    <button class="staff-toggle" id="staffToggle" title="Update the board (staff PIN)"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Staff</button>
+  </nav>
 </div>
 <div class="offline-bar" id="offlineBar">Offline — this screen is not getting updates. Check the internet connection.</div>
 
@@ -364,16 +483,16 @@
 
 <div class="layout">
   <div class="panel bays drop-zone" id="bayZone">
-    <div class="section-title">In the bay now<span class="page-ind" id="bayPage"></span></div>
+    <div class="section-title">In the bay now <span class="sec-count" id="bayCount">0</span><span class="page-ind" id="bayPage"></span></div>
     <div class="bay-grid" id="bayGrid"></div>
   </div>
   <div class="panel queue">
     <div class="drop-zone" id="queueZone">
-      <div class="section-title">Waiting<span class="page-ind" id="queuePage"></span></div>
+      <div class="section-title">Waiting <span class="sec-count" id="queueCount">0</span><span class="page-ind" id="queuePage"></span></div>
       <div class="queue-list" id="queueList"></div>
     </div>
     <div class="drop-zone" id="schedZone">
-      <div class="section-title next">Scheduled<span class="page-ind" id="schedPage"></span></div>
+      <div class="section-title next">Scheduled <span class="sec-count" id="schedCount">0</span><span class="page-ind" id="schedPage"></span></div>
       <div class="queue-list" id="schedList"></div>
     </div>
   </div>
@@ -390,7 +509,7 @@
     </div>
   </div>
   <div class="fin-filters">
-    <input id="finSearch" class="wide" placeholder="Search plate, property no., vehicle, work, remarks, mechanic">
+    <label class="wide"><span class="field-label">Search</span><input id="finSearch" placeholder="Plate, property no., vehicle, work, remarks, mechanic"></label>
     <label><span class="field-label">Finished from</span><input id="finFrom" type="date"></label>
     <label><span class="field-label">Finished to</span><input id="finTo" type="date"></label>
     <label><span class="field-label">Repair type</span>
@@ -419,9 +538,6 @@
   </table></div>
 </div>
 
-<button class="staff-toggle fin-toggle" id="finToggle" title="List of finished maintenance">Finished</button>
-<button class="staff-toggle tv-toggle" id="tvToggle" title="Full-screen display for the lobby TV">TV mode</button>
-<button class="staff-toggle" id="staffToggle">Staff</button>
 <button class="tv-start" id="tvStart">Tap here (or press any key) for full screen and alert sound</button>
 <button class="tv-exit" id="tvExit">Exit TV mode</button>
 
@@ -440,58 +556,93 @@
 </div>
 
 <div class="staff-panel" id="staffPanel">
-  <div class="staff-sheet">
-    <h3 id="formTitle">Update board</h3>
-    <div class="edit-only edit-note" id="editNote">Editing a vehicle on the board. Change what's wrong, then click Save changes.</div>
+  <div class="staff-sheet" data-tab="board" role="dialog" aria-label="Staff panel">
+    <div class="sheet-head">
+      <div class="sheet-title">Staff panel</div>
+      <div class="tabs" role="tablist">
+        <button class="tab on" data-tab="board" id="tabBoard" role="tab">Vehicles</button>
+        <button class="tab" data-tab="settings" id="tabSettings" role="tab">Settings</button>
+      </div>
+      <button class="icon-btn" id="fClose" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="tab-board board-tab">
+        <div class="form-card">
+          <h3 id="formTitle">Add a vehicle</h3>
+          <div class="edit-only edit-note" id="editNote">Editing a vehicle on the board. Change what's wrong, then click Save changes.</div>
+          <div class="row">
+            <label class="full"><span class="field-label">Vehicle</span>
+              <input id="fPlate" list="vehicleList" autocomplete="off" placeholder="Search property no., plate, model or end-user"></label>
+            <datalist id="vehicleList"></datalist>
+            <label class="full"><span class="field-label">Repair type</span>
+              <select id="fRepair">
+                <option>Preventive Maintenance</option>
+                <option>Corrective Maintenance</option>
+                <option>Express Maintenance</option>
+              </select></label>
+            <label class="full"><span class="field-label">Put it in</span>
+              <select id="fStatus">
+                <option value="bay">In bay</option>
+                <option value="wait">Waiting</option>
+                <option value="sched">Scheduled (future date)</option>
+              </select></label>
+            <label class="full"><span class="field-label">Work description</span>
+              <input id="fWork" maxlength="300" placeholder="e.g. Change oil, check brakes"></label>
+            <label class="full"><span class="field-label">Remarks</span>
+              <input id="fRemarks" maxlength="300" placeholder="e.g. Waiting for parts"></label>
+          </div>
+          <div class="row" id="rowDateIn">
+            <label class="full"><span class="field-label">Date entered the bay area</span>
+              <input id="fDateIn" type="date"></label>
+          </div>
+          <div class="row" id="rowSched" style="display:none;">
+            <label><span class="field-label">Scheduled date</span><input id="fSchedDate" type="date"></label>
+            <label><span class="field-label">Time (optional)</span><input id="fSchedTime" type="time"></label>
+          </div>
+          <div class="row">
+            <label><span class="field-label">Bay</span><select id="fBay" title="Bay"></select></label>
+            <label><span class="field-label">Time limit (hours)</span>
+              <input id="fLimit" type="number" step="0.5" min="0.5" placeholder="Hours" value="2"></label>
+          </div>
+          <div class="row edit-only" id="rowSince">
+            <label class="full"><span class="field-label">Timer started (change only if the timer is wrong)</span>
+              <input id="fSince" type="datetime-local"></label>
+          </div>
+          <div class="row">
+            <div class="full"><span class="field-label">Mechanics (up to 5)</span>
+              <div class="mech-pick" id="mechPick"></div>
+              <select id="fMechanic" multiple size="4"></select></div>
+          </div>
+          <div class="btnrow">
+            <button class="action add" id="fAdd">Add to board</button>
+            <button class="action close edit-only" id="fCancelEdit">Cancel edit</button>
+          </div>
+        </div>
+        <div class="entry-cols">
+          <div>
+            <div class="col-label">Scheduled <span class="sec-count" id="colSchedCount">0</span></div>
+            <div class="entry-col" id="colSched"></div>
+          </div>
+          <div>
+            <div class="col-label">Waiting <span class="sec-count" id="colWaitCount">0</span></div>
+            <div class="entry-col" id="colWait"></div>
+          </div>
+          <div>
+            <div class="col-label">In bay <span class="sec-count" id="colBayCount">0</span></div>
+            <div class="entry-col" id="colBay"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-settings settings-grid">
+        <div class="settings-box">
+<div class="col-label">Mechanics roster</div>
     <div class="row">
-      <input id="fPlate" class="full" list="vehicleList" autocomplete="off" placeholder="Search vehicle: property no., plate, description or name">
-      <datalist id="vehicleList"></datalist>
-      <select id="fRepair" class="full">
-        <option>Preventive Maintenance</option>
-        <option>Corrective Maintenance</option>
-        <option>Express Maintenance</option>
-      </select>
-      <input id="fWork" class="full" maxlength="300" placeholder="Work description (e.g. Change oil, check brakes)">
-      <input id="fRemarks" class="full" maxlength="300" placeholder="Remarks (e.g. Waiting for parts)">
-    </div>
-    <div class="row" id="rowDateIn">
-      <label class="full"><span class="field-label">Date entered the bay area</span>
-        <input id="fDateIn" type="date"></label>
-    </div>
-    <div class="row">
-      <select id="fStatus">
-        <option value="bay">In bay</option>
-        <option value="wait">Waiting</option>
-        <option value="sched">Scheduled (future date)</option>
-      </select>
-      <input id="fLimit" type="number" step="0.5" min="0.5" placeholder="Time limit (hrs)" value="2">
-    </div>
-    <div class="row" id="rowSched" style="display:none;">
-      <label><span class="field-label">Scheduled date</span><input id="fSchedDate" type="date"></label>
-      <label><span class="field-label">Time (optional)</span><input id="fSchedTime" type="time"></label>
-    </div>
-    <div class="row edit-only" id="rowSince">
-      <label class="full"><span class="field-label">Timer started (change only if the timer is wrong)</span>
-        <input id="fSince" type="datetime-local"></label>
-    </div>
-    <div class="row">
-      <select id="fBay" title="Bay"></select>
-      <select id="fMechanic" class="full" multiple size="4"></select>
-    </div>
-    <div class="btnrow">
-      <button class="action add" id="fAdd">Add to board</button>
-      <button class="action close edit-only" id="fCancelEdit">Cancel edit</button>
-      <button class="action close add-only" id="fClose">Close</button>
-    </div>
-    <div class="col-label" style="margin-top:16px;">Mechanics roster</div>
-    <div class="row">
-      <input id="fNewMechanic" class="full" placeholder="Add a mechanic's name">
-    </div>
-    <div class="btnrow">
+      <input id="fNewMechanic" placeholder="Add a mechanic's name">
       <button class="action close" id="fAddMechanic">Add to roster</button>
     </div>
     <div class="entry-list" id="rosterList"></div>
-    <div class="settings-box">
+        </div>
+<div class="settings-box">
       <div class="col-label">Bays</div>
       <div class="row">
         <input id="fNewBay" placeholder="Add a bay (e.g. Bay 5)">
@@ -525,19 +676,7 @@
         <button class="action close" id="fLock">Lock this device</button>
       </div>
     </div>
-    <div class="entry-cols">
-      <div>
-        <div class="col-label">Scheduled</div>
-        <div class="entry-col" id="colSched"></div>
-      </div>
-      <div>
-        <div class="col-label">Waiting</div>
-        <div class="entry-col" id="colWait"></div>
-      </div>
-      <div>
-        <div class="col-label">In bay</div>
-        <div class="entry-col" id="colBay"></div>
-      </div>
+          </div>
     </div>
   </div>
 </div>
@@ -561,6 +700,19 @@ const DEFAULT_ROSTER = ['R. Santos', 'J. Cruz', 'M. Reyes', 'A. Dela Cruz', 'L. 
 /* Vehicle registry: property no., plate (or N/A), description, assigned person */
 const VEHICLES = [{"no":"F5-334","plate":"N/A","desc":"Tadano Crane Truck Mtd. Nissan","who":"Jersel Froilan B. Rimando"},{"no":"F5-372","plate":"N/A","desc":"Rough Terrain Crane, 80 tons","who":"Jersel Froilan B. Rimando"},{"no":"F16-111","plate":"N/A","desc":"Crawler Type , Hidromek","who":"Alvin-Barrey L. Taguicana"},{"no":"F16-208","plate":"N/A","desc":"Kobelco SK-200 Hydraulic Excavator","who":"Rachelle G. Lomague"},{"no":"F16-211","plate":"N/A","desc":"Kobelco SK-200 Hydraulic Excavator","who":"Jersel Froilan B. Rimando"},{"no":"F16-215","plate":"N/A","desc":"KATO HD820, Hydraulic Excavator, Crawler Type","who":"Jersel Froilan B. Rimando"},{"no":"G1-200","plate":"N/A","desc":"SEIMITSU GENSET","who":"Dianne Jean D. Eguilos"},{"no":"G1-607","plate":"N/A","desc":"Diesel Generator, Powerhouse PWH-12000E-DST","who":"Jersel Froilan B. Rimando"},{"no":"H1-2349","plate":"SAN-444","desc":"Ford Fiera","who":"Alvin-Barrey L. Taguicana"},{"no":"H1-2637","plate":"SAN-885","desc":"","who":""},{"no":"H1-3303","plate":"SBP-800","desc":"","who":""},{"no":"H1-3346","plate":"SBP-804","desc":"","who":""},{"no":"H1-4074","plate":"SEW-323","desc":"Mitsubishi Pick-up L200","who":"Myrna T. Dulay"},{"no":"H1-4445","plate":"SGY-858","desc":"Mitsubishi L200 Pick-up, D/C, 4WD","who":"Mary Rose N. Milo"},{"no":"H1-4469","plate":"SBY-236","desc":"Mitsubishi Pick-up L200 Single Cab","who":"Bon Carlo P. Dugayo"},{"no":"H1-4577","plate":"SFH-347","desc":"Nissan Frontier, Pick-up Double Cab","who":"Arturo F. Prepose"},{"no":"H1-4624","plate":"SGS-838","desc":"Nissan Frontier, Double Cab, Pick-up, Mdl. 2003","who":"Kim Angelo K. Soy"},{"no":"H1-4972","plate":"SFH-592","desc":"Toyota Hi-Lux, 3.0L 4x4, Pick-up","who":"Mary Rose N. Milo"},{"no":"H1-4973","plate":"SEW-219","desc":"Land Rover, Pick-up","who":"Mary Rose N. Milo"},{"no":"H1-5181","plate":"SKA-710","desc":"Toyota Hilux 3.0L G 4x4, Pick-up","who":"Renalyn Oller"},{"no":"H1-5191","plate":"SKA-730","desc":"Toyota Hilux JMT 4x2, Pick-up","who":"Arturo F. Prepose"},{"no":"H1-5212","plate":"SKA-714","desc":"Toyota Hi-Lux, 4x4","who":"Mary Rose N. Milo"},{"no":"H1-5213","plate":"SKA-716","desc":"Hyundai Grand Starex GL Van","who":"Clarence B. Rimando"},{"no":"H1M-5219","plate":"SKA-731","desc":"Nissan Navara 4x2","who":"Allan N. Hufana"},{"no":"H1-5340","plate":"SHY-774","desc":"Nissan Frontier Navara, Pick-up","who":"John Lionel E. Ledda"},{"no":"H1-5886","plate":"XSS-651","desc":"Nissan Frontier, Pick-up Mdl. 2005","who":"Arturo F. Prepose"},{"no":"H1-5887","plate":"AEW-851 (013601)","desc":"Mitsubishi Montero Sport G.","who":"Clarence B. Rimando"},{"no":"H1M-5888","plate":"POZ-373 (013603)","desc":"Mitsubishi Strada GLX 2.5 Pick-Up","who":"Allan N. Hufana"},{"no":"H1-5889","plate":"PUI-530 (013610)","desc":"Toyota Innova 2.5J DSL M/T","who":"Mary Rose N. Milo"},{"no":"H1-5890","plate":"WMP-140","desc":"Mitsubishi L200, Pick-up","who":"Arturo F. Prepose"},{"no":"H1-5891","plate":"RNF-827","desc":"Isuzu DMax, 4x4, Double Cab","who":"Arturo F. Prepose"},{"no":"H1-5896","plate":"XMJ-720","desc":"Toyota, Hilux 4x2 Dlx, Mdl. 2003","who":"Arturo F. Prepose"},{"no":"H1-5898","plate":"ABG-2815","desc":"Isuzu Dmax, 4x4 MT LS","who":"Willer M. Bince"},{"no":"H1M-5899","plate":"UOY-171","desc":"Toyota Hilux 2.5 LJ 4X, Pick-up","who":"Allan N. Hufana"},{"no":"H1-5902","plate":"NQC-313","desc":"Mitsubishi Strada GLX 2.5 Pick-Up","who":"Willer M. Bince"},{"no":"H1M-5944","plate":"ABI-1115","desc":"Mitsubishi L300 Exceed 2.5 UV","who":"Edilberto F. Rosario"},{"no":"H1-6073","plate":"AVA 7597","desc":"Toyota Pick-up Hi Lux 2.5L G 4x4","who":"Mario Martin Caesar G. Atiga II"},{"no":"H1-6074","plate":"AVA-6542","desc":"2015 Mitsubishi Strada GLS V.2","who":"Dexter L. Cavaneyro"},{"no":"H1-6129","plate":"ABI-1586","desc":"Nissan, Pick-up MP300 Navara 2","who":"Willer M. Bince"},{"no":"H1-6248","plate":"SCD-1655/B1-K147","desc":"Mitsubishi L300 FB Body Exceed 2.5L","who":"Jersel Froilan B. Rimando"},{"no":"H1-6509","plate":"FO-G953","desc":"Nissan NV 350Urvan 2.5","who":"Reina Mai R. Ruiz"},{"no":"H1-6510","plate":"FO-L408","desc":"Nissan NV 350Urvan 2.5","who":"Clarence B. Rimando"},{"no":"H1-6846","plate":"AAB-5586","desc":"Toyota Hilux 3.0L G 4X","who":"Jeffrey G. Mendoza"},{"no":"H1-7436","plate":"NDY-6792","desc":"Toyota Hilux, 2.8L 4x4 Pick up","who":"Julius M. Gaceta"},{"no":"H1-7802","plate":"ICL-1759","desc":"Toyota Hilux 2.4L G 4x2, Pick-up, D/cab","who":"Jose B. Eguilos, Jr."},{"no":"H1-8552","plate":"ARA-1584","desc":"Ford Ranger DBL 2.2L","who":"Larry Angelo L. Flores"},{"no":"H1-8878","plate":"ALA-6489","desc":"Toyota Hilux 2.5L J 4x2 M/T","who":"Arturo F. Prepose"},{"no":"H1-8879","plate":"CAM-6125","desc":"Toyota Rush 1.5G A/T","who":"Dexter D. Lomboy"},{"no":"H1-8912","plate":"NFQ-8536/ B9 B547","desc":"Mitsubishi L300 Exceed C/C 2.2D M/T","who":"Mary Rose N. Milo"},{"no":"H1-8913","plate":"NET-1121/ S2 J025","desc":"Toyota Hilux 2.4L 4x2 G M/T","who":"Rachelle G. Lomague"},{"no":"H1-8914","plate":"NET-7279/ S3 I963","desc":"Toyota Hilux 2.4L 4x2 G A/T","who":"Dianne Jean D. Eguilos"},{"no":"H1-8931","plate":"YAA-3599 / C1 0444","desc":"Ford Ranger 3.2L Wildtrak 4x4 AT","who":"Allan N. Hufana"},{"no":"H1-9108","plate":"AEX-373","desc":"Toyota Hilux 2.5L 4x2 Pick-Up","who":"Allan N. Hufana"},{"no":"H1-9133","plate":"NGF-2129","desc":"Mitsubishi L300 C/C 2.2D M FB","who":"Julian M. Narvas, Jr."},{"no":"H1-9481","plate":"ABI-1148","desc":"Mitsubishi L300 Deluxe 2.5 FB","who":"Alexander Paul B. Villanueva"},{"no":"H1-9528","plate":"ABS-6277","desc":"Mitsubishi L300 Deluxe 2.5 FB","who":"Julian M. Narvas, Jr."},{"no":"H1-9529","plate":"IAE-4278","desc":"Toyota Hilux 2.4L 4x2","who":"Janette G. Ancheta"},{"no":"H1-9639","plate":"IDI-2146","desc":"Mitsubishi L300 Deluxe 2.5 FB MT","who":"Jose B. Eguilos, Jr."},{"no":"H1-9640","plate":"IDI-4012","desc":"Mitsubishi L300 Deluxe 2.5 FB MT","who":"Julian M. Narvas, Jr."},{"no":"H1-9778","plate":"ABI-2969","desc":"Mitsubishi L300 Deluxe 2.5 , Mdl. 2015","who":"Maria Monina P. Delizo"},{"no":"H1-9795","plate":"IAE-3961","desc":"Toyota Hilux 2.4L 4x4 J MT","who":"Eugene Y. Del Rosario"},{"no":"H1-9796","plate":"IAE-3150/S6D306","desc":"Toyota Hilux 2.4L 4x4 J MT","who":"Myrna T. Dulay"},{"no":"H1-9797","plate":"IAE-3463/S7R614","desc":"Toyota Hilux 2.4L 4x4 J MT","who":"Pablito R. Laurido, Jr."},{"no":"H1-9865","plate":"IAE-3604","desc":"Toyota Hilux 2.4L 4x4 J MT 2022","who":"Eugenio Q. Arquero IV"},{"no":"H1-9866","plate":"IAE-4077","desc":"Toyota Hilux 2.4L 4x4 J MT 2022","who":"Vilmaflor G. Gascon"},{"no":"H1-9868","plate":"IAE-8325","desc":"Toyota Hilux 2.8 Conquest 2023","who":"Chriselda E. Nicer"},{"no":"H1-9870","plate":"NFO-7614","desc":"Toyota Hilux 2.8L GR-S 4x4 AT - 0E-011 2023","who":"Dexter L. Cavaneyro"},{"no":"H1-9949","plate":"NIJ-8269","desc":"Toyota Hiace 2.8L GL Grandia A/T","who":"Mary Rose N. Milo"},{"no":"H1-10098","plate":"IAE-3602","desc":"Toyota Hilux 2.4L 4x4 2022","who":"Francisco B. Rebuldela Jr."},{"no":"H1-10099","plate":"IAE-8307","desc":"Isuzu D-Max 3.0 4x4 L","who":"Prima C. Laaguen"},{"no":"H1-10141","plate":"IAD-3667","desc":"Nissan Navarra 2.5 VL 4X4 AT","who":"Willer M. Bince"},{"no":"H1-10172","plate":"IAC-4705","desc":"Nissan Navarra 2.5 L","who":"Annalisa P. Simangan"},{"no":"H1-10226","plate":"IAE-3379","desc":"Toyota Hilux 2.4L 4x4 J MT","who":"Mario Martin Caesar G. Atiga II"},{"no":"H1-10228","plate":"IAE-9056","desc":"Isuzu D-Max 3.0 4x4 L","who":"Leila L. Collado"},{"no":"H1-10418","plate":"IAF-9379","desc":"Toyota HILUX 2.4 J 4x4 M/T","who":"Mario Martin Caesar G. Atiga II"},{"no":"H1-10419","plate":"IAF-9382","desc":"Toyota HILUX 2.4 J 4x4 M/T","who":"Mario Martin Caesar G. Atiga II"},{"no":"H1-10454","plate":"IAF-8234","desc":"Toyota HILUX 2.8 Conquest 4X4 AT","who":"Eugene Y. Del Rosario"},{"no":"H1-10499","plate":"IAE-9393","desc":"Toyota Fortuner2.4 G 4X2 A/T -3Y-008","who":"Clarence B. Rimando"},{"no":"H1-10584","plate":"IAF-8233","desc":"Hilux 2.8 Conquest 4X4 AT","who":"Arturo F. Prepose"},{"no":"H1-10589","plate":"NKM-3113","desc":"Toyota Hilux 2.4G 4X2 AT","who":"Alvin-Barrey L. Taguicana"},{"no":"H1-10590","plate":"NKM-3409","desc":"Toyota Hilux 2.4G 4X2 AT","who":"Jasmin T. Palabay"},{"no":"H1-10591","plate":"NKM-3434","desc":"Toyota Hilux 2.4G 4X2 AT","who":"Jersel Froilan B. Rimando"},{"no":"H1-10616","plate":"NKS-4907","desc":"Toyota Hilux 2.4L 4x2 G A/T","who":"Jonalyn V. Dawey"},{"no":"H1-10718","plate":"NFO-9432","desc":"Toyota Innova 2.8 E DI","who":"Mary Rose N. Milo"},{"no":"H1-10737","plate":"IAE-9540","desc":"Toyota Hilux 2.8L Conquest 4x4 A/T","who":"Abraham A. Tinaza"},{"no":"EH1-2","plate":"SCA-2102","desc":"Foton Tunland V9 4X4 AT Hybrid","who":"Bryan P. Fernandez"},{"no":"EH1-19","plate":"SNG-1114","desc":"Foton Tunland V9 4x4 AT Mild Hybrid Electric Vehicle (MHEV)","who":"Myrna T. Dulay"},{"no":"EH1-20","plate":"SNG-1123","desc":"Foton Tunland V9 4X4 AT Hybrid","who":"Bon Carlo P. Dugayo"},{"no":"EH1-24","plate":"SNG-1125","desc":"Foton Tunland V9 4x4 AT Hybrid","who":"Charlie O. Sibaen"},{"no":"EH1-28","plate":"NNV-2844","desc":"Foton Tunland V9 4X4 AT Hybrid","who":"Kim Angelo K. Soy"},{"no":"H2-306","plate":"ACN-1049","desc":"Isuzu Elf Dropside Truck w/ Crane","who":"Arturo F. Prepose"},{"no":"H2-460","plate":"JOB-337 (SNA-6473)","desc":"Stake Truck, Hino Dropside","who":"Mary Rose N. Milo"},{"no":"H2-591","plate":"D2-R605","desc":"Isuzu NQR75L Boom Truck Crane, 2022","who":"Arturo F. Prepose"},{"no":"H3-6899","plate":"JM-9537","desc":"Hino FG8JP7A, 1-Way, 4x2 5.5 cu.m., Dump Truck","who":"Dianne Jean D. Eguilos"},{"no":"H3-6908","plate":"JM-9536","desc":"Hino FG8JP7A, 1-Way, 4x2 5.5 cu.m., Dump Truck","who":"Dianne Jean D. Eguilos"},{"no":"H3-7187","plate":"D2-J296","desc":"Isuzu FVR34 (Euro 4)","who":"Dianne Jean D. Eguilos"},{"no":"H3-7192","plate":"SND-4727","desc":"Hino FG8JP7A Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7193","plate":"SND-4728","desc":"Hino FG8JP7A Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7208","plate":"SNN-3968","desc":"Hino FG8JP7A Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7209","plate":"SNN-3969","desc":"Hino FG8JP7A, 1-Way, 4x2 5.5 cu.m., Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7210","plate":"SNN-3970","desc":"Hino Dumptruck FG8JJ7 Dump Truck","who":"Alvin-Barrey L. Taguicana"},{"no":"H3-7211","plate":"SNN-3971","desc":"Hino FG8JP7A, 1-Way, 4x2 5.5 cu.m., Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H3-7238","plate":"SNN-2147","desc":"Isuzu FVR34 Q, 5.5 CU. M. Dump Truck","who":"Jersel Froilan B. Rimando"},{"no":"H4-154","plate":"JM-5676","desc":"Hino SS2PKUA / Soosung 50T Bed, Prime Mover with low Bed Trailer","who":"Bon Carlo P. Dugayo"},{"no":"H4-155","plate":"JM5677","desc":"Hino SS2PKUA / Soosung 50T Bed, Prime Mover with low Bed Trailer","who":"Alvin-Barrey L. Taguicana"},{"no":"H4-186","plate":"D2-Q018","desc":"Prime Mover with Low Bed Trailer","who":"Jersel Froilan B. Rimando"},{"no":"H6-153","plate":"JM-9105","desc":"Hino FC9JJTA, Water Tank Truck","who":"Mary Rose N. Milo"},{"no":"H12-44","plate":"NP-1405","desc":"Mitsubishi Rosa Super Long 3.9L (30 seater)","who":"Mary Rose N. Milo"},{"no":"H14-6","plate":"1312-00000445299","desc":"Wrecker Truck w/ Crane","who":"Jersel Froilan B. Rimando"},{"no":"H16-12","plate":"SNI-4203","desc":"MOOG MBL 1800 on Scania Truck Chassis","who":"Jersel Froilan B. Rimando"},{"no":"H17-10","plate":"N/A","desc":"Truck, Mounted Flood Mitigation","who":"Jersel Froilan B. Rimando"},{"no":"H21-27","plate":"N/A","desc":"Giant G5000, Telehandler w/ Earth Bucket","who":"Jersel Froilan B. Rimando"},{"no":"J1-201","plate":"N/A","desc":"Lowbed Trailer, 1000kgs. Cap.","who":"Alvin-Barrey L. Taguicana"},{"no":"J1-202","plate":"N/A","desc":"Lowbed Trailer, 50T Bed","who":"Bon Carlo P. Dugayo"},{"no":"J1-263","plate":"N/A","desc":"Lowbed Trailer, CLW9403TPB","who":"Jersel Froilan B. Rimando"},{"no":"J6-48","plate":"N/A","desc":"Trailer Mounted Tower Floodlight, Atlas Copco Hilight, Mdl. 2019 V4","who":"Dianne Jean D. Eguilos"},{"no":"J6-49","plate":"N/A","desc":"Trailer Mounted Tower Floodlight, Atlas Copco Hilight, Mdl. 2019 V4","who":"Dianne Jean D. Eguilos"},{"no":"L1-1192","plate":"N/A","desc":"Komatsu Bulldozer, D65A-6","who":"Alvin-Barrey L. Taguicana"},{"no":"L1-1717","plate":"N/A","desc":"SU D65EX-16 Tractor Crawler","who":"Alvin-Barrey L. Taguicana"},{"no":"L1-1718","plate":"N/A","desc":"TDM15M Extra, Tractor Crawler","who":"Alvin-Barrey L. Taguicana"},{"no":"L2-1719","plate":"N/A","desc":"Wheel Loader, Komatsu WA320-6","who":"Alvin-Barrey L. Taguicana"},{"no":"L2-1458","plate":"N/A","desc":"Wheel Loader,Foton,Mdl. FL936F","who":"Alvin-Barrey L. Taguicana"},{"no":"LX-135","plate":"N/A","desc":"Backhoe Loader, MST 544S","who":"Rachelle G. Lomague"},{"no":"K3-19","plate":"N/A","desc":"Watermaster 18, Classic IV (SDA-21)","who":"Francis P. Albano"},{"no":"K4-33","plate":"N/A","desc":"Doosan (Amphibious Excavator)","who":"Adrian Christian C. Angadol"},{"no":"T1-106","plate":"N/A","desc":"STIHL MS440 24\", Chainsaw","who":"Rino G. Mazon"},{"no":"T1-107","plate":"N/A","desc":"STIHL MS440 24\", Chainsaw","who":"Rino G. Mazon"}];
 const FB_VER = '10.14.1';
+
+/* Small line icons (inline SVG, so they look the same on every device). */
+const svgI = d => '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+const ICON = {
+  user: svgI('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+  sun: svgI('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+  moon: svgI('<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'),
+  auto: svgI('<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>'),
+  pause: svgI('<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'),
+  play: svgI('<path d="M7 4l13 8-13 8z" fill="currentColor"/>'),
+  alert: svgI('<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>')
+};
+const shortRepair = r => String(r || '').replace(' Maintenance', '');
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -911,22 +1063,26 @@ function renderBoard(){
     card.className = 'card' + (held ? ' hold' : over ? ' over' : near ? ' near' : '');
     // Keep the pulse smooth even though the card is redrawn every second.
     if (over && !held) card.style.animationDelay = -(now % 1600) + 'ms';
-    const tag = held ? '<span style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;"><span class="hold-tag">' + esc(holdLabel(e)) + '</span>' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') + '</span>'
-      : over ? '<span class="over-label">OVER LIMIT</span>'
-      : near ? '<span class="near-label">' + Math.max(1, Math.ceil(left / 60000)) + ' MIN LEFT</span>'
-      : (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '');
+    const status = held ? '<span class="status hold-tag">' + esc(holdLabel(e)) + '</span>'
+      : over ? '<span class="status over-label">Over limit</span>'
+      : near ? '<span class="status near-label">' + Math.max(1, Math.ceil(left / 60000)) + ' min left</span>'
+      : '<span class="status st-work">In progress</span>';
+    const footRight = held ? 'Timer paused'
+      : over ? '<b style="color:var(--red)">Over by ' + esc(fmtDuration(-left)) + '</b>'
+      : esc(fmtDuration(left)) + ' left';
     const mechs = e.mechanics || [];
     card.innerHTML =
-      '<div class="card-top"><span class="plate">' + esc(vTitle(e)) + '</span>' + tag + '</div>' +
+      '<div class="card-top"><span class="plate" title="' + esc(vTitle(e)) + '">' + esc(vTitle(e)) + '</span>' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') + '</div>' +
       (e.desc || (e.vno && e.vno !== vTitle(e)) ? '<div class="vdesc">' + (e.desc ? '<span class="vd">' + esc(e.desc) + '</span>' : '') +
         ((e.vno && e.vno !== vTitle(e)) ? '<span class="pno">' + (e.desc ? '<span class="sep"> · </span>' : '') + esc(e.vno) + '</span>' : '') + '</div>' : '') +
-      '<div class="repair">' + esc(e.repair) + '</div>' +
+      '<div class="chips"><span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span>' + status + '</div>' +
       workHtml(e) +
-      (mechs.length ? '<div class="mechanic-block"><span class="mechanic-label">' + (mechs.length > 1 ? 'Mechanics' : 'Mechanic') + '</span><div class="mechanic-names">' + mechs.map(n => '<span class="mech-chip">' + esc(n) + '</span>').join('') + '</div></div>' : '') +
-      '<div class="timebox datein-row"><span>Date in</span><strong>' + esc(fmtDate(entryDateIn(e))) + '</strong></div>' +
-      '<div class="timebox"><span>' + (held ? 'Elapsed (paused)' : 'Elapsed') + '</span><strong>' + fmtElapsed(elapsed) + '</strong></div>' +
-      '<div class="bar-track"><div class="bar-fill' + (held ? ' hold' : over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
-      '<div class="timebox"><span>Time limit</span><strong>' + esc(e.limitHrs) + 'h</strong></div>';
+      (mechs.length ? '<div class="mechanic-block"><span class="mechanic-label" title="' + (mechs.length > 1 ? 'Mechanics' : 'Mechanic') + '">' + ICON.user + '</span><div class="mechanic-names">' + mechs.map(n => '<span class="mech-chip">' + esc(n) + '</span>').join('') + '</div></div>' : '') +
+      '<div class="card-foot">' +
+        '<div class="time-row"><span class="elapsed">' + fmtElapsed(elapsed) + '</span><span class="limit">of ' + esc(e.limitHrs) + 'h limit</span></div>' +
+        '<div class="bar-track"><div class="bar-fill' + (held ? ' hold' : over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
+        '<div class="foot-meta"><span class="datein-row">In <b>' + esc(fmtDate(entryDateIn(e))) + '</b></span><span>' + footRight + '</span></div>' +
+      '</div>';
     boardDraggable(card, e);
     bayEl.appendChild(card);
   });
@@ -934,13 +1090,13 @@ function renderBoard(){
   qEl.innerHTML = wait.length ? '' : '<div class="empty">No vehicles waiting.</div>';
   wait.forEach(e => {
     const row = document.createElement('div');
-    row.className = 'qrow';
+    row.className = 'qrow' + (e.hold ? ' q-hold' : '');
     row.innerHTML =
-      '<div><div class="plate">' + esc(vTitle(e)) + '</div>' +
-      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') +
-      '<div class="repair">' + esc(e.repair) + '</div>' + workHtml(e) +
-      (e.hold ? '<span class="hold-tag">' + esc(holdLabel(e)) + '</span>' : '') + '</div>' +
-      '<div class="datein">Date in ' + esc(fmtDate(entryDateIn(e))) + '</div>';
+      '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span>' +
+        (e.hold ? '<span class="status hold-tag">' + esc(holdLabel(e)) + '</span>' : '') + '</div>' +
+      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + workHtml(e) + '</div>' +
+      '<div class="q-side"><span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span>' +
+        '<div class="datein">Date in<b>' + esc(fmtDate(entryDateIn(e))) + '</b></div></div>';
     boardDraggable(row, e);
     qEl.appendChild(row);
   });
@@ -951,12 +1107,12 @@ function renderBoard(){
   sched.forEach(e => {
     const w = schedWhen(e);
     const row = document.createElement('div');
-    row.className = 'qrow';
+    row.className = 'qrow' + (w.cls ? ' q-' + w.cls : '');
     row.innerHTML =
-      '<div><div class="plate">' + esc(vTitle(e)) + '</div>' +
-      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') +
-      '<div class="repair">' + esc(e.repair) + '</div>' + workHtml(e) + '</div>' +
-      '<div class="sched-when ' + w.cls + '">' + esc(w.text) + '</div>';
+      '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span></div>' +
+      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + workHtml(e) + '</div>' +
+      '<div class="q-side"><div class="sched-when ' + w.cls + '">' + esc(w.text) + '</div>' +
+        '<span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span></div>';
     boardDraggable(row, e);
     sEl.appendChild(row);
   });
@@ -966,8 +1122,12 @@ function renderBoard(){
   const today = todayStr();
   const nHold = entries.filter(e => e.hold && e.status !== 'sched').length;
   const nSchedToday = sched.filter(e => e.schedDate === today).length;
-  $('counts').innerHTML = '<b>' + bay.length + '</b> in the bay · <b>' + wait.length + '</b> waiting' +
-    (nHold ? ' · <b>' + nHold + '</b> on hold' : '') + ' · <b>' + nSchedToday + '</b> scheduled today';
+  const stat = (cls, n, label) => '<span class="stat ' + cls + '"><span class="sd"></span><b>' + n + '</b>' + label + '</span>';
+  $('counts').innerHTML = stat('s-bay', bay.length, 'in the bay') + stat('s-wait', wait.length, 'waiting') +
+    (nHold ? stat('s-hold', nHold, 'on hold') : '') + stat('s-sched', nSchedToday, 'scheduled today');
+  $('bayCount').textContent = bay.length;
+  $('queueCount').textContent = wait.length;
+  $('schedCount').textContent = sched.length;
   tvPaginate();
 }
 
@@ -1064,7 +1224,7 @@ let audioCtx = null;
 function updateAlerts(overNow){
   const bar = $('alertBar');
   if (overNow.length) {
-    bar.textContent = 'OVER TIME LIMIT: ' + overNow.map(e => vTitle(e) + (e.bay ? ' (' + e.bay + ')' : '')).join('  ·  ');
+    bar.innerHTML = ICON.alert + ' ' + esc('Over time limit: ' + overNow.map(e => vTitle(e) + (e.bay ? ' (' + e.bay + ')' : '')).join('  ·  '));
     bar.classList.add('show');
   } else {
     bar.classList.remove('show');
@@ -1151,6 +1311,27 @@ const mechanicValue = sel => Array.from(sel.selectedOptions).map(o => o.value).s
 
 function saveEntry(e){ renderBoard(); store.saveEntry(e); }
 
+/* Mechanic picker: tap a name to add/remove it. The chips drive the hidden #fMechanic list. */
+function renderMechChips(){
+  const box = $('mechPick'), sel = $('fMechanic');
+  box.innerHTML = '';
+  const opts = Array.from(sel.options);
+  if (!opts.length) { box.innerHTML = '<span class="hint">No mechanics yet. Add them under Settings → Mechanics roster.</span>'; return; }
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = o.value;
+    b.className = o.selected ? 'on' : '';
+    b.setAttribute('aria-pressed', o.selected ? 'true' : 'false');
+    b.onclick = () => {
+      if (!o.selected && mechanicValue(sel).length >= 5) { alert('Up to 5 mechanics per vehicle.'); return; }
+      o.selected = !o.selected;
+      renderMechChips();
+    };
+    box.appendChild(b);
+  });
+}
+
 function renderRoster(){
   const fMech = $('fMechanic');
   const picked = mechanicValue(fMech);   // keep what's selected when the roster refreshes
@@ -1161,6 +1342,7 @@ function renderRoster(){
     if (picked.indexOf(name) !== -1) opt.selected = true;
     fMech.appendChild(opt);
   });
+  renderMechChips();
   const listEl = $('rosterList');
   listEl.innerHTML = '';
   roster.forEach(name => {
@@ -1197,7 +1379,7 @@ function renderStaff(){
     row.draggable = true;
     row.ondragstart = ev => ev.dataTransfer.setData('text/plain', e.id);
     row.innerHTML = '<span title="' + esc((e.vno ? e.vno + ' — ' : '') + (e.desc || '') + (e.who ? ' — ' + e.who : '')) + '">' +
-      esc(vTitle(e)) + (e.desc ? ' — ' + esc(e.desc) : '') + (e.who ? ' (' + esc(e.who) + ')' : '') + '</span>';
+      '<b>' + esc(vTitle(e)) + '</b>' + (e.desc ? ' <em>— ' + esc(e.desc) + '</em>' : '') + (e.who ? ' <em>(' + esc(e.who) + ')</em>' : '') + '</span>';
 
     if (e.id === editingId) row.classList.add('editing');
     const mechs = e.mechanics || [];
@@ -1280,11 +1462,11 @@ function renderStaff(){
     if (e.status === 'bay') {
       const pb = document.createElement('button');
       if (e.hold === PAUSED) {
-        pb.className = 'done'; pb.textContent = '▶ Resume';
+        pb.className = 'done resume'; pb.innerHTML = ICON.play + ' Resume';
         pb.title = 'Start working on it again: the timer continues';
         pb.onclick = () => setHold(e, '');
       } else {
-        pb.className = 'edit'; pb.textContent = '⏸ Pause';
+        pb.className = 'edit'; pb.innerHTML = ICON.pause + ' Pause';
         pb.title = "Can't finish today? Pause it: the timer stops until you press Resume";
         pb.onclick = () => pauseJob(e);
       }
@@ -1314,6 +1496,9 @@ function renderStaff(){
     (e.status === 'sched' ? colSched : e.status === 'wait' ? colWait : colBay).appendChild(row);
   });
 
+  $('colSchedCount').textContent = entries.filter(e => e.status === 'sched').length;
+  $('colWaitCount').textContent = entries.filter(e => e.status === 'wait').length;
+  $('colBayCount').textContent = entries.filter(e => e.status === 'bay').length;
   if (!entries.some(e => e.status === 'sched')) colSched.innerHTML = '<div class="empty-col">No scheduled vehicles. Add one above with "Scheduled" chosen.</div>';
 
   if (!entries.some(e => e.status === 'wait')) colWait.innerHTML = '<div class="empty-col">No vehicles waiting.</div>';
@@ -1632,6 +1817,7 @@ $('staffPanel').addEventListener('focusout', () => {
 });
 
 function tickClock(){
+  $('today').textContent = new Date(nowMs()).toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
   $('clock').textContent = new Date(nowMs()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 }
 
@@ -1758,7 +1944,7 @@ async function syncClock(){
    'auto' = Day from 6 AM to 6 PM, Night otherwise.
    ============================================================ */
 const DAY_START = 6, DAY_END = 18;
-const THEME_LABEL = { light: '☀ Day', dark: '☾ Night', auto: '◐ Auto' };
+const THEME_LABEL = { light: ICON.sun + 'Day', dark: ICON.moon + 'Night', auto: ICON.auto + 'Auto' };
 function readTheme(){ try { return localStorage.getItem('bayBoardTheme') || 'auto'; } catch (err) { return 'auto'; } }
 function writeTheme(v){ try { localStorage.setItem('bayBoardTheme', v); } catch (err) {} }
 const tvTheme = () => (settings.tv && settings.tv.theme) || 'dark';
@@ -1770,7 +1956,7 @@ function resolveTheme(mode){
 function applyTheme(){
   const mode = isTV() ? tvTheme() : readTheme();
   document.documentElement.setAttribute('data-theme', resolveTheme(mode));
-  $('themeBtn').textContent = THEME_LABEL[readTheme()] || THEME_LABEL.auto;
+  $('themeBtn').innerHTML = THEME_LABEL[readTheme()] || THEME_LABEL.auto;
 }
 $('themeBtn').onclick = () => {
   const order = ['light', 'dark', 'auto'];
@@ -1785,9 +1971,17 @@ applyTheme();
    ============================================================ */
 $('staffToggle').onclick = () => requireUnlock(() => {
   if (!$('fDateIn').value) $('fDateIn').value = todayStr();
+  if (editingId === null) setStaffTab('board');
   $('staffPanel').classList.add('open');
 });
 $('finUnlock').onclick = () => requireUnlock(() => {});
+function setStaffTab(t){
+  const sh = document.querySelector('.staff-sheet');
+  sh.dataset.tab = t;
+  document.querySelectorAll('.staff-sheet .tab').forEach(b => { b.classList.toggle('on', b.dataset.tab === t); b.setAttribute('aria-selected', b.dataset.tab === t ? 'true' : 'false'); });
+  sh.scrollTop = 0;
+}
+document.querySelectorAll('.staff-sheet .tab').forEach(b => { b.onclick = () => setStaffTab(b.dataset.tab); });
 $('fChangePin').onclick = () => askPin('change');
 $('fLock').onclick = () => {
   writeUnlock('');
@@ -1811,6 +2005,9 @@ document.addEventListener('fullscreenchange', () => {
   if (isTV()) $('tvStart').classList.toggle('show', !document.fullscreenElement || !audioCtx);
 });
 $('fClose').onclick = () => { endEdit(); $('staffPanel').classList.remove('open'); };
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && $('staffPanel').classList.contains('open') && !$('pinModal').classList.contains('open')) $('fClose').click();
+});
 
 function addVehicle(){
   const typed = $('fPlate').value.trim();
@@ -1850,6 +2047,7 @@ function addVehicle(){
   $('fSchedDate').value = '';
   $('fSchedTime').value = '';
   Array.from($('fMechanic').options).forEach(o => { o.selected = false; });
+  renderMechChips();
   renderBoard(); renderStaff();
 }
 
@@ -1885,6 +2083,8 @@ function startEdit(e){
   $('fLimit').value = e.limitHrs;
   renderBayOptions(e.bay || '');
   Array.from($('fMechanic').options).forEach(o => { o.selected = (e.mechanics || []).indexOf(o.value) !== -1; });
+  renderMechChips();
+  setStaffTab('board');
   $('fSince').value = editOrig.sinceText;
   $('formTitle').textContent = 'Edit ' + vTitle(e);
   $('fAdd').textContent = 'Save changes';
@@ -1902,6 +2102,7 @@ function clearForm(){
   $('fSchedDate').value = '';
   $('fSchedTime').value = '';
   Array.from($('fMechanic').options).forEach(o => { o.selected = false; });
+  renderMechChips();
 }
 function endEdit(){
   if (editingId === null) return;
@@ -1912,7 +2113,7 @@ function endEdit(){
   $('fRepair').selectedIndex = 0;
   $('fLimit').value = defaultLimit($('fRepair').value);
   limitTouched = false;
-  $('formTitle').textContent = 'Update board';
+  $('formTitle').textContent = 'Add a vehicle';
   $('fAdd').textContent = 'Add to board';
   document.querySelector('.staff-sheet').classList.remove('editing');
   renderStaff();

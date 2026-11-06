@@ -1,6 +1,6 @@
 # Bay Status Board
 
-Customer-facing board for the Equipment Management Division: vehicles in the bay with a running timer against a time limit, the mechanics on each job, and a waiting queue. Staff update it from the **Staff** button; every open screen updates live.
+Customer-facing board for the Equipment Management Division: vehicles in the bay with a running timer against a time limit, the mechanics on each job, and a waiting queue. Staff update it from the **Staff** button at the top right; every open screen updates live.
 
 Files: `index.html` (the whole site), `firestore.rules` (database rules).
 
@@ -35,11 +35,16 @@ What TV mode shows:
 - **"OVER LIMIT"** (red, pulsing) and a red bar across the top listing every vehicle that is over time.
 - A short **chime** once, when a vehicle first goes over its limit.
 - If there are more vehicles than fit on the screen, each list shows **pages** ("Page 1 of 3") and flips to the next page every 15 seconds. Nothing scrolls.
-- **TV colors:** Night (dark, the default), Day (light), or Auto (Day from 6 AM to 6 PM, Night after). Choose in the Staff panel under **TV display → TV colors**. The TV changes within a few seconds.
+- **TV colors:** Night (dark, the default), Day (light), or Auto (Day from 6 AM to 6 PM, Night after). Choose in **Staff → Settings → TV display → TV colors**. The TV changes within a few seconds.
 - The top of the board shows the counts: in the bay, waiting, on hold, and scheduled today.
-- **Choose what the TV shows:** in the Staff panel under **TV display**, untick what you don't want on the lobby TV (mechanic names, property no., make & model, work, remarks, date in). This only changes the TV; staff screens still show everything.
+- **Choose what the TV shows:** in **Staff → Settings → TV display**, untick what you don't want on the lobby TV (mechanic names, property no., make & model, work, remarks, date in). This only changes the TV; staff screens still show everything.
 
 To leave TV mode, move the mouse and click **Exit TV mode** (top right).
+
+## Finding your way around
+- The buttons **Finished**, **TV mode** and **Staff** are at the top right of the board.
+- The Staff panel has two tabs: **Vehicles** (add a vehicle on the left, the Scheduled / Waiting / In bay lists on the right) and **Settings** (mechanics roster, bays, default time limits, vehicle list, TV display, staff PIN).
+- To pick mechanics, tap their names (up to 5). Tap again to remove one.
 
 ## Moving vehicles
 In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In bay**, **Waiting** or **Scheduled** and it moves right away (Scheduled asks for the date). Moving restarts the vehicle's timer. On a computer you can also drag a vehicle with the mouse, either in the Staff panel or directly on the main board, between **In the bay now**, **Waiting** and **Scheduled**. Dropping into Scheduled asks for the date. (Dragging doesn't work on phones or tablets, and is turned off in TV mode.)
@@ -63,8 +68,8 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 4. On the Finished page, the time in bay is the working time, with the time on hold shown underneath.
 
 ## Bays and default time limits
-- **Bay** is now a dropdown. Add or remove bays in the Staff panel under **Bays**. If you choose a bay that already has a vehicle, the board asks you to confirm.
-- Each repair type has a **default time limit** (Preventive 2h, Corrective 4h, Express 1h to start). It fills in automatically when you pick the repair type. Change the defaults in the Staff panel under **Default time limit**. You can still type a different limit for one vehicle.
+- **Bay** is now a dropdown. Add or remove bays in **Staff → Settings → Bays**. If you choose a bay that already has a vehicle, the board asks you to confirm.
+- Each repair type has a **default time limit** (Preventive 2h, Corrective 4h, Express 1h to start). It fills in automatically when you pick the repair type. Change the defaults in **Staff → Settings → Default time limit**. You can still type a different limit for one vehicle.
 
 ## Fixing a mistake (Edit)
 1. Click **Staff** and find the vehicle in the **Waiting** or **In bay** list.
@@ -85,7 +90,7 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 
 ## Adding a vehicle to the list
 If a vehicle isn't found when you search:
-1. Click **Staff** and scroll down to **Vehicle list**.
+1. Click **Staff**, open the **Settings** tab, and find **Vehicle list**.
 2. Type the **Property no.**, the **Plate no.** (or N/A), the **Make & model**, and the **End-user** if you know it.
 3. Click **Add to vehicle list**. It can now be searched on every screen.
 - Typing a property no. that is already in the list replaces its details, for example a new end-user. Click **Remove** to go back to the original details.
@@ -95,8 +100,8 @@ On staff computers and phones, click the small button under the clock to switch 
 
 ## Staff PIN
 - The **Staff** button, dragging on the board, and Undo/Delete/Export on the Finished page need the staff PIN. Looking at the board and the Finished list does not.
-- The starting PIN is **1234**. Change it right away: click **Staff**, enter 1234, scroll down to **Security**, and click **Change staff PIN**.
-- Each device asks for the PIN once and then remembers it. Click **Lock this device** (Staff panel → Security) on a shared or public computer. When the PIN is changed, every other device asks for the new one.
+- The starting PIN is **1234**. Change it right away: click **Staff**, enter 1234, open the **Settings** tab, and click **Change staff PIN** (under Security).
+- Each device asks for the PIN once and then remembers it. Click **Lock this device** (Staff → Settings tab → Security) on a shared or public computer. When the PIN is changed, every other device asks for the new one.
 - Forgot the PIN?
   1. Open the Firebase console and go to **Firestore Database** → **Data**.
   2. Open the **meta** collection, then the **settings** document.
