@@ -100,7 +100,8 @@ On staff computers and phones, click the small button under the clock to switch 
 
 ## End-user and division
 - Each vehicle on the board shows its **end-user** and **division**.
-- Divisions are typed once per end-user: **Staff → Settings → End-users and their divisions**. Use the search box to find a name, type the division, then click somewhere else to save. It appears on every screen within a few seconds.
+- Divisions come from the vehicle list, so they show automatically for every vehicle in it.
+- For a vehicle that isn't in the list, type the division when you add it under **Staff → Settings → Vehicle list**. You can also set a person's division under **Staff → Settings → Divisions for other end-users**.
 - When you add a vehicle, the **End-user** and **Division** boxes fill in by themselves. You can change them for that one job, for example if someone else from another division brought the vehicle.
 - The division is also on the Finished page, the printed job record and the Excel export. To hide it on the lobby TV, untick **Show end-user and division** under **TV display**.
 
