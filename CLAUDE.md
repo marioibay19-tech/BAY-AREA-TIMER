@@ -37,7 +37,7 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 - Mechanics are picked with chips (`#mechPick`) that toggle the hidden `#fMechanic` multi-select; call `renderMechChips()` after changing its selection in code.
 
 ## Behaviors to preserve
-- Board layout: In the bay now (left); Waiting, then Scheduled (right column). Waiting rows show only Date in (the waiting timer was removed at the user's request). Scheduled rows are sorted by date/time and labelled Today (amber), Tomorrow, weekday date, or Overdue (red).
+- Board layout: In the bay now (left); Awaiting parts, then Scheduled (right column). The `wait` status is labelled "Awaiting parts" everywhere in the UI (renamed from "Waiting" at the user's request 2026-11-06; data value is still `wait`). Rows in that list don't repeat an "Awaiting parts" hold tag. Waiting rows show only Date in (the waiting timer was removed at the user's request). Scheduled rows are sorted by date/time and labelled Today (amber), Tomorrow, weekday date, or Overdue (red).
 - Staff panel has three columns: Scheduled, Waiting, In bay. Each row has an amber "Move to…" dropdown (the other two lists: In bay / Waiting / Scheduled) because dragging was hard and does not work on touch screens; the user asked for a dropdown rather than separate buttons. Choosing Scheduled asks for the date. Dragging still works on computers. Both go through `moveTo()`.
 - Vehicles can also be dragged directly on the main board (not in TV mode, mouse only): drop zones `#bayZone`, `#queueZone`, `#schedZone`. While dragging, `boardDragging` pauses the 1-second `renderBoard()` redraw so the dragged card isn't replaced. Moving into Scheduled (board or Staff drag) asks for the date with a prompt (default tomorrow); cancelling leaves the vehicle where it was.
 - On hold: Staff row "Put on hold…" dropdown (Awaiting parts / Under observation / At outside shop / Other reason…, or Resume work). Bay cards on hold are blue with the reason tag and "Elapsed (paused)"; waiting rows show the reason tag.
@@ -101,4 +101,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-06: professional layout redesign (tokens, header with actions, new cards/rows, Staff panel with tabs and labeled form, mechanic chips). Tested desktop/phone/TV, Day and Night; all earlier feature tests re-run.
 - 2026-11-06: end-user + division on the board; divisions entered per end-user in Settings (the user's list had no divisions; they may send one to prefill).
 - 2026-11-06: user sent the vehicle list with divisions; stored per vehicle as `div`.
+- 2026-11-06: renamed the Waiting list to "Awaiting parts" (labels only).
 - Ideas the user has not decided on: link to the user's PM/CM maintenance records.

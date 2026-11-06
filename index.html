@@ -201,9 +201,10 @@
   .mech-chip{background:var(--surface2); color:var(--text); font-size:12px; font-weight:500; border-radius:999px; padding:2px 9px;}
   .enduser{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); min-width:0;}
   .enduser svg{width:14px; height:14px; color:var(--faint); flex:none;}
-  .enduser{flex-wrap:wrap; row-gap:1px;}
+  .enduser{align-items:flex-start;}
+  .enduser svg{margin-top:2px;}
+  .enduser .eu-text{flex:1; min-width:0; line-height:1.4;}
   .enduser .eu-name{color:var(--text); font-weight:600;}
-  .enduser .eu-div{min-width:0;}
   .div-list{max-height:420px; overflow-y:auto; margin-top:6px; border-top:1px solid var(--hair);}
   .div-list .set-row span{font-size:13px;}
   .div-list .set-row input{width:55%; height:34px;}
@@ -498,7 +499,7 @@
   </div>
   <div class="panel queue">
     <div class="drop-zone" id="queueZone">
-      <div class="section-title">Waiting <span class="sec-count" id="queueCount">0</span><span class="page-ind" id="queuePage"></span></div>
+      <div class="section-title">Awaiting parts <span class="sec-count" id="queueCount">0</span><span class="page-ind" id="queuePage"></span></div>
       <div class="queue-list" id="queueList"></div>
     </div>
     <div class="drop-zone" id="schedZone">
@@ -598,13 +599,13 @@
             <label class="full"><span class="field-label">Put it in</span>
               <select id="fStatus">
                 <option value="bay">In bay</option>
-                <option value="wait">Waiting</option>
+                <option value="wait">Awaiting parts</option>
                 <option value="sched">Scheduled (future date)</option>
               </select></label>
             <label class="full"><span class="field-label">Work description</span>
               <input id="fWork" maxlength="300" placeholder="e.g. Change oil, check brakes"></label>
             <label class="full"><span class="field-label">Remarks</span>
-              <input id="fRemarks" maxlength="300" placeholder="e.g. Waiting for parts"></label>
+              <input id="fRemarks" maxlength="300" placeholder="e.g. Parts arriving Monday"></label>
           </div>
           <div class="row" id="rowDateIn">
             <label class="full"><span class="field-label">Date entered the bay area</span>
@@ -639,7 +640,7 @@
             <div class="entry-col" id="colSched"></div>
           </div>
           <div>
-            <div class="col-label">Waiting <span class="sec-count" id="colWaitCount">0</span></div>
+            <div class="col-label">Awaiting parts <span class="sec-count" id="colWaitCount">0</span></div>
             <div class="entry-col" id="colWait"></div>
           </div>
           <div>
@@ -955,9 +956,9 @@ const entryDivision = e => e.division || usualDivision(e.vno, e.who);
 function endUserHtml(e){
   const who = normName(e.who), div = entryDivision(e);
   if (!who && !div) return '';
-  return '<div class="enduser" title="End-user' + (div ? ' · Division' : '') + '">' + ICON.org +
+  return '<div class="enduser" title="End-user' + (div ? ' · Division' : '') + '">' + ICON.org + '<span class="eu-text">' +
     (who ? '<span class="eu-name">' + esc(who) + '</span>' : '') +
-    (div ? '<span class="eu-div">' + (who ? '· ' : '') + esc(div) + '</span>' : '') + '</div>';
+    (div ? '<span class="eu-div">' + (who ? ' · ' : '') + esc(div) + '</span>' : '') + '</span></div>';
 }
 
 function workHtml(e){
@@ -1050,7 +1051,7 @@ function boardDraggable(el, e){
   if (isTV() || !isUnlocked()) return;
   el.draggable = true;
   el.classList.add('board-drag');
-  el.title = 'Drag to In the bay now, Waiting or Scheduled';
+  el.title = 'Drag to In the bay now, Awaiting parts or Scheduled';
   el.addEventListener('dragstart', ev => {
     ev.dataTransfer.setData('text/plain', String(e.id));
     ev.dataTransfer.effectAllowed = 'move';
@@ -1128,13 +1129,13 @@ function renderBoard(){
     bayEl.appendChild(card);
   });
 
-  qEl.innerHTML = wait.length ? '' : '<div class="empty">No vehicles waiting.</div>';
+  qEl.innerHTML = wait.length ? '' : '<div class="empty">No vehicles awaiting parts.</div>';
   wait.forEach(e => {
     const row = document.createElement('div');
     row.className = 'qrow' + (e.hold ? ' q-hold' : '');
     row.innerHTML =
       '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span>' +
-        (e.hold ? '<span class="status hold-tag">' + esc(holdLabel(e)) + '</span>' : '') + '</div>' +
+        (e.hold && e.hold !== 'Awaiting parts' ? '<span class="status hold-tag">' + esc(holdLabel(e)) + '</span>' : '') + '</div>' +
       (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + endUserHtml(e) + workHtml(e) + '</div>' +
       '<div class="q-side"><span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span>' +
         '<div class="datein">Date in<b>' + esc(fmtDate(entryDateIn(e))) + '</b></div></div>';
@@ -1164,7 +1165,7 @@ function renderBoard(){
   const nHold = entries.filter(e => e.hold && e.status !== 'sched').length;
   const nSchedToday = sched.filter(e => e.schedDate === today).length;
   const stat = (cls, n, label) => '<span class="stat ' + cls + '"><span class="sd"></span><b>' + n + '</b>' + label + '</span>';
-  $('counts').innerHTML = stat('s-bay', bay.length, 'in the bay') + stat('s-wait', wait.length, 'waiting') +
+  $('counts').innerHTML = stat('s-bay', bay.length, 'in the bay') + stat('s-wait', wait.length, 'awaiting parts') +
     (nHold ? stat('s-hold', nHold, 'on hold') : '') + stat('s-sched', nSchedToday, 'scheduled today');
   $('bayCount').textContent = bay.length;
   $('queueCount').textContent = wait.length;
@@ -1443,7 +1444,7 @@ function renderStaff(){
     const mv = document.createElement('select');
     mv.className = 'move';
     mv.title = 'Move this vehicle to another list';
-    const opts = [['', 'Move to…'], ['bay', 'In bay'], ['wait', 'Waiting'], ['sched', 'Scheduled']]
+    const opts = [['', 'Move to…'], ['bay', 'In bay'], ['wait', 'Awaiting parts'], ['sched', 'Scheduled']]
       .filter(([v]) => v !== e.status);
     opts.forEach(([v, label]) => {
       const o = document.createElement('option');
@@ -1543,7 +1544,7 @@ function renderStaff(){
   $('colBayCount').textContent = entries.filter(e => e.status === 'bay').length;
   if (!entries.some(e => e.status === 'sched')) colSched.innerHTML = '<div class="empty-col">No scheduled vehicles. Add one above with "Scheduled" chosen.</div>';
 
-  if (!entries.some(e => e.status === 'wait')) colWait.innerHTML = '<div class="empty-col">No vehicles waiting.</div>';
+  if (!entries.some(e => e.status === 'wait')) colWait.innerHTML = '<div class="empty-col">No vehicles awaiting parts.</div>';
   if (!entries.some(e => e.status === 'bay')) colBay.innerHTML = '<div class="empty-col">No vehicles in the bay.</div>';
 
   [[colSched, 'sched'], [colWait, 'wait'], [colBay, 'bay']].forEach(([col, target]) => {
