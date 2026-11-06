@@ -1,6 +1,6 @@
 # Bay Status Board
 
-Customer-facing board for the Equipment Management Division: vehicles in the bay with a running timer against a time limit, the mechanics on each job, and a waiting queue. Staff update it from the **Staff** button at the top right; every open screen updates live.
+Customer-facing board for the Equipment Management Division: vehicles in the bay with a running timer against a time limit, the mechanics on each job, and the vehicles awaiting parts. Staff update it from the **Staff** button at the top right; every open screen updates live.
 
 Files: `index.html` (the whole site), `firestore.rules` (database rules).
 
@@ -36,24 +36,27 @@ What TV mode shows:
 - A short **chime** once, when a vehicle first goes over its limit.
 - If there are more vehicles than fit on the screen, each list shows **pages** ("Page 1 of 3") and flips to the next page every 15 seconds. Nothing scrolls.
 - **TV colors:** Night (dark, the default), Day (light), or Auto (Day from 6 AM to 6 PM, Night after). Choose in **Staff → Settings → TV display → TV colors**. The TV changes within a few seconds.
-- The top of the board shows the counts: in the bay, waiting, on hold, and scheduled today.
+- The top of the board shows the counts: in the bay, awaiting parts, on hold, and scheduled today.
 - **Choose what the TV shows:** in **Staff → Settings → TV display**, untick what you don't want on the lobby TV (mechanic names, property no., make & model, work, remarks, date in). This only changes the TV; staff screens still show everything.
 
 To leave TV mode, move the mouse and click **Exit TV mode** (top right).
 
 ## Finding your way around
 - The buttons **Finished**, **TV mode** and **Staff** are at the top right of the board.
-- The Staff panel has two tabs: **Vehicles** (add a vehicle on the left, the Scheduled / Waiting / In bay lists on the right) and **Settings** (mechanics roster, bays, default time limits, vehicle list, TV display, staff PIN).
+- The Staff panel has two tabs: **Vehicles** (add a vehicle on the left, the Scheduled / Awaiting parts / In bay lists on the right) and **Settings** (mechanics roster, bays, default time limits, vehicle list, TV display, staff PIN).
 - To pick mechanics, tap their names (up to 5). Tap again to remove one.
 
+## The "Awaiting parts" list
+The right side of the board used to be called **Waiting**. It is now **Awaiting parts**, for vehicles that are not being worked on until their parts arrive. Move a vehicle there with **Move to… → Awaiting parts**, and back with **Move to… → In bay**.
+
 ## Moving vehicles
-In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In bay**, **Waiting** or **Scheduled** and it moves right away (Scheduled asks for the date). Moving restarts the vehicle's timer. On a computer you can also drag a vehicle with the mouse, either in the Staff panel or directly on the main board, between **In the bay now**, **Waiting** and **Scheduled**. Dropping into Scheduled asks for the date. (Dragging doesn't work on phones or tablets, and is turned off in TV mode.)
+In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In bay**, **Awaiting parts** or **Scheduled** and it moves right away (Scheduled asks for the date). Moving restarts the vehicle's timer. On a computer you can also drag a vehicle with the mouse, either in the Staff panel or directly on the main board, between **In the bay now**, **Waiting** and **Scheduled**. Dropping into Scheduled asks for the date. (Dragging doesn't work on phones or tablets, and is turned off in TV mode.)
 
 ## Scheduling a vehicle
 1. Click **Staff**, choose the vehicle, and set the status box to **Scheduled (future date)**.
 2. Pick the **Scheduled date** (and a time if you have one), then click **Add to board**.
 3. It shows on the board under **Scheduled**: "Today" in amber, "Tomorrow", the date, or "Overdue" in red if the date has passed.
-4. When the vehicle arrives, open its **Move to…** dropdown in the Staff panel and pick **Waiting** or **In bay**. (Dragging also works on a computer.) Its date in becomes today and its timer starts.
+4. When the vehicle arrives, open its **Move to…** dropdown in the Staff panel and pick **Awaiting parts** or **In bay**. (Dragging also works on a computer.) Its date in becomes today and its timer starts.
 
 ## Can't finish today? Pause it
 1. At the end of the day, click **Staff** and find the vehicle in **In bay**.
@@ -61,7 +64,7 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 3. The timer stops, and the board shows **"Paused · continues tomorrow"** (or the day you chose). The vehicle stays in its bay.
 4. Next morning, click **▶ Resume**. The timer continues where it stopped, so the night doesn't count against the time limit.
 
-## Awaiting parts (on hold)
+## On hold (Awaiting parts, Under observation, …)
 1. In the Staff panel, open the blue **Put on hold…** dropdown on the vehicle and pick **Awaiting parts**, **Under observation**, **At outside shop**, or **Other reason…**.
 2. On the board the card turns blue with the reason, and the timer **pauses**, so time on hold doesn't count against the time limit.
 3. When work starts again, open the same dropdown and pick **Resume work**.
@@ -72,9 +75,9 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 - Each repair type has a **default time limit** (Preventive 2h, Corrective 4h, Express 1h to start). It fills in automatically when you pick the repair type. Change the defaults in **Staff → Settings → Default time limit**. You can still type a different limit for one vehicle.
 
 ## Fixing a mistake (Edit)
-1. Click **Staff** and find the vehicle in the **Waiting** or **In bay** list.
+1. Click **Staff** and find the vehicle in the **Awaiting parts** or **In bay** list.
 2. Click the blue **Edit** button. The vehicle's details load into the form at the top.
-3. Change what is wrong. You can change the vehicle, repair type, work, remarks, date in, In bay/Waiting, bay, mechanics, time limit, or, if the timer is wrong, the time it started.
+3. Change what is wrong. You can change the vehicle, repair type, work, remarks, date in, In bay/Awaiting parts, bay, mechanics, time limit, or, if the timer is wrong, the time it started.
 4. Click **Save changes**, or **Cancel edit** to leave it as it was.
 
 ## Finishing a job and the Finished list
