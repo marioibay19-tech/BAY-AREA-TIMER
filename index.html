@@ -970,16 +970,23 @@ function workHtml(e){
    hold = reason ('' when working), holdAt = when the current hold started,
    heldMs = time already spent on hold. Time on hold doesn't count against the limit. */
 const HOLD_REASONS = ['Awaiting parts', 'Under observation', 'At outside shop'];
+/* Time already on hold. It can never be longer than the time since the timer started;
+   if it is (left over from before the timer was restarted), it is ignored. */
+function heldBefore(e, end){
+  const h = e.heldMs || 0;
+  return h > Math.max(0, end - e.since) ? 0 : h;
+}
 function workedMs(e, now){
   const end = e.hold && e.holdAt ? e.holdAt : now;
-  return Math.max(0, end - e.since - (e.heldMs || 0));
+  return Math.max(0, end - e.since - heldBefore(e, end));
 }
 function totalHeldMs(e, now){
-  return (e.heldMs || 0) + (e.hold && e.holdAt ? Math.max(0, now - e.holdAt) : 0);
+  const end = e.hold && e.holdAt ? e.holdAt : now;
+  return heldBefore(e, end) + (e.hold && e.holdAt ? Math.max(0, now - e.holdAt) : 0);
 }
 function setHold(e, reason, pauseUntil){
   const now = nowMs();
-  if (e.hold && e.holdAt) e.heldMs = (e.heldMs || 0) + Math.max(0, now - e.holdAt);
+  if (e.hold && e.holdAt) e.heldMs = heldBefore(e, e.holdAt) + Math.max(0, now - e.holdAt);
   e.hold = reason || '';
   e.holdAt = reason ? now : 0;
   e.pauseUntil = reason === PAUSED ? (pauseUntil || '') : '';
@@ -2207,6 +2214,11 @@ function saveEdit(){
   e.status = newStatus;
   e.schedDate = newStatus === 'sched' ? $('fSchedDate').value : (e.schedDate || '');
   e.schedTime = newStatus === 'sched' ? $('fSchedTime').value : (e.schedTime || '');
+  if (since !== e.since) {
+    // The timer was restarted (status change or new start time): old hold time no longer applies.
+    e.heldMs = 0;
+    if (e.hold && e.holdAt && e.holdAt < since) e.holdAt = since;
+  }
   e.since = since;
   e.limitHrs = limit;
   e.bay = $('fBay').value;
