@@ -1012,6 +1012,23 @@ function continuesText(e){
   const [y, m, d] = e.pauseUntil.split('-').map(Number);
   return 'Paused · continues ' + new Date(y, m - 1, d).toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
 }
+/* Resume a job paused for the day: the timer starts again from zero for the new day.
+   The time worked on earlier days is kept in priorMs (counted in the finished record),
+   and overAnyDay remembers if an earlier day went over the limit. */
+function resumeJob(e){
+  const now = nowMs();
+  const worked = workedMs(e, now);
+  const limitMs = (Number(e.limitHrs) || 0) * 3600000;
+  e.priorMs = (e.priorMs || 0) + worked;
+  if (limitMs && worked > limitMs) e.overAnyDay = true;
+  e.workDay = (e.workDay || 1) + 1;
+  e.since = now;
+  e.heldMs = 0;
+  e.hold = ''; e.holdAt = 0; e.pauseUntil = '';
+  saveEntry(e);
+  renderStaff();
+}
+
 /* Text for the blue tag on the board. */
 const holdLabel = e => e.hold === PAUSED ? continuesText(e) : e.hold;
 function pauseJob(e){
@@ -1130,7 +1147,7 @@ function renderBoard(){
       '<div class="card-foot">' +
         '<div class="time-row"><span class="elapsed">' + fmtElapsed(elapsed) + '</span><span class="limit">of ' + esc(e.limitHrs) + 'h limit</span></div>' +
         '<div class="bar-track"><div class="bar-fill' + (held ? ' hold' : over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
-        '<div class="foot-meta"><span class="datein-row">In <b>' + esc(fmtDate(entryDateIn(e))) + '</b></span><span>' + footRight + '</span></div>' +
+        '<div class="foot-meta"><span class="datein-row">In <b>' + esc(fmtDate(entryDateIn(e))) + '</b>' + (e.workDay > 1 ? ' · day ' + e.workDay : '') + '</span><span>' + footRight + '</span></div>' +
       '</div>';
     boardDraggable(card, e);
     bayEl.appendChild(card);
@@ -1488,7 +1505,7 @@ function renderStaff(){
           if (!t || !t.trim()) { hs.value = e.hold || ''; return; }
           reason = t.trim().slice(0, 40);
         }
-        setHold(e, reason);
+        if (!reason && e.hold === PAUSED) resumeJob(e); else setHold(e, reason);
       };
       row.appendChild(hs);
     }
@@ -1514,7 +1531,7 @@ function renderStaff(){
       if (e.hold === PAUSED) {
         pb.className = 'done resume'; pb.innerHTML = ICON.play + ' Resume';
         pb.title = 'Start working on it again: the timer continues';
-        pb.onclick = () => setHold(e, '');
+        pb.onclick = () => resumeJob(e);
       } else {
         pb.className = 'edit'; pb.innerHTML = ICON.pause + ' Pause';
         pb.title = "Can't finish today? Pause it: the timer stops until you press Resume";
@@ -1596,10 +1613,12 @@ function moveTo(e, target){
    ============================================================ */
 function finishJob(e){
   const now = nowMs();
-  const bayMs = workedMs(e, now);
+  const dayMs = workedMs(e, now);                 // today's working time
+  const bayMs = (e.priorMs || 0) + dayMs;         // total working time over all days
   const holdMs = totalHeldMs(e, now);
   const limitMs = (Number(e.limitHrs) || 0) * 3600000;
   const msg = 'Mark ' + vTitle(e) + ' as done?\n\nTime in bay: ' + fmtElapsed(bayMs) +
+    (e.workDay > 1 ? ' over ' + e.workDay + ' days (today ' + fmtElapsed(dayMs) + ')' : '') +
     (holdMs > 60000 ? ' (plus ' + fmtDuration(holdMs) + ' on hold)' : '') +
     '\nIt will be taken off the board and saved in Finished maintenance.';
   if (!confirm(msg)) return;
@@ -1607,10 +1626,11 @@ function finishJob(e){
     dateIn: entryDateIn(e),
     doneAt: now,
     bayMs: bayMs,
+    dayMs: dayMs,
     holdMs: holdMs,
     heldMs: holdMs, hold: '', holdAt: 0, pauseUntil: '',
     division: entryDivision(e),
-    overLimit: limitMs > 0 && bayMs > limitMs
+    overLimit: limitMs > 0 && (!!e.overAnyDay || dayMs > limitMs)
   });
   if (editingId === e.id) endEdit();
   entries = entries.filter(x => x.id !== e.id);
@@ -1640,6 +1660,7 @@ function fmtDuration(ms){
 }
 function resultText(r){
   const limitMs = (Number(r.limitHrs) || 0) * 3600000;
+  if (r.workDay > 1) return (r.overLimit ? 'Over limit' : 'Within limit') + ' · ' + r.workDay + ' days';
   if (r.overLimit) return 'Over by ' + fmtDuration(r.bayMs - limitMs);
   if (limitMs && r.bayMs < limitMs) return 'Early by ' + fmtDuration(limitMs - r.bayMs);
   return 'On time';
@@ -1773,7 +1794,7 @@ function renderFinished(){
       if (entries.some(x => x.id === r.id || (r.vno && x.vno === r.vno))) { alert(title + ' is already on the board.'); return; }
       if (!confirm('Put ' + title + ' back in the bay? Its timer continues from when it went in.')) return;
       const e = clean(r);
-      delete e.doneAt; delete e.bayMs; delete e.overLimit;
+      delete e.doneAt; delete e.bayMs; delete e.overLimit; delete e.dayMs;
       e.status = 'bay';
       entries.push(e);
       entries.sort((x, y) => x.id - y.id);
