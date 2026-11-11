@@ -62,7 +62,8 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 1. At the end of the day, click **Staff** and find the vehicle in **In bay**.
 2. Click **⏸ Pause**. It asks which day work will continue and suggests the next working day (Friday → Monday). Click **OK**.
 3. The timer stops, and the board shows **"Paused · continues tomorrow"** (or the day you chose). The vehicle stays in its bay.
-4. Next morning, click **▶ Resume**. The timer continues where it stopped, so the night doesn't count against the time limit.
+4. Next morning, click **▶ Resume**. The timer **starts again from 0** with the full time limit for the new day, and the card shows "day 2".
+5. When you click **Done**, the Finished page keeps the **total** working time over all days, and the result shows whether any day went over the limit (for example "Within limit · 2 days").
 
 ## On hold (Awaiting parts, Under observation, …)
 1. In the Staff panel, open the blue **Put on hold…** dropdown on the vehicle and pick **Awaiting parts**, **Under observation**, **At outside shop**, or **Other reason…**.
