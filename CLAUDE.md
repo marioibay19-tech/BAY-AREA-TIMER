@@ -65,6 +65,14 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 - Header counts (`#counts`, all modes): in the bay · waiting · on hold (if any) · scheduled today.
 - TV display options in the Staff panel (`meta/settings.tv`, key=false hides it, TV only): mechanic names (`.mechanic-block`), property no. (`.pno`), make & model (`.vd`, waiting/scheduled `.vdesc`), work (`.w-work`), remarks (`.w-rem`), date in (`.datein-row`, `.qrow .datein`). Body classes `tvh-<key>`.
 
+## Interactive 3D view (added 2026-11-13)
+- `#3d` in the URL (or the "Interactive" nav button, `#isoToggle`) toggles `body.show-iso`, which hides `.layout`/`.alert-bar` and shows `#isoPage`. Handled in `showPage()`; hidden in TV mode (`setTV()` now calls `showPage()`). Leaving and re-entering clears the scene so the drop-in animation replays.
+- Pure CSS 3D, no library: `#isoWorld` gets `translate(-50%,-50%) translate(pan) scale(fit*zoom) rotateX(tilt) rotateZ(rz)` from `isoCamera()` (fits the floor into `#isoStage`). Boxes come from `isoBox(cls,w,d,h,x,y,z)`, which makes a cuboid of five faces with tones from `--vc`/`--base` via `color-mix`. Do not put `opacity` on preserve-3d elements, because it flattens them.
+- `isoLayout()`: the bay zone has one slot per `bayNames()` entry, plus "No bay set" slots for bay vehicles without a free named bay. Awaiting parts and Scheduled lots (2 columns, at least 4 slots) sit side by side underneath. The floor is rebuilt only when the layout `key` changes. `renderIso()` runs at the end of every `renderBoard()` (1 s), and keeps one element per entry in `ISO.els`. A position change slides the vehicle (CSS transition) and adds a hop. Removed entries lift away.
+- Vehicle shape: `isoKind(e)` reads `desc` (pickup / van / truck / heavy / small), with parts in `ISO_MODELS`. Color class from `isoState()`: work/near amber, over red, hold blue, wait grey, sched green (late red). Tags (`.iso-tag`) counter-rotate with `--rz`/`--tilt` and counter-scale with `--inv`, so they face the camera at a constant size (smaller on small stages).
+- Drag: pointer events on `#isoStage`. Dragging a vehicle shows `.iso-ghost`, and the target is found with `document.elementsFromPoint` on `[data-zone]` (slots carry `data-bay`). `isoDrop()` asks `requireUnlock()`, sets `e.bay` for a named bay (`bayFreeOk`), and otherwise calls `moveTo()`. Dropping on the bay zone (not a slot) keeps the vehicle's bay if free, else the first free bay. Dragging the floor turns and tilts (Shift or middle button pans; on touch it pans when zoomed in). Wheel zooms.
+- Details panel `#isoInfo` (click a vehicle): fields, a "Move to…" select (`isoDrop`) and Edit (opens the Staff panel with `startEdit`). It is not redrawn while its select has focus.
+
 ## Finished maintenance page
 - `#finished` in the URL (or the "Finished" button) shows the page instead of the board; "Back to board" clears the hash. Hidden in TV mode.
 - Filters: text search, finished from/to date, repair type. Summary line counts jobs, within/over limit, average time in bay.
@@ -104,4 +112,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-06: renamed the Waiting list to "Awaiting parts" (labels only).
 - 2026-11-10: fixed timer stuck at 0m 00s after Edit moved a previously paused vehicle (old `heldMs` kept); existing stuck entries heal on refresh.
 - 2026-11-11: Resume after Pause restarts the timer for the new day; total time over all days kept for the record.
+- 2026-11-13: added the Interactive 3D view (#3d). Drag between areas and bays changes the status, as the user asked. Bays follow the Settings bay list. Tested headless in demo mode: draw, drag to a bay, drag to Scheduled with the date prompt, the details dropdown, turning, Night colors, phone width, hidden in TV mode.
 - Ideas the user has not decided on: link to the user's PM/CM maintenance records.

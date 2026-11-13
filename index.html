@@ -126,6 +126,8 @@
     .counts{grid-row:2;}
     .nav{grid-column:1/-1; grid-row:3;}
     .nav .staff-toggle{flex:1; justify-content:center; padding:0 8px;}
+    .nav{flex-wrap:wrap;}
+    .nav .staff-toggle{flex:1 1 calc(50% - 4px);}
     .brand .sub{white-space:normal;}
     .brand-mark{width:36px; height:36px;}
   }
@@ -459,6 +461,143 @@
     border-radius:999px; padding:8px 14px; font-size:13px; cursor:pointer; box-shadow:var(--shadow);
   }
   body.tv:not(.idle) .tv-exit{display:block;}
+  /* ---------- Interactive 3D view (#3d): isometric bay area, drag to move ---------- */
+  #isoPage{display:none; flex-direction:column; gap:10px; padding:12px var(--gutter) 12px; max-width:1800px; margin:0 auto; height:calc(100vh - 90px); min-height:440px;}
+  body.show-iso .layout, body.show-iso .alert-bar{display:none !important;}
+  body.show-iso #isoPage{display:flex;}
+  body.show-iso #isoToggle{border-color:var(--amber); color:var(--amber);}
+  body.show-iso #isoToggle svg{color:var(--amber);}
+  .iso-bar{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;}
+  .iso-bar .section-title{margin:0;}
+  .iso-legend{display:flex; flex-wrap:wrap; gap:6px 12px; font-size:12px; color:var(--muted);}
+  .iso-legend span{display:inline-flex; align-items:center; gap:5px;}
+  .iso-legend i{width:11px; height:11px; border-radius:3px; display:inline-block;}
+  .iso-tools{display:flex; flex-wrap:wrap; gap:6px; margin-left:auto;}
+  .iso-tools .btn-sm{height:34px; padding:0 10px;}
+  .iso-stage{position:relative; flex:1; min-height:0; overflow:hidden; border:1px solid var(--hair); border-radius:var(--r-lg);
+    background:radial-gradient(ellipse at 50% 40%, var(--surface2), var(--bg) 75%); touch-action:none; cursor:grab; user-select:none; -webkit-user-select:none;}
+  .iso-stage.turning{cursor:grabbing;}
+  .iso-hint{position:absolute; left:12px; bottom:10px; font-size:12px; color:var(--muted); pointer-events:none; max-width:calc(100% - 24px);}
+  .iso-world{position:absolute; left:50%; top:50%; transform-style:preserve-3d; transition:transform .8s cubic-bezier(.2,.7,.2,1);
+    --rz:-40deg; --tilt:58deg; --inv:1;}
+  .iso-world.live, .iso-world.live .iso-tag{transition:none !important;}
+  .iso-floor, .iso-cars{position:absolute; left:0; top:0; width:100%; height:100%; transform-style:preserve-3d;}
+
+  /* 3D boxes: --w × --d × --h at (--x, --y) with the bottom at --z. Faces: top, north, south, east, west. */
+  .iso-box{position:absolute; left:0; top:0; transform-style:preserve-3d;
+    transform:translate3d(var(--x,0px), var(--y,0px), calc(var(--z,0px) + var(--h) / 2));}
+  .iso-box > i{position:absolute; display:block; left:calc(var(--fw) / -2); top:calc(var(--fh) / -2); width:var(--fw); height:var(--fh); background:var(--fc);}
+  .iso-box > .ft{--fw:var(--w); --fh:var(--d); --fc:var(--c-top); transform:translateZ(calc(var(--h) / 2));}
+  .iso-box > .fn{--fw:var(--w); --fh:var(--h); --fc:var(--c-ns); transform:rotateX(90deg) translateZ(calc(var(--d) / 2));}
+  .iso-box > .fs{--fw:var(--w); --fh:var(--h); --fc:var(--c-ns); transform:rotateX(-90deg) translateZ(calc(var(--d) / 2));}
+  .iso-box > .fe{--fw:var(--h); --fh:var(--d); --fc:var(--c-ew); transform:rotateY(90deg) translateZ(calc(var(--w) / 2));}
+  .iso-box > .fw{--fw:var(--h); --fh:var(--d); --fc:var(--c-ew); transform:rotateY(-90deg) translateZ(calc(var(--w) / 2));}
+  .iso-box{--base:var(--vc); --c-top:color-mix(in srgb, var(--base) 92%, white); --c-ns:color-mix(in srgb, var(--base) 72%, black); --c-ew:color-mix(in srgb, var(--base) 55%, black);}
+
+  /* Floor */
+  .iso-ground{position:absolute; left:0; top:0; border-radius:16px; transform:translateZ(0);
+    background-color:var(--surface3);
+    background-image:linear-gradient(var(--hair) 1px, transparent 1px), linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-size:40px 40px; box-shadow:inset 0 0 0 2px var(--hair2);}
+  .iso-slab{--base:var(--surface3);}
+  .iso-zone{position:absolute; border-radius:12px; transform:translateZ(1px); transform-style:preserve-3d;
+    background:color-mix(in srgb, var(--zc) 9%, var(--surface2)); border:2px solid color-mix(in srgb, var(--zc) 40%, transparent);
+    transition:background .2s, border-color .2s;}
+  .z-bay{--zc:var(--amber);} .z-wait{--zc:var(--muted);} .z-sched{--zc:var(--green);}
+  .iso-ztitle{position:absolute; left:18px; right:18px; bottom:10px; font-family:'Bebas Neue',sans-serif; font-size:42px; line-height:1; letter-spacing:1px;
+    color:color-mix(in srgb, var(--zc) 80%, var(--text)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none;}
+  .z-wait .iso-ztitle, .z-sched .iso-ztitle{font-size:31px;}
+  .iso-ztitle b{font-family:'Inter',sans-serif; font-size:22px; font-weight:700; margin-left:10px; color:var(--muted); vertical-align:6px;}
+  .iso-slot{position:absolute; transform:translateZ(1px); border:3px solid color-mix(in srgb, var(--zc) 50%, transparent); border-radius:6px;
+    transition:background .2s, border-color .2s;}
+  .z-bay .iso-slot{border-bottom-style:dashed;}
+  .z-bay .iso-slot::after{content:''; position:absolute; left:0; right:0; bottom:0; height:14px; opacity:.55;
+    background:repeating-linear-gradient(-45deg, var(--amber) 0 10px, transparent 10px 20px);}
+  .z-sched .iso-slot{border-style:dashed;}
+  .iso-slabel{position:absolute; left:0; right:0; top:8px; text-align:center; font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:1px;
+    color:color-mix(in srgb, var(--zc) 70%, var(--text)); pointer-events:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 6px;}
+  .iso-slot.extra .iso-slabel{font-family:'Inter',sans-serif; font-size:13px; font-weight:600; top:12px; color:var(--muted);}
+  .iso-zone.hot{background:color-mix(in srgb, var(--zc) 22%, var(--surface2)); border-color:var(--zc);}
+  .iso-slot.hot{background:color-mix(in srgb, var(--zc) 35%, transparent); border-color:var(--zc); border-style:solid;}
+  .iso-wall{--base:var(--surface3);}
+  .iso-wall > .fs{background:linear-gradient(transparent calc(100% - 12px), var(--amber) calc(100% - 12px)), linear-gradient(var(--surface), var(--surface2));}
+
+  /* Vehicles */
+  .iso-veh{position:absolute; left:0; top:0; width:0; height:0; transform-style:preserve-3d; transition:transform 1.1s cubic-bezier(.45,.05,.25,1); cursor:grab; outline:none;
+    --vc:#8B95A3;}
+  .iso-veh.dragging{transition:none; cursor:grabbing;}
+  .iso-hop, .iso-model{position:absolute; left:0; top:0; transform-style:preserve-3d; transition:transform .35s ease;}
+  .iso-veh.lot .iso-model{transform:scale3d(.72,.72,.72);}
+  .iso-veh.dragging .iso-hop{transform:translateZ(46px);}
+  .iso-veh.out .iso-hop{transform:translateZ(160px) scale3d(.01,.01,.01); transition:transform .6s ease-in;}
+  .iso-hop.drop{animation:isoDrop .9s cubic-bezier(.3,1.35,.5,1) backwards;}
+  .iso-hop.move{animation:isoHop 1.1s ease-in-out;}
+  @keyframes isoDrop{ from{transform:translateZ(280px);} }
+  @keyframes isoHop{ 0%,100%{transform:translateZ(0);} 45%{transform:translateZ(54px);} }
+  .iso-box.dark{--base:#25282E;}
+  .iso-box.chassis{--base:color-mix(in srgb, var(--vc) 35%, #202328);}
+  .iso-box.glass > .fn{--fc:color-mix(in srgb, #8EC1F0 70%, #1d2a3a);}
+  .iso-box.boom{--base:color-mix(in srgb, var(--vc) 80%, black);}
+  .iso-box.beacon{display:none;}
+  .iso-veh.work .iso-box.beacon, .iso-veh.over .iso-box.beacon, .iso-veh.near .iso-box.beacon{display:block; animation:isoBeacon 1s steps(2) infinite;}
+  .iso-veh.over .iso-box.beacon{animation-duration:.45s;}
+  @keyframes isoBeacon{ 50%{--base:#FFF6D8;} 0%{--base:var(--vc);} }
+  .iso-shadow{position:absolute; left:-58px; top:-96px; width:116px; height:192px; border-radius:40%; transform:translateZ(2px);
+    background:radial-gradient(closest-side, rgba(0,0,0,.38), transparent); pointer-events:none;}
+  .iso-veh.lot .iso-shadow{transform:translateZ(2px) scale(.72);}
+  .iso-veh.work .iso-shadow, .iso-veh.near .iso-shadow{box-shadow:0 0 0 3px color-mix(in srgb, var(--vc) 70%, transparent); animation:isoGlow 2.4s ease-in-out infinite;}
+  .iso-veh.over .iso-shadow{box-shadow:0 0 0 4px var(--red); animation:isoGlow 1.1s ease-in-out infinite;}
+  .iso-veh.sel .iso-shadow{box-shadow:0 0 0 5px var(--text) !important;}
+  @keyframes isoGlow{ 50%{box-shadow:0 0 0 12px transparent;} }
+  .iso-veh.work, .iso-veh.near{--vc:var(--amber);}
+  .iso-veh.over{--vc:var(--red);}
+  .iso-veh.hold{--vc:var(--blue);}
+  .iso-veh.wait{--vc:#8B95A3;}
+  .iso-veh.sched{--vc:var(--green);}
+  .iso-veh.sched.late{--vc:var(--red);}
+
+  /* Floating name tags: they face the camera and keep the same size on screen */
+  .iso-tag{position:absolute; left:0; top:0; transform-origin:0 0; white-space:nowrap;
+    transform:translateZ(var(--tz,96px)) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--tilt) * -1)) scale(var(--inv)) translate(-50%, calc(-100% - 6px));
+    transition:transform .8s cubic-bezier(.2,.7,.2,1);
+    background:var(--surface); color:var(--text); border:1px solid var(--hair2); border-left:4px solid var(--vc); border-radius:8px;
+    padding:4px 9px 5px; box-shadow:var(--shadow); font-size:11.5px; line-height:1.25; min-width:84px;}
+  .iso-veh.lot .iso-tag{--tz:62px;}
+  .iso-veh.dragging .iso-tag{--tz:150px;}
+  .iso-tag .tp{font-family:'Bebas Neue',sans-serif; font-size:21px; letter-spacing:.5px; line-height:1;}
+  .iso-tag .ts{color:var(--muted); display:block;}
+  .iso-tag .ts b{color:var(--text);}
+  .iso-tag .tbar{height:4px; border-radius:2px; background:var(--hair2); margin-top:3px; overflow:hidden;}
+  .iso-tag .tbar i{display:block; height:100%; background:var(--vc);}
+  .iso-veh.over .iso-tag{background:var(--red-dim);}
+  .iso-veh.sel .iso-tag{border-color:var(--amber); box-shadow:0 0 0 2px var(--amber), var(--shadow);}
+  .iso-veh:focus-visible .iso-tag{outline:2px solid var(--amber); outline-offset:2px;}
+  .iso-ghost{position:fixed; z-index:200; pointer-events:none; transform:translate(-50%, -130%); background:var(--amber); color:var(--amber-ink);
+    font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.5px; padding:4px 12px; border-radius:8px; box-shadow:var(--shadow-lg); white-space:nowrap;}
+  .iso-ghost small{font-family:'Inter',sans-serif; font-size:11px; font-weight:600; margin-left:6px;}
+
+  /* Details panel for the selected vehicle */
+  .iso-info{position:absolute; right:12px; top:12px; width:min(330px, calc(100% - 24px)); max-height:calc(100% - 24px); overflow:auto;
+    background:var(--surface); border:1px solid var(--hair2); border-radius:var(--r-lg); box-shadow:var(--shadow-lg); padding:14px 16px; cursor:default; z-index:2;}
+  .iso-info[hidden]{display:none;}
+  .iso-info .ii-top{display:flex; align-items:flex-start; gap:8px;}
+  .iso-info .ii-plate{font-family:'Bebas Neue',sans-serif; font-size:30px; line-height:1; letter-spacing:.6px;}
+  .iso-info .ii-x{margin-left:auto; background:none; border:0; color:var(--muted); font-size:22px; line-height:1; cursor:pointer; padding:0 4px;}
+  .iso-info .ii-row{display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:5px 0; border-top:1px solid var(--hair);}
+  .iso-info .ii-row span{color:var(--muted);}
+  .iso-info .ii-row b{text-align:right; font-weight:600;}
+  .iso-info .ii-acts{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+  .iso-info select{height:36px; border-radius:var(--r); border:1px solid var(--amber); background:var(--amber-dim); color:var(--text); font:inherit; font-weight:600; padding:0 8px;}
+  @media (max-width:720px){
+    #isoPage{height:auto; min-height:0;}
+    .iso-stage{height:62vh; flex:none;}
+    .iso-info{left:8px; right:8px; top:auto; bottom:8px; width:auto; max-height:55%;}
+    .iso-hint{display:none;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .iso-world, .iso-veh, .iso-tag, .iso-hop, .iso-model{transition:none !important;}
+    .iso-hop.drop, .iso-hop.move, .iso-veh .iso-shadow, .iso-veh .iso-box.beacon{animation:none !important;}
+  }
 </style>
 </head>
 <body>
@@ -485,6 +624,7 @@
   <nav class="nav" aria-label="Board actions">
     <button class="staff-toggle fin-toggle" id="finToggle" title="List of finished maintenance"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>Finished</button>
     <button class="staff-toggle tv-toggle" id="tvToggle" title="Full-screen display for the lobby TV"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg>TV mode</button>
+    <button class="staff-toggle" id="isoToggle" title="Interactive 3D view of the bay area"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12"/><path d="M21 7l-9 5-9-5"/></svg>Interactive</button>
     <button class="staff-toggle" id="staffToggle" title="Update the board (staff PIN)"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Staff</button>
   </nav>
 </div>
@@ -547,6 +687,35 @@
     </tr></thead>
     <tbody id="finBody"></tbody>
   </table></div>
+</div>
+
+<div class="page" id="isoPage">
+  <div class="iso-bar">
+    <div class="section-title">Interactive bay view</div>
+    <div class="iso-legend" aria-label="Colors">
+      <span><i style="background:var(--amber)"></i>Working</span>
+      <span><i style="background:var(--red)"></i>Over limit</span>
+      <span><i style="background:var(--blue)"></i>On hold</span>
+      <span><i style="background:#8B95A3"></i>Awaiting parts</span>
+      <span><i style="background:var(--green)"></i>Scheduled</span>
+    </div>
+    <div class="iso-tools">
+      <button class="btn-sm" id="isoRotL" title="Turn the view left" aria-label="Turn the view left">⟲</button>
+      <button class="btn-sm" id="isoRotR" title="Turn the view right" aria-label="Turn the view right">⟳</button>
+      <button class="btn-sm" id="isoZoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+      <button class="btn-sm" id="isoZoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+      <button class="btn-sm" id="isoReset" title="Back to the starting view">Reset view</button>
+      <button class="btn-sm primary" id="isoBack">Back to board</button>
+    </div>
+  </div>
+  <div class="iso-stage" id="isoStage">
+    <div class="iso-world" id="isoWorld">
+      <div class="iso-floor" id="isoFloor"></div>
+      <div class="iso-cars" id="isoCars"></div>
+    </div>
+    <div class="iso-info" id="isoInfo" hidden></div>
+    <div class="iso-hint">Drag a vehicle to another area or bay to move it (staff PIN) · click a vehicle for details · drag the floor to turn · scroll to zoom</div>
+  </div>
 </div>
 
 <button class="tv-start" id="tvStart">Tap here (or press any key) for full screen and alert sound</button>
@@ -1195,6 +1364,7 @@ function renderBoard(){
   $('queueCount').textContent = wait.length;
   $('schedCount').textContent = sched.length;
   tvPaginate();
+  renderIso();
 }
 
 /* ---------- TV pages: show what fits, then flip to the next page every 15 seconds ---------- */
@@ -1362,6 +1532,7 @@ function setTV(on){
   }
   tvPageTick = 0;
   renderBoard();
+  showPage();
 }
 
 /* Hide the mouse pointer and Exit button when the mouse sits still. */
@@ -1856,6 +2027,12 @@ function exportFinished(){
 function showPage(){
   const fin = isFinishedPage() && !isTV();
   document.body.classList.toggle('show-finished', fin);
+  const iso = isIsoPage() && !isTV();
+  if (iso !== isoShown()) {
+    document.body.classList.toggle('show-iso', iso);
+    $('isoCars').innerHTML = ''; ISO.els.clear(); ISO.key = ''; ISO.sel = null; ISO.first = true;   // replay the drop-in on every visit
+    if (iso) { $('staffPanel').classList.remove('open'); window.scrollTo(0, 0); renderIso(); }
+  }
   if (fin) {
     $('staffPanel').classList.remove('open');
     if (!historyUnsub && store) {
@@ -1871,6 +2048,366 @@ function showPage(){
   }
 }
 window.addEventListener('hashchange', showPage);
+
+/* ============================================================
+   INTERACTIVE 3D VIEW — #3d in the URL (or the "Interactive" button)
+   Isometric bay area drawn with CSS 3D (no library). Vehicles are
+   small 3D models; dragging one to another area or bay calls moveTo(),
+   the same as dragging on the board (staff PIN asked on drop).
+   ============================================================ */
+const isIsoPage = () => location.hash === '#3d';
+const isoShown = () => document.body.classList.contains('show-iso');
+const ISO_VIEW = { rz: -40, tilt: 58, zoom: 1, panX: 0, panY: 0 };
+const ISO = Object.assign({}, ISO_VIEW, { els: new Map(), key: '', W: 0, D: 0, sel: null, drag: null, turn: null, first: true, infoKey: '' });
+const ISO_BAY = { w: 150, d: 210 }, ISO_LOT = { w: 112, d: 150 }, ISO_GAP = 70, ISO_PAD = 50, ISO_SLOT_GAP = 14, ISO_TITLE = 64;
+const isoBox = (cls, w, d, h, x, y, z) =>
+  '<div class="iso-box ' + cls + '" style="--w:' + w + 'px;--d:' + d + 'px;--h:' + h + 'px;--x:' + x + 'px;--y:' + y + 'px;--z:' + z + 'px">' +
+  '<i class="ft"></i><i class="fn"></i><i class="fs"></i><i class="fe"></i><i class="fw"></i></div>';
+
+/* Rough vehicle shape from the make & model text. Parts: [class, w, d, h, x, y, z]; the front of every model faces north (−y). */
+function isoKind(e){
+  const d = String(e.desc || '').toLowerCase();
+  if (/chainsaw|genset|generator|floodlight/.test(d)) return 'small';
+  if (/excavator|bulldozer|loader|crawler|backhoe|telehandler|watermaster|amphibious|tractor/.test(d)) return 'heavy';
+  if (/truck|crane|dump|prime mover|trailer|wrecker|rosa|seater|mbl|boom/.test(d)) return 'truck';
+  if (/van|urvan|hiace|starex|innova|fortuner|montero|rush|l300/.test(d)) return 'van';
+  return 'pickup';
+}
+const isoWheels = (x, ys, h) => ys.flatMap(y => [['dark', 12, 26, h, -x, y, 0], ['dark', 12, 26, h, x, y, 0]]);
+const ISO_MODELS = {
+  pickup: () => isoWheels(33, [-46, 46], 22).concat([
+    ['chassis', 64, 148, 10, 0, 0, 10], ['glass', 64, 58, 38, 0, -45, 20], ['', 64, 90, 16, 0, 29, 20], ['beacon', 12, 8, 7, 0, -45, 58]]),
+  van: () => isoWheels(33, [-50, 50], 22).concat([
+    ['chassis', 64, 150, 10, 0, 0, 10], ['glass', 64, 150, 50, 0, 0, 20], ['beacon', 12, 8, 7, 0, -40, 70]]),
+  truck: () => isoWheels(37, [-62, 34, 64], 26).concat([
+    ['chassis', 72, 190, 12, 0, 0, 12], ['glass', 72, 56, 56, 0, -67, 24], ['', 74, 128, 60, 0, 31, 24], ['beacon', 14, 8, 8, 0, -67, 80]]),
+  heavy: () => [['dark', 18, 124, 26, -34, 0, 0], ['dark', 18, 124, 26, 34, 0, 0],
+    ['', 74, 104, 30, 0, 6, 26], ['glass', 42, 46, 46, -12, -14, 56], ['boom', 14, 96, 14, 20, -78, 62], ['beacon', 10, 8, 7, -12, -14, 102]],
+  small: () => [['dark', 8, 18, 14, -20, -14, 0], ['dark', 8, 18, 14, 20, -14, 0], ['', 46, 58, 34, 0, 0, 8], ['beacon', 8, 8, 6, 0, 0, 42]]
+};
+
+/* Where everything goes: bay zone (one slot per bay name, plus extra slots for vehicles without a free named bay),
+   Awaiting parts and Scheduled lots side by side. Grows with the number of vehicles. */
+function isoLayout(){
+  const names = bayNames();
+  const bay = entries.filter(e => e.status === 'bay');
+  const wait = entries.filter(e => e.status === 'wait');
+  const sched = entries.filter(e => e.status === 'sched').sort((a, b) => schedKey(a) < schedKey(b) ? -1 : 1);
+  const used = new Map(), extra = [];
+  bay.forEach(e => { const i = names.indexOf(e.bay); if (i >= 0 && !used.has(i)) used.set(i, e); else extra.push(e); });
+  const bayCount = names.length + extra.length;
+  const grid = (key, n, size, cols, ox, oy) => {
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const w = cols * size.w + (cols - 1) * ISO_SLOT_GAP + 48, d = rows * size.d + (rows - 1) * ISO_SLOT_GAP + 24 + ISO_TITLE;
+    const slots = [];
+    for (let i = 0; i < n; i++) {
+      const c = i % cols, r = Math.floor(i / cols);
+      slots.push({ x: ox + 24 + c * (size.w + ISO_SLOT_GAP), y: oy + 24 + r * (size.d + ISO_SLOT_GAP), w: size.w, d: size.d });
+    }
+    return { key, x: ox, y: oy, w, d, slots };
+  };
+  const bayCols = Math.min(Math.max(bayCount, 1), 4);
+  const zb = grid('bay', Math.max(bayCount, 1), ISO_BAY, bayCols, ISO_PAD, ISO_PAD);
+  zb.slots.forEach((s, i) => { if (i < names.length) s.bay = names[i]; else { s.bay = ''; s.extra = true; } });
+  const lotN = n => Math.max(4, n + (n % 2));
+  const zw = grid('wait', lotN(wait.length), ISO_LOT, 2, 0, zb.y + zb.d + ISO_GAP);
+  const zs = grid('sched', lotN(sched.length), ISO_LOT, 2, 0, zw.y);
+  const lotsW = zw.w + ISO_GAP + zs.w, inner = Math.max(zb.w, lotsW);
+  const shift = (z, dx) => { z.x += dx; z.slots.forEach(sl => { sl.x += dx; }); };
+  shift(zb, (inner - zb.w) / 2);
+  shift(zw, ISO_PAD + (inner - lotsW) / 2);
+  shift(zs, zw.x + zw.w + ISO_GAP);
+  const items = [];
+  const put = (e, zone, s) => items.push({ e, zone, x: s.x + s.w / 2, y: s.y + s.d / 2 });
+  used.forEach((e, i) => put(e, 'bay', zb.slots[i]));
+  extra.forEach((e, k) => put(e, 'bay', zb.slots[names.length + k]));
+  wait.forEach((e, i) => put(e, 'wait', zw.slots[i]));
+  sched.forEach((e, i) => put(e, 'sched', zs.slots[i]));
+  const zones = [zb, zw, zs];
+  const W = inner + 2 * ISO_PAD, D = zw.y + Math.max(zw.d, zs.d) + ISO_PAD;
+  const key = W + 'x' + D + '|' + zones.map(z => z.slots.length).join(',') + '|' + names.join('\u0001') + '|' + extra.length;
+  return { W, D, zones, items, key, counts: { bay: bay.length, wait: wait.length, sched: sched.length } };
+}
+
+const ISO_TITLES = { bay: 'In the bay now', wait: 'Awaiting parts', sched: 'Scheduled' };
+function buildIsoFloor(L){
+  let h = isoBox('iso-slab', L.W, L.D, 20, L.W / 2, L.D / 2, -21) +
+    '<div class="iso-ground" style="width:' + L.W + 'px;height:' + L.D + 'px"></div>';
+  L.zones.forEach(z => {
+    h += '<div class="iso-zone z-' + z.key + '" data-zone="' + z.key + '" style="left:' + z.x + 'px;top:' + z.y + 'px;width:' + z.w + 'px;height:' + z.d + 'px">';
+    z.slots.forEach(s => {
+      const label = z.key === 'bay' ? (s.extra ? 'No bay set' : s.bay) : '';
+      h += '<div class="iso-slot' + (s.extra ? ' extra' : '') + '" data-zone="' + z.key + '" data-bay="' + esc(s.bay || '') + '" style="left:' + (s.x - z.x) + 'px;top:' + (s.y - z.y) + 'px;width:' + s.w + 'px;height:' + s.d + 'px">' +
+        (label ? '<div class="iso-slabel">' + esc(label) + '</div>' : '') + '</div>';
+    });
+    h += '<div class="iso-ztitle">' + ISO_TITLES[z.key] + '<b data-count="' + z.key + '">0</b></div></div>';
+    if (z.key === 'bay') h += isoBox('iso-wall', z.w, 10, 64, z.x + z.w / 2, z.y - 6, 0);   // back wall
+  });
+  $('isoFloor').innerHTML = h;
+}
+
+function isoState(e, now){
+  if (e.status === 'bay') {
+    const elapsed = workedMs(e, now), limitMs = e.limitHrs * 3600000;
+    if (e.hold) return 'hold';
+    if (elapsed > limitMs) return 'over';
+    return limitMs - elapsed <= NEAR_MS ? 'near' : 'work';
+  }
+  if (e.status === 'wait') return e.hold && e.hold !== 'Awaiting parts' ? 'hold' : 'wait';
+  const w = schedWhen(e);
+  return 'sched' + (w.cls ? ' ' + w.cls : '');
+}
+function isoTag(e, now){
+  const plate = '<span class="tp">' + esc(vTitle(e)) + '</span>';
+  if (e.status === 'bay') {
+    const elapsed = workedMs(e, now), limitMs = e.limitHrs * 3600000, pct = Math.min(100, elapsed / limitMs * 100);
+    const what = e.hold ? esc(holdLabel(e)) : elapsed > limitMs ? 'Over by ' + esc(fmtDuration(elapsed - limitMs)) : esc(shortRepair(e.repair));
+    return plate + '<span class="ts">' + (e.bay ? esc(e.bay) + ' · ' : '') + '<b>' + fmtElapsed(elapsed) + '</b> · ' + what + '</span>' +
+      '<div class="tbar"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
+  }
+  if (e.status === 'wait') return plate + '<span class="ts">' + (e.hold && e.hold !== 'Awaiting parts' ? esc(holdLabel(e)) + ' · ' : '') + 'In ' + esc(fmtDate(entryDateIn(e))) + '</span>';
+  return plate + '<span class="ts">' + esc(schedWhen(e).text) + '</span>';
+}
+
+function renderIso(){
+  if (!isoShown()) return;
+  const L = isoLayout();
+  if (L.key !== ISO.key) {
+    ISO.key = L.key; ISO.W = L.W; ISO.D = L.D;
+    const w = $('isoWorld'); w.style.width = L.W + 'px'; w.style.height = L.D + 'px';
+    buildIsoFloor(L);
+    isoCamera();
+  }
+  const top = Math.round($('isoPage').getBoundingClientRect().top + scrollY);
+  if (top !== ISO.top) { ISO.top = top; isoCamera(); }   // the header can change height (count chips wrap)
+  document.querySelectorAll('#isoFloor [data-count]').forEach(b => { b.textContent = L.counts[b.dataset.count]; });
+  const now = nowMs(), seen = new Set(), cars = $('isoCars');
+  L.items.forEach((it, i) => {
+    const e = it.e; seen.add(e.id);
+    let el = ISO.els.get(e.id);
+    const fresh = !el;
+    if (fresh) {
+      el = document.createElement('div');
+      el.tabIndex = 0; el.setAttribute('role', 'button');
+      el.innerHTML = '<div class="iso-shadow"></div><div class="iso-hop"><div class="iso-model"></div></div><div class="iso-tag"></div>';
+      el.dataset.id = String(e.id);
+      el.style.transform = 'translate3d(' + it.x + 'px,' + it.y + 'px,0)';
+      el.dataset.pos = it.x + ',' + it.y;
+      cars.appendChild(el);
+      ISO.els.set(e.id, el);
+      const hop = el.querySelector('.iso-hop');
+      hop.style.animationDelay = (ISO.first ? i * 80 : 0) + 'ms';
+      hop.classList.add('drop');
+      hop.addEventListener('animationend', () => { hop.classList.remove('drop', 'move'); hop.style.animationDelay = ''; });
+    } else if (el._out) { clearTimeout(el._out); el._out = null; }
+    const kind = isoKind(e);
+    if (el.dataset.kind !== kind) {
+      el.dataset.kind = kind;
+      el.querySelector('.iso-model').innerHTML = ISO_MODELS[kind]().map(p => isoBox.apply(null, p)).join('');
+    }
+    const dragging = ISO.drag && ISO.drag.active && ISO.drag.id === e.id;
+    el.className = 'iso-veh ' + isoState(e, now) + (it.zone !== 'bay' ? ' lot' : '') + (ISO.sel === e.id ? ' sel' : '') + (dragging ? ' dragging' : '');
+    el.setAttribute('aria-label', vTitle(e) + ', ' + ISO_TITLES[it.zone] + (e.bay && it.zone === 'bay' ? ', ' + e.bay : ''));
+    const pos = it.x + ',' + it.y;
+    if (!dragging && el.dataset.pos !== pos) {
+      el.dataset.pos = pos;
+      el.style.transform = 'translate3d(' + it.x + 'px,' + it.y + 'px,0)';
+      const hop = el.querySelector('.iso-hop');
+      hop.classList.remove('move'); void hop.offsetWidth; hop.classList.add('move');
+    }
+    const tag = isoTag(e, now);
+    if (el._tag !== tag) { el._tag = tag; el.querySelector('.iso-tag').innerHTML = tag; }
+  });
+  ISO.els.forEach((el, id) => {
+    if (seen.has(id) || el._out) return;
+    el.classList.add('out');
+    el._out = setTimeout(() => { el.remove(); ISO.els.delete(id); }, 650);
+  });
+  if (ISO.sel !== null && !seen.has(ISO.sel)) ISO.sel = null;
+  ISO.first = false;
+  renderIsoInfo(now);
+}
+
+/* Fit the whole floor in the stage, then apply turn/tilt/zoom/pan. */
+function isoCamera(){
+  if (!isoShown()) return;
+  const page = $('isoPage');
+  if (innerWidth > 720) page.style.height = Math.max(440, innerHeight - (page.getBoundingClientRect().top + scrollY)) + 'px';
+  else page.style.height = '';
+  const st = $('isoStage').getBoundingClientRect(), W = ISO.W || 1000, D = ISO.D || 500;
+  const r = ISO.rz * Math.PI / 180, t = ISO.tilt * Math.PI / 180;
+  const pw = Math.abs(W * Math.cos(r)) + Math.abs(D * Math.sin(r));
+  const ph = (Math.abs(W * Math.sin(r)) + Math.abs(D * Math.cos(r))) * Math.cos(t) + 180 * Math.sin(t);
+  const s = Math.max(0.05, Math.min(st.width / pw, st.height / ph) * 0.9) * ISO.zoom;
+  const w = $('isoWorld');
+  w.style.setProperty('--rz', ISO.rz + 'deg');
+  w.style.setProperty('--tilt', ISO.tilt + 'deg');
+  const tagScale = Math.max(0.55, Math.min(1, st.width / 1100));   // tags shrink a little on small screens
+  w.style.setProperty('--inv', (tagScale / s).toFixed(4));
+  w.style.transform = 'translate(-50%,-50%) translate(' + ISO.panX + 'px,' + ISO.panY + 'px) scale(' + s.toFixed(4) + ') rotateX(' + ISO.tilt + 'deg) rotateZ(' + ISO.rz + 'deg)';
+}
+
+function renderIsoInfo(now){
+  const box = $('isoInfo');
+  const e = ISO.sel === null ? null : entries.find(x => x.id === ISO.sel);
+  if (!e) { if (!box.hidden) { box.hidden = true; box.innerHTML = ''; ISO.infoKey = ''; } return; }
+  if (box.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return;   // don't redraw under an open dropdown
+  const row = (k, v) => v ? '<div class="ii-row"><span>' + k + '</span><b>' + v + '</b></div>' : '';
+  let timing = '';
+  if (e.status === 'bay') {
+    const elapsed = workedMs(e, now), limitMs = e.limitHrs * 3600000;
+    timing = row('Bay', esc(e.bay || 'No bay set')) + row('Time in bay', fmtElapsed(elapsed) + ' of ' + esc(e.limitHrs) + 'h') +
+      row('Status', e.hold ? esc(holdLabel(e)) : elapsed > limitMs ? '<span style="color:var(--red)">Over by ' + esc(fmtDuration(elapsed - limitMs)) + '</span>' : esc(fmtDuration(limitMs - elapsed)) + ' left');
+  } else if (e.status === 'wait') {
+    timing = row('Status', esc(e.hold && e.hold !== 'Awaiting parts' ? holdLabel(e) : 'Awaiting parts')) + row('Date in', esc(fmtDate(entryDateIn(e))));
+  } else timing = row('Scheduled', esc(schedWhen(e).text));
+  const opts = [['', 'Move to…'], ['bay', 'In bay'], ['wait', 'Awaiting parts'], ['sched', 'Scheduled']].filter(o => o[0] !== e.status);
+  const html =
+    '<div class="ii-top"><div><div class="ii-plate">' + esc(vTitle(e)) + '</div>' +
+      '<div class="small" style="color:var(--muted);font-size:12.5px">' + esc(e.desc || '') + (e.vno && e.vno !== vTitle(e) ? (e.desc ? ' · ' : '') + esc(e.vno) : '') + '</div></div>' +
+      '<button class="ii-x" id="isoInfoX" aria-label="Close details">×</button></div>' +
+    endUserHtml(e) +
+    '<div style="margin-top:8px">' + row('Repair', esc(e.repair || '')) + timing +
+      row('Mechanics', esc((e.mechanics || []).join(', '))) + row('Work', esc(e.work || '')) + row('Remarks', esc(e.remarks || '')) + '</div>' +
+    '<div class="ii-acts"><select id="isoMove" aria-label="Move this vehicle">' + opts.map(o => '<option value="' + o[0] + '">' + o[1] + '</option>').join('') + '</select>' +
+      '<button class="btn-sm" id="isoEdit">Edit</button></div>';
+  if (html === ISO.infoKey) return;
+  ISO.infoKey = html;
+  box.innerHTML = html; box.hidden = false;
+  $('isoInfoX').onclick = () => isoSelect(null);
+  $('isoMove').onchange = ev => { const t = ev.target.value; ev.target.value = ''; if (t) isoDrop(e.id, { zone: t, bay: '' }); };
+  $('isoEdit').onclick = () => requireUnlock(() => {
+    const cur = entries.find(x => x.id === e.id); if (!cur) return;
+    setStaffTab('board'); startEdit(cur); $('staffPanel').classList.add('open');
+  });
+}
+function isoSelect(id){ ISO.sel = id; ISO.infoKey = ''; renderIso(); }
+
+/* Move after a drop (or the details dropdown). Dropping on a named bay also sets the bay. */
+function isoDrop(id, t){
+  const e0 = entries.find(x => x.id === id);
+  if (!e0) return;
+  const names = bayNames();
+  let bay = t.bay;
+  if (t.zone === 'bay' && !bay) {   // dropped on the zone, not a bay: keep its bay if free, else the first free one
+    const taken = n => entries.some(x => x.id !== id && x.status === 'bay' && x.bay === n);
+    bay = e0.bay && names.includes(e0.bay) && !taken(e0.bay) ? e0.bay : (names.find(n => !taken(n)) || e0.bay || '');
+  }
+  const bayChange = t.zone === 'bay' && bay && bay !== e0.bay;
+  if (e0.status === t.zone && !bayChange) return;
+  requireUnlock(() => {
+    const e = entries.find(x => x.id === id);
+    if (!e) return;
+    if (bayChange) {
+      if (t.bay && !bayFreeOk(bay, 'bay', e.id)) return;
+      e.bay = bay;
+      if (e.status === 'bay') { store.saveEntry(e); renderBoard(); renderStaff(); return; }
+    }
+    moveTo(e, t.zone);
+  });
+}
+
+/* ---- pointer handling: drag vehicles, turn/tilt the view, zoom ---- */
+function isoTargetAt(x, y){
+  for (const n of document.elementsFromPoint(x, y)) {
+    if (n.dataset && n.dataset.zone) return { el: n, zone: n.dataset.zone, bay: n.dataset.bay || '' };
+  }
+  return null;
+}
+function isoHot(t){
+  document.querySelectorAll('#isoFloor .hot').forEach(n => n.classList.remove('hot'));
+  if (!t) return;
+  t.el.classList.add('hot');
+  const z = t.el.closest('.iso-zone'); if (z) z.classList.add('hot');
+}
+$('isoStage').addEventListener('pointerdown', ev => {
+  if (ev.button > 0 && ev.pointerType === 'mouse' && ev.button !== 1) return;
+  if (ev.target.closest('.iso-info')) return;
+  const v = ev.target.closest('.iso-veh');
+  if (v && !v.classList.contains('out') && ev.button === 0) {
+    ISO.drag = { id: parseFloat(v.dataset.id), el: v, x0: ev.clientX, y0: ev.clientY, active: false, ghost: null, target: null };
+  } else {
+    // Shift/middle button pans; on touch screens one finger pans once zoomed in (turn with the buttons)
+    ISO.turn = { x: ev.clientX, y: ev.clientY, pan: ev.shiftKey || ev.button === 1 || (ev.pointerType === 'touch' && ISO.zoom > 1.05) };
+    $('isoStage').classList.add('turning');
+    $('isoWorld').classList.add('live');
+  }
+  $('isoStage').setPointerCapture(ev.pointerId);
+});
+$('isoStage').addEventListener('pointermove', ev => {
+  const d = ISO.drag;
+  if (d) {
+    if (!d.active && Math.hypot(ev.clientX - d.x0, ev.clientY - d.y0) > 6) {
+      const e = entries.find(x => x.id === d.id);
+      if (!e) { ISO.drag = null; return; }
+      d.active = true;
+      d.el.classList.add('dragging');
+      d.ghost = document.createElement('div');
+      d.ghost.className = 'iso-ghost';
+      document.body.appendChild(d.ghost);
+      d.label = esc(vTitle(e));
+    }
+    if (!d.active) return;
+    d.ghost.style.left = ev.clientX + 'px'; d.ghost.style.top = ev.clientY + 'px';
+    d.el.style.pointerEvents = 'none';
+    d.target = isoTargetAt(ev.clientX, ev.clientY);
+    isoHot(d.target);
+    const where = d.target ? (d.target.zone === 'bay' && d.target.bay ? d.target.bay : ISO_TITLES[d.target.zone]) : 'Drop on an area';
+    d.ghost.innerHTML = d.label + '<small>→ ' + esc(where) + '</small>';
+    return;
+  }
+  const t = ISO.turn;
+  if (!t) return;
+  const dx = ev.clientX - t.x, dy = ev.clientY - t.y;
+  t.x = ev.clientX; t.y = ev.clientY;
+  if (t.pan) { ISO.panX += dx; ISO.panY += dy; }
+  else { ISO.rz += dx * 0.35; ISO.tilt = Math.max(30, Math.min(72, ISO.tilt - dy * 0.25)); }
+  isoCamera();
+});
+function isoPointerEnd(ev, cancel){
+  const d = ISO.drag;
+  if (d) {
+    ISO.drag = null;
+    if (d.ghost) d.ghost.remove();
+    d.el.style.pointerEvents = '';
+    d.el.classList.remove('dragging');
+    isoHot(null);
+    if (!d.active) { if (!cancel) isoSelect(ISO.sel === d.id ? null : d.id); return; }
+    if (!cancel && d.target) isoDrop(d.id, d.target);
+    renderIso();
+    return;
+  }
+  if (ISO.turn) {
+    ISO.turn = null;
+    $('isoStage').classList.remove('turning');
+    $('isoWorld').classList.remove('live');
+  }
+}
+$('isoStage').addEventListener('pointerup', ev => isoPointerEnd(ev, false));
+$('isoStage').addEventListener('pointercancel', ev => isoPointerEnd(ev, true));
+$('isoStage').addEventListener('wheel', ev => {
+  if (ev.target.closest('.iso-info')) return;
+  ev.preventDefault();
+  ISO.zoom = Math.max(0.5, Math.min(3, ISO.zoom * (ev.deltaY < 0 ? 1.12 : 1 / 1.12)));
+  $('isoWorld').classList.add('live'); isoCamera();
+  clearTimeout(ISO.wheelT); ISO.wheelT = setTimeout(() => $('isoWorld').classList.remove('live'), 120);
+}, { passive: false });
+$('isoCars').addEventListener('keydown', ev => {
+  const v = ev.target.closest('.iso-veh');
+  if (v && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); isoSelect(parseFloat(v.dataset.id)); }
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && isoShown() && ISO.sel !== null && !$('staffPanel').classList.contains('open')) isoSelect(null); });
+$('isoRotL').onclick = () => { ISO.rz -= 90; isoCamera(); };
+$('isoRotR').onclick = () => { ISO.rz += 90; isoCamera(); };
+$('isoZoomIn').onclick = () => { ISO.zoom = Math.min(3, ISO.zoom * 1.25); isoCamera(); };
+$('isoZoomOut').onclick = () => { ISO.zoom = Math.max(0.5, ISO.zoom / 1.25); isoCamera(); };
+$('isoReset').onclick = () => { Object.assign(ISO, ISO_VIEW); isoCamera(); };
+$('isoToggle').onclick = () => { location.hash = isIsoPage() ? '' : '3d'; };
+$('isoBack').onclick = () => {
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (err) { location.hash = ''; }
+  showPage();
+};
+window.addEventListener('resize', () => { if (isoShown()) isoCamera(); });
 ['finSearch', 'finFrom', 'finTo', 'finRepair'].forEach(id => $(id).addEventListener('input', renderFinished));
 $('finBinToggle').onclick = () => { showBin = !showBin; renderFinished(); window.scrollTo(0, 0); };
 
