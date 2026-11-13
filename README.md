@@ -58,7 +58,20 @@ Click **Interactive** at the top right (or open the site with `#3d` at the end o
 1. **Move a vehicle:** drag it with the mouse or your finger onto another area, or onto a specific bay. It works like **Move to…** in the Staff panel: the timer restarts, and Scheduled asks for the date. If the device is locked it asks for the staff PIN first.
 2. **See details:** click or tap a vehicle. A panel shows the details, a **Move to…** dropdown and an **Edit** button.
 3. **Look around:** drag the empty floor to turn and tilt the view, scroll to zoom, or use the ⟲ ⟳ − + buttons. **Reset view** goes back to the start. On a phone, once you've zoomed in, drag with one finger to slide the view around.
-4. **Back to board** returns to the normal board. The Interactive view isn't available in TV mode.
+4. **Back to board** returns to the normal board.
+5. **Simple view** (button at the top) hides the walls, props and shadows and stops the background animations. Use it if the view is slow on an older computer. Each computer remembers its own choice.
+
+What you'll see in the Interactive view:
+- A new vehicle **drives in** along the yellow driveway (between Awaiting parts and Scheduled) and parks. When a job is marked **Done**, the vehicle comes down off the lift, reverses out of the bay and **drives out** down the driveway.
+- Preventive and Express jobs have the **hood open**. Corrective jobs have the **front wheel off**, with the tire on the floor by the lift post.
+- Over-limit vehicles have a blinking red **OVER LIMIT** sign and a red roof light. Vehicles awaiting parts have **parts boxes** next to them.
+
+**Show the 3D view on the lobby TV:**
+1. Click **Staff**, then the **Settings** tab, and scroll to **TV display**.
+2. Set **TV shows** to **3D Interactive view (turns slowly)**.
+3. Every TV in TV mode switches to the 3D view within a few seconds. It turns slowly by itself and keeps the red over-limit bar at the top. Set it back to **Normal board** to return.
+
+(You can also open **https://marioibay19-tech.github.io/BAY-AREA-TIMER/?tv#3d** on one TV only.)
 
 ## Scheduling a vehicle
 1. Click **Staff**, choose the vehicle, and set the status box to **Scheduled (future date)**.
