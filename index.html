@@ -479,7 +479,7 @@
   .iso-stage.turning{cursor:grabbing;}
   .iso-hint{position:absolute; left:12px; bottom:10px; font-size:12px; color:var(--muted); pointer-events:none; max-width:calc(100% - 24px);}
   .iso-world{position:absolute; left:50%; top:50%; transform-style:preserve-3d; transition:transform .8s cubic-bezier(.2,.7,.2,1);
-    --rz:-40deg; --tilt:58deg; --inv:1;}
+    will-change:transform;}
   .iso-world.live, .iso-world.live .iso-tag{transition:none !important;}
   .iso-floor, .iso-cars{position:absolute; left:0; top:0; width:100%; height:100%; transform-style:preserve-3d;}
 
@@ -533,8 +533,11 @@
   .iso-post{--base:#F5873A;} .iso-runner{--base:#454B53;}
   .iso-crew{position:absolute; left:0; top:0; transform-style:preserve-3d; display:none;}
   .iso-veh.inbay.work .iso-crew, .iso-veh.inbay.near .iso-crew, .iso-veh.inbay.over .iso-crew{display:block;}
-  .iso-mech{position:absolute; left:0; top:0; transform-style:preserve-3d; animation:isoWork 1.3s ease-in-out infinite alternate;}
-  @keyframes isoWork{ from{transform:translateZ(0);} to{transform:translateZ(4px);} }
+  .iso-mech, .iso-walker, .iso-leg{position:absolute; left:0; top:0; transform-style:preserve-3d;}
+  .iso-mech.m1{transform:translate3d(0,-108px,0) rotateZ(180deg);}   /* resting spots if animations are off */
+  .iso-mech.m2{transform:translate3d(0,108px,0);}
+  .iso-walker{animation:isoBob .45s ease-in-out infinite alternate;}
+  @keyframes isoBob{ to{transform:translateZ(1.5px);} }
   .mleg{--base:#2B3440;} .mbody{--base:#2E5FA8;} .marm{--base:#2E5FA8;} .mhead{--base:#C68E5E;}
   .mhead > .ft{--fc:#F2BE2E;}
   .iso-veh.lot .iso-crew{display:none !important;} .iso-beam{--base:#3F7FD9;} .iso-plate{--base:#5B6168;}
@@ -586,16 +589,20 @@
   .iso-box.glass > .fn{--fc:color-mix(in srgb, #8EC1F0 70%, #1d2a3a);}
   .iso-box.boom{--base:color-mix(in srgb, var(--vc) 80%, black);}
   .iso-box.beacon{display:none;}
-  .iso-veh.work .iso-box.beacon, .iso-veh.over .iso-box.beacon, .iso-veh.near .iso-box.beacon{display:block; animation:isoBeacon 1s steps(2) infinite;}
-  .iso-veh.over .iso-box.beacon{animation-duration:.45s;}
-  @keyframes isoBeacon{ 50%{--base:#FFF6D8;} 0%{--base:var(--vc);} }
+  .iso-veh.work .iso-box.beacon, .iso-veh.over .iso-box.beacon, .iso-veh.near .iso-box.beacon{display:block; --base:#FFE9A8;}
+  .iso-veh.work .iso-box.beacon > i, .iso-veh.near .iso-box.beacon > i, .iso-veh.over .iso-box.beacon > i{animation:isoBlink 1s steps(2) infinite;}
+  .iso-veh.over .iso-box.beacon > i{animation-duration:.45s;}
+  @keyframes isoBlink{ 50%{opacity:.25;} }
   .iso-shadow{position:absolute; left:-58px; top:-96px; width:116px; height:192px; border-radius:40%; transform:translateZ(2px);
     background:radial-gradient(closest-side, rgba(0,0,0,.38), transparent); pointer-events:none;}
   .iso-veh.lot .iso-shadow{transform:translateZ(2px) scale(.72);}
-  .iso-veh.work .iso-shadow, .iso-veh.near .iso-shadow{box-shadow:0 0 0 3px color-mix(in srgb, var(--vc) 70%, transparent); animation:isoGlow 2.4s ease-in-out infinite;}
-  .iso-veh.over .iso-shadow{box-shadow:0 0 0 4px var(--red); animation:isoGlow 1.1s ease-in-out infinite;}
+  .iso-veh.work .iso-shadow, .iso-veh.near .iso-shadow{box-shadow:0 0 0 3px color-mix(in srgb, var(--vc) 70%, transparent);}
+  .iso-veh.over .iso-shadow{box-shadow:0 0 0 4px var(--red);}
+  .iso-shadow::after{content:''; position:absolute; inset:-3px; border-radius:inherit; border:3px solid var(--vc); opacity:0; pointer-events:none;}
+  .iso-veh.work .iso-shadow::after, .iso-veh.near .iso-shadow::after{animation:isoGlow 2.4s ease-out infinite;}
+  .iso-veh.over .iso-shadow::after{border-color:var(--red); animation:isoGlow 1.1s ease-out infinite;}
   .iso-veh.sel .iso-shadow{box-shadow:0 0 0 5px var(--text) !important;}
-  @keyframes isoGlow{ 50%{box-shadow:0 0 0 12px transparent;} }
+  @keyframes isoGlow{ 0%{opacity:.9; transform:scale(1);} 70%,100%{opacity:0; transform:scale(1.18);} }
   .iso-veh.work, .iso-veh.near{--vc:var(--amber);}
   .iso-veh.over{--vc:var(--red);}
   .iso-veh.hold{--vc:var(--blue);}
@@ -605,7 +612,6 @@
 
   /* Floating name tags: they face the camera and keep the same size on screen */
   .iso-tag{position:absolute; left:0; top:0; transform-origin:0 0; white-space:nowrap;
-    transform:translateZ(var(--tz,96px)) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--tilt) * -1)) scale(var(--inv)) translate(-50%, calc(-100% - 6px));
     transition:transform .8s cubic-bezier(.2,.7,.2,1);
     background:var(--surface); color:var(--text); border:1px solid var(--hair2); border-left:4px solid var(--vc); border-radius:8px;
     padding:4px 9px 5px; box-shadow:var(--shadow); font-size:11.5px; line-height:1.25; min-width:84px; max-width:170px;}
@@ -644,7 +650,7 @@
   }
   @media (prefers-reduced-motion: reduce){
     .iso-world, .iso-veh, .iso-tag, .iso-hop, .iso-model{transition:none !important;}
-    .iso-hop.drop, .iso-hop.move, .iso-veh .iso-shadow, .iso-veh .iso-box.beacon, .iso-mech{animation:none !important;}
+    .iso-hop.drop, .iso-hop.move, .iso-veh .iso-shadow::after, .iso-veh .iso-box.beacon > i, .iso-mech, .iso-leg, .iso-walker{animation:none !important;}
   }
 </style>
 </head>
@@ -2130,11 +2136,44 @@ function isoKind(e){
 }
 const ISO_LIFTABLE = { pickup: 1, van: 1, suv: 1 };   // cars and vans go up on the lift; trucks and machines stay on the floor
 const isoArms = () => [['arm', 38, 10, 5, -44, -30, 6], ['arm', 38, 10, 5, 44, -30, 6], ['arm', 38, 10, 5, -44, 34, 6], ['arm', 38, 10, 5, 44, 34, 6]];
-/* Little mechanics standing beside the vehicle (one per assigned mechanic, up to two). */
-const isoCrew = n => [[-72, 46], [72, -38]].slice(0, n).map(([x, y], i) =>
-  '<div class="iso-mech" style="animation-delay:' + (i * -0.6) + 's">' +
-  isoBox('mleg', 14, 10, 20, x, y, 0) + isoBox('mbody', 18, 12, 20, x, y, 20) + isoBox('marm', 6, 22, 6, x + (x < 0 ? 11 : -11), y + (x < 0 ? -9 : 9), 30) +
-  isoBox('mhead', 12, 12, 11, x, y, 41) + '</div>').join('');
+/* Mechanics walk a loop around the vehicle inside the bay (clear of the lift posts), stopping at the front,
+   the sides and the back to work, turned towards the vehicle. Legs swing only while walking. The keyframes are
+   generated once from the plan below; everything animates transform only, so it stays smooth. The second
+   mechanic runs half a lap behind. Figures are built facing −y; rotateZ 0 = facing −y, 90 = +x, 180 = +y, 270 = −x. */
+const ISO_WALK = (() => {
+  const HX = 60, HY = 108, SEC = 0.9;   // loop half-size (world px), seconds per plan unit
+  const plan = [['stand', 3], ['turn', .4, 90], ['walk', 1.5, HX, -HY], ['turn', .4, 180], ['walk', 2.5, HX, 0], ['turn', .4, 270], ['stand', 3],
+    ['turn', .4, 180], ['walk', 2.5, HX, HY], ['turn', .4, 270], ['walk', 1.5, 0, HY], ['turn', .4, 360], ['stand', 3],
+    ['turn', .4, 270], ['walk', 1.5, -HX, HY], ['turn', .4, 360], ['walk', 2.5, -HX, 0], ['turn', .4, 450], ['stand', 3],
+    ['turn', .4, 360], ['walk', 2.5, -HX, -HY], ['turn', .4, 450], ['walk', 1.5, 0, -HY], ['turn', .4, 540]];
+  let t = 0, x = 0, y = -HY, r = 180;
+  const path = [[0, x, y, r]], legs = [[0, 0]];
+  plan.forEach(([kind, dur, a, b]) => {
+    if (kind === 'walk') {
+      const steps = Math.max(2, Math.round(dur / 0.22));
+      for (let k = 1; k <= steps; k++) legs.push([t + dur * k / steps, k === steps ? 0 : (k % 2 ? 1 : -1)]);
+      x = a; y = b;
+    } else if (kind === 'turn') r = a;
+    t += dur;
+    path.push([t, x, y, r]);
+    if (kind !== 'walk') legs.push([t, 0]);
+  });
+  const pc = v => (v / t * 100).toFixed(3) + '%';
+  const css =
+    '@keyframes isoPath{' + path.map(([tt, px, py, pr]) => pc(tt) + '{transform:translate3d(' + px + 'px,' + py + 'px,0) rotateZ(' + pr + 'deg)}').join('') + '}' +
+    '@keyframes isoLegL{' + legs.map(([tt, sw]) => pc(tt) + '{transform:translate3d(0,' + (-sw * 4) + 'px,' + (Math.abs(sw) * 1.5) + 'px)}').join('') + '}' +
+    '@keyframes isoLegR{' + legs.map(([tt, sw]) => pc(tt) + '{transform:translate3d(0,' + (sw * 4) + 'px,0)}').join('') + '}' +
+    '.iso-mech{animation:isoPath ' + (t * SEC).toFixed(2) + 's linear infinite;animation-delay:var(--md,0s)}' +
+    '.iso-leg.l{animation:isoLegL ' + (t * SEC).toFixed(2) + 's linear infinite;animation-delay:var(--md,0s)}' +
+    '.iso-leg.r{animation:isoLegR ' + (t * SEC).toFixed(2) + 's linear infinite;animation-delay:var(--md,0s)}';
+  const st = document.createElement('style'); st.id = 'isoWalkCss'; st.textContent = css; document.head.appendChild(st);
+  return { T: t * SEC, HY };
+})();
+const isoCrew = n => Array.from({ length: n }, (_, i) =>
+  '<div class="iso-mech m' + (i + 1) + '" style="--md:' + (-i * ISO_WALK.T / 2).toFixed(2) + 's"><div class="iso-walker">' +
+    '<div class="iso-leg l">' + isoBox('mleg', 6, 9, 20, -4, 0, 0) + '</div><div class="iso-leg r">' + isoBox('mleg', 6, 9, 20, 4, 0, 0) + '</div>' +
+    isoBox('mbody', 18, 11, 21, 0, 0, 20) + isoBox('marm', 5, 6, 17, -11.5, 0, 23) + isoBox('marm', 5, 6, 17, 11.5, -3, 25) +
+    isoBox('mhead', 12, 12, 11, 0, 0, 41) + '</div></div>').join('');
 const isoWheels = (x, ys, h) => ys.flatMap(y => [['dark', 12, 26, h, -x, y, 0], ['dark', 12, 26, h, x, y, 0]]);
 /* ---- 3D car drawing ----
    A car is a side profile (points [y, z] from the front bumper over the roof to the rear, front = −y) extruded
@@ -2411,6 +2450,7 @@ function renderIso(){
       el.tabIndex = 0; el.setAttribute('role', 'button');
       el.innerHTML = '<div class="iso-shadow"></div><div class="iso-hop"><div class="iso-model"></div><div class="iso-crew"></div></div><div class="iso-tag"></div>';
       el.dataset.id = String(e.id);
+      if (ISO.tagT) el.querySelector('.iso-tag').style.transform = ISO.tagT;
       el.style.transform = 'translate3d(' + it.x + 'px,' + it.y + 'px,0)';
       el.dataset.pos = it.x + ',' + it.y;
       cars.appendChild(el);
@@ -2430,8 +2470,10 @@ function renderIso(){
     const dragging = ISO.drag && ISO.drag.active && ISO.drag.id === e.id;
     const state = isoState(e, now);
     const onLift = it.zone === 'bay' && ISO_LIFTABLE[kind] && it.lift && /^(work|near|over)$/.test(state);
-    el.className = 'iso-veh ' + state + (it.zone !== 'bay' ? ' lot' : ' inbay') + (onLift ? ' raised' : '') + (ISO.sel === e.id ? ' sel' : '') + (dragging ? ' dragging' : '');
-    el.setAttribute('aria-label', vTitle(e) + ', ' + ISO_TITLES[it.zone] + (e.bay && it.zone === 'bay' ? ', ' + e.bay : ''));
+    const cls = 'iso-veh ' + state + (it.zone !== 'bay' ? ' lot' : ' inbay') + (onLift ? ' raised' : '') + (ISO.sel === e.id ? ' sel' : '') + (dragging ? ' dragging' : '') + (el._out ? ' out' : '');
+    if (el.className !== cls) el.className = cls;   // rewriting an unchanged class still restyles the whole model
+    const aria = vTitle(e) + ', ' + ISO_TITLES[it.zone] + (e.bay && it.zone === 'bay' ? ', ' + e.bay : '');
+    if (el.getAttribute('aria-label') !== aria) el.setAttribute('aria-label', aria);
     const pos = it.x + ',' + it.y;
     if (!dragging && el.dataset.pos !== pos) {
       el.dataset.pos = pos;
@@ -2453,26 +2495,37 @@ function renderIso(){
 }
 
 /* Fit the whole floor in the stage, then apply turn/tilt/zoom/pan. */
-function isoCamera(){
+/* Performance: the camera only changes the world's transform plus the few name tags. (CSS variables on the world
+   made the browser restyle every face of every model on each mouse move.) fast = while turning/zooming: reuse sizes. */
+function isoCamera(fast){
   if (!isoShown()) return;
-  const page = $('isoPage');
-  if (innerWidth > 720) page.style.height = Math.max(440, innerHeight - (page.getBoundingClientRect().top + scrollY)) + 'px';
-  else page.style.height = '';
-  const st = $('isoStage').getBoundingClientRect(), W = ISO.W || 1000, D = ISO.D || 500;
+  if (!fast || !ISO.st) {
+    const page = $('isoPage');
+    if (innerWidth > 720) page.style.height = Math.max(440, innerHeight - (page.getBoundingClientRect().top + scrollY)) + 'px';
+    else page.style.height = '';
+    const r = $('isoStage').getBoundingClientRect();
+    ISO.st = { width: r.width, height: r.height };
+  }
+  const st = ISO.st, W = ISO.W || 1000, D = ISO.D || 500;
   const r = ISO.rz * Math.PI / 180, t = ISO.tilt * Math.PI / 180;
   const pw = Math.abs(W * Math.cos(r)) + Math.abs(D * Math.sin(r));
   const ph = (Math.abs(W * Math.sin(r)) + Math.abs(D * Math.cos(r))) * Math.cos(t) + (ISO_WALL_H + 20) * Math.sin(t);
   const vx = Math.sin(r), vy = Math.cos(r), facing = { n: -vy, e: vx, s: vy, w: -vx };   // > 0: wall is between camera and floor
-  document.querySelectorAll('#isoFloor .iso-wallwrap').forEach(el => el.classList.toggle('near', facing[el.dataset.side] > 0.1));
+  document.querySelectorAll('#isoFloor .iso-wallwrap').forEach(el => { const near = facing[el.dataset.side] > 0.1; if (el.classList.contains('near') !== near) el.classList.toggle('near', near); });
   const s = Math.max(0.05, Math.min(st.width / pw, st.height / ph) * 0.9) * ISO.zoom;
   const w = $('isoWorld');
-  w.style.setProperty('--rz', ISO.rz + 'deg');
-  w.style.setProperty('--tilt', ISO.tilt + 'deg');
   const tagScale = Math.max(0.55, Math.min(1, st.width / 1100));   // tags shrink a little on small screens
-  w.style.setProperty('--inv', (tagScale / s).toFixed(4));
+  // Tags face the camera (undo the world's turn and tilt) and keep the same size on screen (undo the zoom).
+  ISO.tagT = 'translateZ(var(--tz,96px)) rotateZ(' + (-ISO.rz) + 'deg) rotateX(' + (-ISO.tilt) + 'deg) scale(' + (tagScale / s).toFixed(4) + ') translate(-50%, calc(-100% - 6px))';
+  ISO.els.forEach(el => { el.querySelector('.iso-tag').style.transform = ISO.tagT; });
   w.style.transform = 'translate(-50%,-50%) translate(' + ISO.panX + 'px,' + ISO.panY + 'px) scale(' + s.toFixed(4) + ') rotateX(' + ISO.tilt + 'deg) rotateZ(' + ISO.rz + 'deg)';
 }
 
+let isoCamFrame = 0;
+function isoCameraSoon(){   // at most one camera update per screen frame
+  if (isoCamFrame) return;
+  isoCamFrame = requestAnimationFrame(() => { isoCamFrame = 0; isoCamera(true); });
+}
 function renderIsoInfo(now){
   const box = $('isoInfo');
   const e = ISO.sel === null ? null : entries.find(x => x.id === ISO.sel);
@@ -2588,7 +2641,7 @@ $('isoStage').addEventListener('pointermove', ev => {
   t.x = ev.clientX; t.y = ev.clientY;
   if (t.pan) { ISO.panX += dx; ISO.panY += dy; }
   else { ISO.rz += dx * 0.35; ISO.tilt = Math.max(30, Math.min(72, ISO.tilt - dy * 0.25)); }
-  isoCamera();
+  isoCameraSoon();
 });
 function isoPointerEnd(ev, cancel){
   const d = ISO.drag;
@@ -2615,7 +2668,7 @@ $('isoStage').addEventListener('wheel', ev => {
   if (ev.target.closest('.iso-info')) return;
   ev.preventDefault();
   ISO.zoom = Math.max(0.5, Math.min(3, ISO.zoom * (ev.deltaY < 0 ? 1.12 : 1 / 1.12)));
-  $('isoWorld').classList.add('live'); isoCamera();
+  $('isoWorld').classList.add('live'); isoCameraSoon();
   clearTimeout(ISO.wheelT); ISO.wheelT = setTimeout(() => $('isoWorld').classList.remove('live'), 120);
 }, { passive: false });
 $('isoCars').addEventListener('keydown', ev => {
@@ -2633,7 +2686,7 @@ $('isoBack').onclick = () => {
   try { history.replaceState(null, '', location.pathname + location.search); } catch (err) { location.hash = ''; }
   showPage();
 };
-window.addEventListener('resize', () => { if (isoShown()) isoCamera(); });
+window.addEventListener('resize', () => { if (isoShown()) { ISO.st = null; isoCamera(); } });
 ['finSearch', 'finFrom', 'finTo', 'finRepair'].forEach(id => $(id).addEventListener('input', renderFinished));
 $('finBinToggle').onclick = () => { showBin = !showBin; renderFinished(); window.scrollTo(0, 0); };
 
