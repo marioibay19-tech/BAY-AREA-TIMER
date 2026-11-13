@@ -42,7 +42,7 @@ What TV mode shows:
 To leave TV mode, move the mouse and click **Exit TV mode** (top right).
 
 ## Finding your way around
-- The buttons **Finished**, **TV mode** and **Staff** are at the top right of the board.
+- The buttons **Finished**, **TV mode**, **Interactive** and **Staff** are at the top right of the board.
 - The Staff panel has two tabs: **Vehicles** (add a vehicle on the left, the Scheduled / Awaiting parts / In bay lists on the right) and **Settings** (mechanics roster, bays, default time limits, vehicle list, TV display, staff PIN).
 - To pick mechanics, tap their names (up to 5). Tap again to remove one.
 
@@ -51,6 +51,14 @@ The right side of the board used to be called **Waiting**. It is now **Awaiting 
 
 ## Moving vehicles
 In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In bay**, **Awaiting parts** or **Scheduled** and it moves right away (Scheduled asks for the date). Moving restarts the vehicle's timer. On a computer you can also drag a vehicle with the mouse, either in the Staff panel or directly on the main board, between **In the bay now**, **Waiting** and **Scheduled**. Dropping into Scheduled asks for the date. (Dragging doesn't work on phones or tablets, and is turned off in TV mode.)
+
+## Interactive 3D view
+Click **Interactive** at the top right (or open the site with `#3d` at the end of the address). It shows the bay area as a small 3D model, seen from above at an angle: the bays at the back, with **Awaiting parts** and **Scheduled** in front. It looks like a workshop: each bay has a two-post lift, and a car or van being worked on goes up on the lift with its mechanics standing beside it (it comes down when the job is put on hold). Each vehicle is a little truck, pickup or machine, colored like the board: amber = working, red = over the time limit, blue = on hold, grey = awaiting parts, green = scheduled. The tag above each vehicle shows the plate and its timer or date, and everything updates live.
+
+1. **Move a vehicle:** drag it with the mouse or your finger onto another area, or onto a specific bay. It works like **Move to…** in the Staff panel: the timer restarts, and Scheduled asks for the date. If the device is locked it asks for the staff PIN first.
+2. **See details:** click or tap a vehicle. A panel shows the details, a **Move to…** dropdown and an **Edit** button.
+3. **Look around:** drag the empty floor to turn and tilt the view, scroll to zoom, or use the ⟲ ⟳ − + buttons. **Reset view** goes back to the start. On a phone, once you've zoomed in, drag with one finger to slide the view around.
+4. **Back to board** returns to the normal board. The Interactive view isn't available in TV mode.
 
 ## Scheduling a vehicle
 1. Click **Staff**, choose the vehicle, and set the status box to **Scheduled (future date)**.
