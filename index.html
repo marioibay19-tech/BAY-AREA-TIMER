@@ -492,14 +492,14 @@
   .iso-box > .fs{--fw:var(--w); --fh:var(--h); --fc:var(--c-ns); transform:rotateX(-90deg) translateZ(calc(var(--d) / 2));}
   .iso-box > .fe{--fw:var(--h); --fh:var(--d); --fc:var(--c-ew); transform:rotateY(90deg) translateZ(calc(var(--w) / 2));}
   .iso-box > .fw{--fw:var(--h); --fh:var(--d); --fc:var(--c-ew); transform:rotateY(-90deg) translateZ(calc(var(--w) / 2));}
-  .iso-box{--base:var(--vc); --c-top:color-mix(in srgb, var(--base) 92%, white); --c-ns:color-mix(in srgb, var(--base) 72%, black); --c-ew:color-mix(in srgb, var(--base) 55%, black);}
+  .iso-box{--base:var(--vc); --c-top:color-mix(in srgb, var(--base) 92%, white); --c-ns:color-mix(in srgb, var(--base) 82%, black); --c-ew:color-mix(in srgb, var(--base) 66%, black);}
 
   /* Floor */
   .iso-ground{position:absolute; left:0; top:0; border-radius:16px; transform:translateZ(0);
-    background-color:var(--surface3);
-    background-image:linear-gradient(var(--hair) 1px, transparent 1px), linear-gradient(90deg, var(--hair) 1px, transparent 1px);
+    background-color:color-mix(in srgb, var(--blue) 12%, var(--surface3));
+    background-image:linear-gradient(color-mix(in srgb, var(--hair2) 60%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--hair2) 60%, transparent) 1px, transparent 1px);
     background-size:40px 40px; box-shadow:inset 0 0 0 2px var(--hair2);}
-  .iso-slab{--base:var(--surface3);}
+  .iso-slab{--base:color-mix(in srgb, var(--blue) 18%, var(--surface3));}
   .iso-zone{position:absolute; border-radius:12px; transform:translateZ(1px); transform-style:preserve-3d;
     background:color-mix(in srgb, var(--zc) 9%, var(--surface2)); border:2px solid color-mix(in srgb, var(--zc) 40%, transparent);
     transition:background .2s, border-color .2s;}
@@ -519,8 +519,36 @@
   .iso-slot.extra .iso-slabel{font-family:'Inter',sans-serif; font-size:13px; font-weight:600; top:12px; color:var(--muted);}
   .iso-zone.hot{background:color-mix(in srgb, var(--zc) 22%, var(--surface2)); border-color:var(--zc);}
   .iso-slot.hot{background:color-mix(in srgb, var(--zc) 35%, transparent); border-color:var(--zc); border-style:solid;}
-  .iso-wall{--base:var(--surface3);}
-  .iso-wall > .fs{background:linear-gradient(transparent calc(100% - 12px), var(--amber) calc(100% - 12px)), linear-gradient(var(--surface), var(--surface2));}
+  .iso-wallwrap{position:absolute; left:0; top:0; transform-style:preserve-3d;}
+  .iso-wallwrap.near{display:none;}
+  .iso-wall{--base:color-mix(in srgb, var(--muted) 62%, var(--surface3));}
+  .iso-wall > .ft{--fc:color-mix(in srgb, var(--muted) 30%, var(--surface));}
+  .iso-wall > .fs{overflow:hidden; background:linear-gradient(transparent calc(100% - 16px), color-mix(in srgb, var(--muted) 40%, #222) calc(100% - 16px)), var(--c-ns);}
+  .iso-win{position:absolute; top:30px; height:58px; border:6px solid #E8B22E; border-radius:2px; box-sizing:border-box;
+    background:linear-gradient(120deg, #DCEEFB 0 30%, #A9CDEA 30% 55%, #DCEEFB 55% 62%, #A9CDEA 62%);}
+  .iso-peg{position:absolute; top:24px; height:104px; border:5px solid #24282D; box-sizing:border-box; background-color:#363B41;
+    background-image:linear-gradient(90deg, transparent 18%, #C9CED4 18% 21%, transparent 21% 38%, #C9CED4 38% 40%, transparent 40% 58%, #E05A47 58% 61%, transparent 61% 78%, #C9CED4 78% 80%, transparent 80%),
+      radial-gradient(#535961 1.4px, transparent 1.6px);
+    background-size:100% 62%, 10px 10px; background-repeat:no-repeat, repeat; background-position:0 30%, 0 0;}
+  .iso-post{--base:#F5873A;} .iso-runner{--base:#454B53;}
+  .iso-crew{position:absolute; left:0; top:0; transform-style:preserve-3d; display:none;}
+  .iso-veh.inbay.work .iso-crew, .iso-veh.inbay.near .iso-crew, .iso-veh.inbay.over .iso-crew{display:block;}
+  .iso-mech{position:absolute; left:0; top:0; transform-style:preserve-3d; animation:isoWork 1.3s ease-in-out infinite alternate;}
+  @keyframes isoWork{ from{transform:translateZ(0);} to{transform:translateZ(4px);} }
+  .mleg{--base:#2B3440;} .mbody{--base:#2E5FA8;} .marm{--base:#2E5FA8;} .mhead{--base:#C68E5E;}
+  .mhead > .ft{--fc:#F2BE2E;}
+  .iso-veh.lot .iso-crew{display:none !important;} .iso-beam{--base:#3F7FD9;} .iso-plate{--base:#5B6168;}
+  .iso-box.arm{--base:#E8B22E; display:none;}
+  .iso-veh.inbay .iso-box.arm{display:block;}
+  .iso-veh .iso-model{transition:transform 1.6s cubic-bezier(.45,.05,.25,1);}
+  .iso-veh.raised .iso-model{transform:translateZ(50px);}
+  .iso-veh.raised .iso-tag{--tz:150px;}
+  .p-yellow{--base:#E8B22E;} .p-red{--base:#D9443A;} .p-wood{--base:#B98A55;} .p-dark{--base:#3A3F45;}
+  .p-box{--base:#C29360;}
+  .p-box > .ft{background:linear-gradient(90deg, transparent 44%, #E3C48F 44% 56%, transparent 56%), var(--c-top);}
+  .p-tire{--base:#24272C;}
+  .p-tire > .ft{border-radius:50%; background:radial-gradient(circle, #9AA1AA 0 22%, #2E3238 23% 34%, #24272C 35%);}
+  .p-yellow.cab > .fw, .p-yellow.cab > .fs, .p-yellow.chest > .fw, .p-yellow.chest > .fs{background-image:repeating-linear-gradient(0deg, transparent 0 16px, rgba(0,0,0,.28) 16px 18px);}
 
   /* Vehicles */
   .iso-veh{position:absolute; left:0; top:0; width:0; height:0; transform-style:preserve-3d; transition:transform 1.1s cubic-bezier(.45,.05,.25,1); cursor:grab; outline:none;
@@ -561,7 +589,8 @@
     transform:translateZ(var(--tz,96px)) rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--tilt) * -1)) scale(var(--inv)) translate(-50%, calc(-100% - 6px));
     transition:transform .8s cubic-bezier(.2,.7,.2,1);
     background:var(--surface); color:var(--text); border:1px solid var(--hair2); border-left:4px solid var(--vc); border-radius:8px;
-    padding:4px 9px 5px; box-shadow:var(--shadow); font-size:11.5px; line-height:1.25; min-width:84px;}
+    padding:4px 9px 5px; box-shadow:var(--shadow); font-size:11.5px; line-height:1.25; min-width:84px; max-width:170px;}
+  .iso-tag .ts{overflow:hidden; text-overflow:ellipsis;}
   .iso-veh.lot .iso-tag{--tz:62px;}
   .iso-veh.dragging .iso-tag{--tz:150px;}
   .iso-tag .tp{font-family:'Bebas Neue',sans-serif; font-size:21px; letter-spacing:.5px; line-height:1;}
@@ -596,7 +625,7 @@
   }
   @media (prefers-reduced-motion: reduce){
     .iso-world, .iso-veh, .iso-tag, .iso-hop, .iso-model{transition:none !important;}
-    .iso-hop.drop, .iso-hop.move, .iso-veh .iso-shadow, .iso-veh .iso-box.beacon{animation:none !important;}
+    .iso-hop.drop, .iso-hop.move, .iso-veh .iso-shadow, .iso-veh .iso-box.beacon, .iso-mech{animation:none !important;}
   }
 </style>
 </head>
@@ -2059,7 +2088,8 @@ const isIsoPage = () => location.hash === '#3d';
 const isoShown = () => document.body.classList.contains('show-iso');
 const ISO_VIEW = { rz: -40, tilt: 58, zoom: 1, panX: 0, panY: 0 };
 const ISO = Object.assign({}, ISO_VIEW, { els: new Map(), key: '', W: 0, D: 0, sel: null, drag: null, turn: null, first: true, infoKey: '' });
-const ISO_BAY = { w: 150, d: 210 }, ISO_LOT = { w: 112, d: 150 }, ISO_GAP = 70, ISO_PAD = 50, ISO_SLOT_GAP = 14, ISO_TITLE = 64;
+const ISO_BAY = { w: 190, d: 230 }, ISO_LOT = { w: 112, d: 150 }, ISO_GAP = 70, ISO_SLOT_GAP = 14, ISO_TITLE = 64;
+const ISO_PAD = { l: 50, t: 60, r: 160, b: 60 }, ISO_WALL_H = 190, ISO_WALL_T = 14, ISO_LIFT_H = 150;
 const isoBox = (cls, w, d, h, x, y, z) =>
   '<div class="iso-box ' + cls + '" style="--w:' + w + 'px;--d:' + d + 'px;--h:' + h + 'px;--x:' + x + 'px;--y:' + y + 'px;--z:' + z + 'px">' +
   '<i class="ft"></i><i class="fn"></i><i class="fs"></i><i class="fe"></i><i class="fw"></i></div>';
@@ -2073,11 +2103,18 @@ function isoKind(e){
   if (/van|urvan|hiace|starex|innova|fortuner|montero|rush|l300/.test(d)) return 'van';
   return 'pickup';
 }
+const ISO_LIFTABLE = { pickup: 1, van: 1 };   // cars and vans go up on the lift; trucks and machines stay on the floor
+const isoArms = () => [['arm', 38, 10, 5, -44, -30, 6], ['arm', 38, 10, 5, 44, -30, 6], ['arm', 38, 10, 5, -44, 34, 6], ['arm', 38, 10, 5, 44, 34, 6]];
+/* Little mechanics standing beside the vehicle (one per assigned mechanic, up to two). */
+const isoCrew = n => [[-72, 46], [72, -38]].slice(0, n).map(([x, y], i) =>
+  '<div class="iso-mech" style="animation-delay:' + (i * -0.6) + 's">' +
+  isoBox('mleg', 14, 10, 20, x, y, 0) + isoBox('mbody', 18, 12, 20, x, y, 20) + isoBox('marm', 6, 22, 6, x + (x < 0 ? 11 : -11), y + (x < 0 ? -9 : 9), 30) +
+  isoBox('mhead', 12, 12, 11, x, y, 41) + '</div>').join('');
 const isoWheels = (x, ys, h) => ys.flatMap(y => [['dark', 12, 26, h, -x, y, 0], ['dark', 12, 26, h, x, y, 0]]);
 const ISO_MODELS = {
-  pickup: () => isoWheels(33, [-46, 46], 22).concat([
+  pickup: () => isoArms().concat(isoWheels(33, [-46, 46], 22)).concat([
     ['chassis', 64, 148, 10, 0, 0, 10], ['glass', 64, 58, 38, 0, -45, 20], ['', 64, 90, 16, 0, 29, 20], ['beacon', 12, 8, 7, 0, -45, 58]]),
-  van: () => isoWheels(33, [-50, 50], 22).concat([
+  van: () => isoArms().concat(isoWheels(33, [-50, 50], 22)).concat([
     ['chassis', 64, 150, 10, 0, 0, 10], ['glass', 64, 150, 50, 0, 0, 20], ['beacon', 12, 8, 7, 0, -40, 70]]),
   truck: () => isoWheels(37, [-62, 34, 64], 26).concat([
     ['chassis', 72, 190, 12, 0, 0, 12], ['glass', 72, 56, 56, 0, -67, 24], ['', 74, 128, 60, 0, 31, 24], ['beacon', 14, 8, 8, 0, -67, 80]]),
@@ -2107,41 +2144,84 @@ function isoLayout(){
     return { key, x: ox, y: oy, w, d, slots };
   };
   const bayCols = Math.min(Math.max(bayCount, 1), 4);
-  const zb = grid('bay', Math.max(bayCount, 1), ISO_BAY, bayCols, ISO_PAD, ISO_PAD);
+  const zb = grid('bay', Math.max(bayCount, 1), ISO_BAY, bayCols, 0, ISO_PAD.t);
   zb.slots.forEach((s, i) => { if (i < names.length) s.bay = names[i]; else { s.bay = ''; s.extra = true; } });
   const lotN = n => Math.max(4, n + (n % 2));
   const zw = grid('wait', lotN(wait.length), ISO_LOT, 2, 0, zb.y + zb.d + ISO_GAP);
   const zs = grid('sched', lotN(sched.length), ISO_LOT, 2, 0, zw.y);
   const lotsW = zw.w + ISO_GAP + zs.w, inner = Math.max(zb.w, lotsW);
   const shift = (z, dx) => { z.x += dx; z.slots.forEach(sl => { sl.x += dx; }); };
-  shift(zb, (inner - zb.w) / 2);
-  shift(zw, ISO_PAD + (inner - lotsW) / 2);
+  shift(zb, ISO_PAD.l + (inner - zb.w) / 2);
+  shift(zw, ISO_PAD.l + (inner - lotsW) / 2);
   shift(zs, zw.x + zw.w + ISO_GAP);
   const items = [];
   const put = (e, zone, s) => items.push({ e, zone, x: s.x + s.w / 2, y: s.y + s.d / 2 });
-  used.forEach((e, i) => put(e, 'bay', zb.slots[i]));
+  used.forEach((e, i) => { put(e, 'bay', zb.slots[i]); items[items.length - 1].lift = true; });
   extra.forEach((e, k) => put(e, 'bay', zb.slots[names.length + k]));
   wait.forEach((e, i) => put(e, 'wait', zw.slots[i]));
   sched.forEach((e, i) => put(e, 'sched', zs.slots[i]));
   const zones = [zb, zw, zs];
-  const W = inner + 2 * ISO_PAD, D = zw.y + Math.max(zw.d, zs.d) + ISO_PAD;
+  const W = ISO_PAD.l + inner + ISO_PAD.r, D = zw.y + Math.max(zw.d, zs.d) + ISO_PAD.b;
   const key = W + 'x' + D + '|' + zones.map(z => z.slots.length).join(',') + '|' + names.join('\u0001') + '|' + extra.length;
-  return { W, D, zones, items, key, counts: { bay: bay.length, wait: wait.length, sched: sched.length } };
+  return { W, D, zones, items, key, inner, counts: { bay: bay.length, wait: wait.length, sched: sched.length } };
 }
 
 const ISO_TITLES = { bay: 'In the bay now', wait: 'Awaiting parts', sched: 'Scheduled' };
+/* Room walls. Each wall is built like the north wall (long in x, inside face = .fs) and turned to its side.
+   Only the two walls on the far side of the camera are shown (isoCamera), like a cut-away drawing. */
+function isoWalls(W, D){
+  const T = ISO_WALL_T;
+  const decor = len => {
+    let h = '', n = Math.max(1, Math.floor(len / 300));
+    const peg = len > 500 ? Math.floor(n / 2) : -1;
+    for (let i = 0; i < n; i++) {
+      const x = (i + 0.5) * len / n;
+      h += i === peg ? '<span class="iso-peg" style="left:' + (x - 95) + 'px;width:190px"></span>'
+        : '<span class="iso-win" style="left:' + (x - 80) + 'px;width:160px"></span>';
+    }
+    return h;
+  };
+  const wall = (side, len, cx, cy, rot) =>
+    '<div class="iso-wallwrap" data-side="' + side + '" style="transform:translate3d(' + cx + 'px,' + cy + 'px,0) rotateZ(' + rot + 'deg)">' +
+    isoBox('iso-wall', len, T, ISO_WALL_H, 0, 0, -20).replace('<i class="fs"></i>', '<i class="fs">' + decor(len) + '</i>') + '</div>';
+  return wall('n', W + 2 * T, W / 2, -T / 2, 0) + wall('e', D, W + T / 2, D / 2, 90) +
+    wall('s', W + 2 * T, W / 2, D + T / 2, 180) + wall('w', D, -T / 2, D / 2, 270);
+}
+/* Two-post lift for a named bay: orange posts at the sides, blue beam on top (arms belong to the vehicle). */
+function isoLift(s){
+  const cx = s.x + s.w / 2, cy = s.y + s.d / 2, px = s.w / 2 - 12;
+  return isoBox('iso-runner', 26, s.d - 70, 1, cx - 34, cy, 0) + isoBox('iso-runner', 26, s.d - 70, 1, cx + 34, cy, 0) +
+    isoBox('iso-plate', 26, 30, 3, cx - px, cy, 0) + isoBox('iso-plate', 26, 30, 3, cx + px, cy, 0) +
+    isoBox('iso-post', 14, 18, ISO_LIFT_H, cx - px, cy, 0) + isoBox('iso-post', 14, 18, ISO_LIFT_H, cx + px, cy, 0) +
+    isoBox('iso-beam', s.w - 6, 12, 12, cx, cy, ISO_LIFT_H);
+}
+/* Workshop props along the east wall and between the zones. */
+function isoProps(L){
+  const x = ISO_PAD.l + L.inner + ISO_PAD.r / 2 + 14, y0 = ISO_PAD.t;
+  const tires = (tx, ty, n) => Array.from({ length: n }, (_, i) => isoBox('p-tire', 46, 46, 14, tx, ty, i * 15)).join('');
+  const boxes = (bx, by, bz) => isoBox('p-box', 34, 34, 26, bx, by, bz) + isoBox('p-box', 30, 30, 22, bx + 4, by + 2, bz + 26);
+  let h = isoBox('p-yellow cab', 64, 50, 120, x + 8, y0 + 30, 0) +                                    // tall cabinet
+    isoBox('p-dark', 6, 170, 66, x - 26, y0 + 180, 0) + isoBox('p-dark', 6, 170, 66, x + 26, y0 + 180, 0) +   // workbench legs
+    isoBox('p-wood', 70, 180, 8, x, y0 + 180, 66) + boxes(x + 6, y0 + 130, 74) + isoBox('p-box', 30, 40, 18, x + 4, y0 + 230, 74) +
+    isoBox('p-yellow chest', 60, 84, 72, x + 6, y0 + 330, 0) + isoBox('p-red', 44, 56, 20, x + 6, y0 + 330, 72) +   // tool chest + toolbox
+    tires(x - 4, y0 + 430, 4);
+  if (L.D - y0 > 640) h += isoBox('p-wood', 84, 84, 10, x, L.D - 110, 0) + boxes(x - 18, L.D - 128, 10) + boxes(x + 20, L.D - 92, 10) + isoBox('p-box', 34, 34, 26, x + 18, L.D - 130, 10);
+  const zw = L.zones[1];
+  h += tires(Math.max(30, zw.x - 36), zw.y - ISO_GAP / 2, 3);
+  return h;
+}
 function buildIsoFloor(L){
-  let h = isoBox('iso-slab', L.W, L.D, 20, L.W / 2, L.D / 2, -21) +
+  let h = isoBox('iso-slab', L.W, L.D, 20, L.W / 2, L.D / 2, -21) + isoWalls(L.W, L.D) + isoProps(L) +
     '<div class="iso-ground" style="width:' + L.W + 'px;height:' + L.D + 'px"></div>';
   L.zones.forEach(z => {
     h += '<div class="iso-zone z-' + z.key + '" data-zone="' + z.key + '" style="left:' + z.x + 'px;top:' + z.y + 'px;width:' + z.w + 'px;height:' + z.d + 'px">';
     z.slots.forEach(s => {
+      if (z.key === 'bay' && !s.extra) h += isoLift(s);
       const label = z.key === 'bay' ? (s.extra ? 'No bay set' : s.bay) : '';
       h += '<div class="iso-slot' + (s.extra ? ' extra' : '') + '" data-zone="' + z.key + '" data-bay="' + esc(s.bay || '') + '" style="left:' + (s.x - z.x) + 'px;top:' + (s.y - z.y) + 'px;width:' + s.w + 'px;height:' + s.d + 'px">' +
         (label ? '<div class="iso-slabel">' + esc(label) + '</div>' : '') + '</div>';
     });
     h += '<div class="iso-ztitle">' + ISO_TITLES[z.key] + '<b data-count="' + z.key + '">0</b></div></div>';
-    if (z.key === 'bay') h += isoBox('iso-wall', z.w, 10, 64, z.x + z.w / 2, z.y - 6, 0);   // back wall
   });
   $('isoFloor').innerHTML = h;
 }
@@ -2161,8 +2241,9 @@ function isoTag(e, now){
   const plate = '<span class="tp">' + esc(vTitle(e)) + '</span>';
   if (e.status === 'bay') {
     const elapsed = workedMs(e, now), limitMs = e.limitHrs * 3600000, pct = Math.min(100, elapsed / limitMs * 100);
-    const what = e.hold ? esc(holdLabel(e)) : elapsed > limitMs ? 'Over by ' + esc(fmtDuration(elapsed - limitMs)) : esc(shortRepair(e.repair));
-    return plate + '<span class="ts">' + (e.bay ? esc(e.bay) + ' · ' : '') + '<b>' + fmtElapsed(elapsed) + '</b> · ' + what + '</span>' +
+    // Kept short so neighbouring bays' tags don't overlap; the details panel has the rest.
+    const what = e.hold ? (e.hold === PAUSED ? 'Paused' : esc(e.hold)) : elapsed > limitMs ? 'Over' : '';
+    return plate + '<span class="ts"><b>' + fmtElapsed(elapsed) + '</b>' + (what ? ' · ' + what : '') + '</span>' +
       '<div class="tbar"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
   }
   if (e.status === 'wait') return plate + '<span class="ts">' + (e.hold && e.hold !== 'Awaiting parts' ? esc(holdLabel(e)) + ' · ' : '') + 'In ' + esc(fmtDate(entryDateIn(e))) + '</span>';
@@ -2189,7 +2270,7 @@ function renderIso(){
     if (fresh) {
       el = document.createElement('div');
       el.tabIndex = 0; el.setAttribute('role', 'button');
-      el.innerHTML = '<div class="iso-shadow"></div><div class="iso-hop"><div class="iso-model"></div></div><div class="iso-tag"></div>';
+      el.innerHTML = '<div class="iso-shadow"></div><div class="iso-hop"><div class="iso-model"></div><div class="iso-crew"></div></div><div class="iso-tag"></div>';
       el.dataset.id = String(e.id);
       el.style.transform = 'translate3d(' + it.x + 'px,' + it.y + 'px,0)';
       el.dataset.pos = it.x + ',' + it.y;
@@ -2205,8 +2286,12 @@ function renderIso(){
       el.dataset.kind = kind;
       el.querySelector('.iso-model').innerHTML = ISO_MODELS[kind]().map(p => isoBox.apply(null, p)).join('');
     }
+    const crew = String(Math.min(2, (e.mechanics || []).length));
+    if (el.dataset.crew !== crew) { el.dataset.crew = crew; el.querySelector('.iso-crew').innerHTML = isoCrew(+crew); }
     const dragging = ISO.drag && ISO.drag.active && ISO.drag.id === e.id;
-    el.className = 'iso-veh ' + isoState(e, now) + (it.zone !== 'bay' ? ' lot' : '') + (ISO.sel === e.id ? ' sel' : '') + (dragging ? ' dragging' : '');
+    const state = isoState(e, now);
+    const onLift = it.zone === 'bay' && ISO_LIFTABLE[kind] && it.lift && /^(work|near|over)$/.test(state);
+    el.className = 'iso-veh ' + state + (it.zone !== 'bay' ? ' lot' : ' inbay') + (onLift ? ' raised' : '') + (ISO.sel === e.id ? ' sel' : '') + (dragging ? ' dragging' : '');
     el.setAttribute('aria-label', vTitle(e) + ', ' + ISO_TITLES[it.zone] + (e.bay && it.zone === 'bay' ? ', ' + e.bay : ''));
     const pos = it.x + ',' + it.y;
     if (!dragging && el.dataset.pos !== pos) {
@@ -2237,7 +2322,9 @@ function isoCamera(){
   const st = $('isoStage').getBoundingClientRect(), W = ISO.W || 1000, D = ISO.D || 500;
   const r = ISO.rz * Math.PI / 180, t = ISO.tilt * Math.PI / 180;
   const pw = Math.abs(W * Math.cos(r)) + Math.abs(D * Math.sin(r));
-  const ph = (Math.abs(W * Math.sin(r)) + Math.abs(D * Math.cos(r))) * Math.cos(t) + 180 * Math.sin(t);
+  const ph = (Math.abs(W * Math.sin(r)) + Math.abs(D * Math.cos(r))) * Math.cos(t) + (ISO_WALL_H + 20) * Math.sin(t);
+  const vx = Math.sin(r), vy = Math.cos(r), facing = { n: -vy, e: vx, s: vy, w: -vx };   // > 0: wall is between camera and floor
+  document.querySelectorAll('#isoFloor .iso-wallwrap').forEach(el => el.classList.toggle('near', facing[el.dataset.side] > 0.1));
   const s = Math.max(0.05, Math.min(st.width / pw, st.height / ph) * 0.9) * ISO.zoom;
   const w = $('isoWorld');
   w.style.setProperty('--rz', ISO.rz + 'deg');
