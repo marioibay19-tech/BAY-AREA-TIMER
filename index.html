@@ -536,7 +536,9 @@
     background-size:100% 62%, 10px 10px; background-repeat:no-repeat, repeat; background-position:0 30%, 0 0;}
   .iso-post{--base:#F5873A;} .iso-runner{--base:#454B53;}
   .iso-crew{position:absolute; left:0; top:0; transform-style:preserve-3d; display:none;}
-  .iso-veh.inbay.work .iso-crew, .iso-veh.inbay.near .iso-crew, .iso-veh.inbay.over .iso-crew{display:block;}
+  .iso-veh.inbay .iso-crew{display:block;}   /* every vehicle in the bay has its mechanic(s) */
+  .iso-veh.driving .iso-crew, .iso-veh.leaving .iso-crew, .iso-veh.dragging .iso-crew{display:none;}
+  .iso-veh.inbay.hold .iso-mech, .iso-veh.inbay.hold .iso-leg, .iso-veh.inbay.hold .iso-walker{animation:none;}   /* on hold: stands at the front, waiting */
   .iso-mech, .iso-walker, .iso-leg{position:absolute; left:0; top:0; transform-style:preserve-3d;}
   .iso-mech.m1{transform:translate3d(0,-108px,0) rotateZ(180deg);}   /* resting spots if animations are off */
   .iso-mech.m2{transform:translate3d(0,108px,0);}
@@ -2564,21 +2566,25 @@ function renderIso(){
       const hop = el.querySelector('.iso-hop');
       hop.addEventListener('animationend', () => { hop.classList.remove('drop', 'move'); hop.style.animationDelay = ''; });
       if (ISO.first || !ISO.lane) { hop.style.animationDelay = (ISO.first ? i * 80 : 0) + 'ms'; hop.classList.add('drop'); }
-      else { const p = isoPathIn(it.x, it.y); isoDrive(el, p.from, p.legs, false); }   // a new vehicle drives in
+      else {   // a new vehicle drives in; its mechanics appear once it's parked
+        const p = isoPathIn(it.x, it.y);
+        el._driving = true;
+        isoDrive(el, p.from, p.legs, false).finished.then(() => { el._driving = false; el.classList.remove('driving'); }, () => { el._driving = false; });
+      }
     } else if (el._out) { isoStopDrive(el); }
     const kind = isoKind(e);
     if (el.dataset.kind !== kind) {
       el.dataset.kind = kind;
       el.querySelector('.iso-model').innerHTML = ISO_MODELS[kind]();
     }
-    const crew = String(Math.min(2, (e.mechanics || []).length));
+    const crew = String(Math.max(1, Math.min(2, (e.mechanics || []).length)));   // at least one mechanic per vehicle
     if (el.dataset.crew !== crew) { el.dataset.crew = crew; el.querySelector('.iso-crew').innerHTML = isoCrew(+crew); }
     const dragging = ISO.drag && ISO.drag.active && ISO.drag.id === e.id;
     const state = isoState(e, now);
     const onLift = it.zone === 'bay' && ISO_LIFTABLE[kind] && it.lift && /^(work|near|over)$/.test(state);
     const working = it.zone === 'bay' && /^(work|near|over)$/.test(state);
     const rt = working ? (/Corrective/.test(e.repair || '') ? ' rt-cm' : ' rt-pm') : '';   // hood open (PM/Express) or wheel off (CM)
-    const cls = 'iso-veh ' + state + (it.zone !== 'bay' ? ' lot' : ' inbay') + (onLift ? ' raised' : '') + rt + (ISO.sel === e.id ? ' sel' : '') + (dragging ? ' dragging' : '');
+    const cls = 'iso-veh ' + state + (it.zone !== 'bay' ? ' lot' : ' inbay') + (onLift ? ' raised' : '') + rt + (ISO.sel === e.id ? ' sel' : '') + (dragging ? ' dragging' : '') + (el._driving ? ' driving' : '');
     if (el.className !== cls) el.className = cls;   // rewriting an unchanged class still restyles the whole model
     const aria = vTitle(e) + ', ' + ISO_TITLES[it.zone] + (e.bay && it.zone === 'bay' ? ', ' + e.bay : '');
     if (el.getAttribute('aria-label') !== aria) el.setAttribute('aria-label', aria);
