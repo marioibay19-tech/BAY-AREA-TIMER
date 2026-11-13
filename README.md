@@ -66,6 +66,10 @@ What you'll see in the Interactive view:
 - Preventive and Express jobs have the **hood open**. Corrective jobs have the **front wheel off**, with the tire on the floor by the lift post.
 - Over-limit vehicles have a blinking red **OVER LIMIT** sign and a red roof light. Vehicles awaiting parts have **parts boxes** next to them.
 
+**Decorations:** the workshop has tool carts, an air compressor and jacks behind the bays, plants, fire extinguishers and a wall clock that shows the real time. At Christmas there's a parol, twinkling lights and a Christmas tree. To change when the Christmas decorations show:
+1. Click **Staff**, open the **Settings** tab and scroll to **TV display**.
+2. Set **Christmas decorations (3D view)** to **Auto: Sep 1 – Jan 6** (the default), **Always on** or **Off**.
+
 **Show the 3D view on the lobby TV:**
 1. Click **Staff**, then the **Settings** tab, and scroll to **TV display**.
 2. Set **TV shows** to **3D Interactive view (turns slowly)**.
