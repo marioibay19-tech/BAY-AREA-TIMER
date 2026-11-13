@@ -616,9 +616,44 @@
   .iso-tag .t-alert{display:flex; align-items:center; gap:4px; margin:-4px -9px 4px -9px; padding:2px 8px; border-radius:6px 6px 0 0;
     background:var(--red); color:#fff; font-weight:800; font-size:11px; letter-spacing:.6px; animation:isoBlink 1s steps(2) infinite;}
   .iso-veh.over .iso-box.beacon{--base:#FF4A3D;}
+  /* decorations */
+  .p-pot{--base:#B8643C;} .p-leaf{--base:#3E9B4F;} .p-leaf.top{--base:#4CB25E;}
+  .p-red.tank{--base:#D9443A;}
+  .p-red.drawers > .fs, .p-red.drawers > .fw, .p-red.drawers > .fe, .p-red.drawers > .fn{background-image:repeating-linear-gradient(0deg, transparent 0 9px, rgba(0,0,0,.3) 9px 11px);}
+  .wclock{position:absolute; top:100px; width:34px; height:34px; border-radius:50%; background:#F7F8FA; border:3px solid #2B3038; box-sizing:border-box;
+    box-shadow:inset 0 0 0 2px #D5DAE0;}
+  .wclock i{position:absolute; left:50%; bottom:50%; display:block; transform-origin:50% 100%; background:#20242A; border-radius:2px;}
+  .wclock .hh{width:3px; height:8px;} .wclock .mm{width:2px; height:12px;} .wclock .ss{width:1px; height:13px; background:#D9443A;}
+  .xmas{display:none !important;}
+  body.iso-xmas .xmas{display:block !important;}
+  .xlights{position:absolute; left:0; right:0; top:6px; height:14px;
+    background:radial-gradient(circle at 8px 9px, #FF5A4E 0 3.5px, transparent 4px) 0 0 / 64px 14px repeat-x,
+      radial-gradient(circle at 24px 10px, #FFD34E 0 3.5px, transparent 4px) 0 0 / 64px 14px repeat-x,
+      radial-gradient(circle at 40px 9px, #4EC3FF 0 3.5px, transparent 4px) 0 0 / 64px 14px repeat-x,
+      radial-gradient(circle at 56px 10px, #6EE07A 0 3.5px, transparent 4px) 0 0 / 64px 14px repeat-x,
+      linear-gradient(transparent 4px, #2E4A2E 4px 5px, transparent 5px);}
+  .xlights::after{content:''; position:absolute; inset:0; animation:isoTwinkle 1.4s steps(2) infinite;
+    background:radial-gradient(circle at 24px 10px, #FFF6C4 0 4px, transparent 4.5px) 0 0 / 64px 14px repeat-x, radial-gradient(circle at 56px 10px, #FFF6C4 0 4px, transparent 4.5px) 0 0 / 64px 14px repeat-x;}
+  @keyframes isoTwinkle{ 50%{opacity:0;} }
+  .parol{position:absolute; top:22px; width:68px; height:96px;}
+  .parol::before{content:''; position:absolute; left:50%; top:4px; width:68px; height:68px; transform:translateX(-50%); border-radius:50%;
+    background:radial-gradient(circle, rgba(255,214,90,.75), rgba(255,214,90,0) 70%); animation:isoGlowSoft 2.6s ease-in-out infinite alternate;}
+  .parol b{position:absolute; left:50%; top:8px; width:60px; height:60px; transform:translateX(-50%); display:block;
+    clip-path:polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    background:radial-gradient(circle, #FFF7C9 0 18%, #FFC93C 19% 42%, #E8452C 43% 60%, #2F7BD8 61%);}
+  .parol::after{content:''; position:absolute; left:50%; top:62px; width:22px; height:34px; transform:translateX(-50%);
+    background:linear-gradient(90deg, #E8452C 0 30%, transparent 30% 35%, #FFC93C 35% 65%, transparent 65% 70%, #2F7BD8 70%);
+    clip-path:polygon(0 0, 100% 0, 85% 100%, 70% 0, 50% 100%, 30% 0, 15% 100%);}
+  @keyframes isoGlowSoft{ from{opacity:.45;} to{opacity:1;} }
+  .p-tree{--base:#2F8A43;} .p-star{--base:#FFD34E;} .p-star > i{box-shadow:0 0 10px #FFE58A;}
+  .orn{--base:#E8452C;} .orn.o2{--base:#FFD34E;} .orn.o3{--base:#4EC3FF;} .orn.o4{--base:#F2F2F2;}
+  .orn > i{animation:isoTwinkle 1.6s steps(2) infinite;} .orn.o2 > i{animation-delay:-.4s;} .orn.o3 > i{animation-delay:-.8s;} .orn.o4 > i{animation-delay:-1.2s;}
+  .p-gift{--base:#D9443A;} .p-gift.g2{--base:#2F7BD8;} .p-gift.g3{--base:#2F8A43;}
+  .p-gift > .ft{background:linear-gradient(90deg, transparent 42%, #FFD34E 42% 58%, transparent 58%), linear-gradient(transparent 42%, #FFD34E 42% 58%, transparent 58%), var(--c-top);}
   /* simple view */
   body.iso-lite .iso-wallwrap, body.iso-lite .iso-props, body.iso-lite .iso-shadow, body.iso-lite .iso-runner{display:none !important;}
   body.iso-lite .iso-mech, body.iso-lite .iso-leg, body.iso-lite .iso-walker, body.iso-lite .iso-box.beacon > i, body.iso-lite .iso-hop.drop{animation:none !important;}
+  body.iso-lite .orn > i, body.iso-lite .xlights::after, body.iso-lite .parol::before{animation:none !important;}
   .iso-box.chassis{--base:color-mix(in srgb, var(--vc) 35%, #202328);}
   .iso-box.glass > .fn{--fc:color-mix(in srgb, #8EC1F0 70%, #1d2a3a);}
   .iso-box.boom{--base:color-mix(in srgb, var(--vc) 80%, black);}
@@ -684,7 +719,7 @@
   }
   @media (prefers-reduced-motion: reduce){
     .iso-world, .iso-veh, .iso-tag, .iso-hop, .iso-model{transition:none !important;}
-    .iso-hop.drop, .iso-hop.move, .iso-veh .iso-shadow::after, .iso-veh .iso-box.beacon > i, .iso-mech, .iso-leg, .iso-walker{animation:none !important;}
+    .iso-hop.drop, .iso-hop.move, .iso-veh .iso-shadow::after, .iso-veh .iso-box.beacon > i, .iso-mech, .iso-leg, .iso-walker, .orn > i, .xlights::after, .parol::before{animation:none !important;}
   }
 </style>
 </head>
@@ -1538,6 +1573,18 @@ function applyTvOptions(){
   };
   vrow.appendChild(vsel);
   box.appendChild(vrow);
+  const xrow = document.createElement('div');
+  xrow.className = 'set-row';
+  xrow.innerHTML = '<span>Christmas decorations (3D view)</span>';
+  const xsel = document.createElement('select');
+  xsel.style.width = 'auto';
+  [['auto', 'Auto: Sep 1 – Jan 6'], ['on', 'Always on'], ['off', 'Off']].forEach(([v, label]) => {
+    const o = document.createElement('option'); o.value = v; o.textContent = label; xsel.appendChild(o);
+  });
+  xsel.value = settings.xmas || 'auto';
+  xsel.onchange = () => store.saveSettings({ xmas: xsel.value });
+  xrow.appendChild(xsel);
+  box.appendChild(xrow);
   TV_OPTS.forEach(([k, , label]) => {
     const row = document.createElement('label');
     row.className = 'set-row';
@@ -2420,6 +2467,11 @@ function isoWalls(W, D){
       h += i === peg ? '<span class="iso-peg" style="left:' + (x - 95) + 'px;width:190px"></span>'
         : '<span class="iso-win" style="left:' + (x - 80) + 'px;width:160px"></span>';
     }
+    // wall clock (real time) under the first window
+    h += '<span class="wclock" style="left:' + (len / n / 2 - 17) + 'px"><i class="hh"></i><i class="mm"></i><i class="ss"></i></span>';
+    // Christmas: lights along the top, and a parol (star lantern) between the first two windows
+    const px = n >= 2 ? len / n - 34 : len / 2 + 90;
+    h += '<span class="xmas xlights"></span><span class="xmas parol" style="left:' + px + 'px"><b></b></span>';
     return h;
   };
   const wall = (side, len, cx, cy, rot) =>
@@ -2449,7 +2501,37 @@ function isoProps(L){
   if (L.D - y0 > 640) h += isoBox('p-wood', 84, 84, 10, x, L.D - 110, 0) + boxes(x - 18, L.D - 128, 10) + boxes(x + 20, L.D - 92, 10) + isoBox('p-box', 34, 34, 26, x + 18, L.D - 130, 10);
   const zw = L.zones[1];
   h += tires(Math.max(30, zw.x - 36), zw.y - ISO_GAP / 2, 3);
+  h += isoDecor(L, x, y0);
   return '<div class="iso-props">' + h + '</div>';
+}
+/* Decorations: tools (behind the bays, on the workbench), plants, fire extinguishers, and the Christmas tree. */
+const isoRot = (x, y, deg, html) => '<div class="iso-sub" style="transform:translate3d(' + x + 'px,' + y + 'px,0) rotateZ(' + deg + 'deg)">' + html + '</div>';
+function isoDecor(L, x, y0){
+  const zb = L.zones[0];
+  const cart = (cx, cy) => isoParts([['dark', 4, 4, 6, cx - 16, cy - 9, 0], ['dark', 4, 4, 6, cx + 16, cy - 9, 0], ['dark', 4, 4, 6, cx - 16, cy + 9, 0], ['dark', 4, 4, 6, cx + 16, cy + 9, 0],
+    ['p-red drawers', 40, 24, 38, cx, cy, 6], ['p-dark', 42, 26, 3, cx, cy, 44], ['steel', 3, 20, 3, cx + 22, cy, 40], ['steel', 10, 3, 3, cx - 6, cy - 4, 47], ['steel', 3, 12, 2, cx + 8, cy + 3, 47]]);
+  const compressor = (cx, cy) => isoParts([['dark', 6, 18, 6, cx - 18, cy, 0], ['dark', 6, 18, 6, cx + 18, cy, 0], ['p-red tank', 54, 20, 24, cx, cy, 6],
+    ['p-dark', 18, 16, 16, cx - 10, cy, 30], ['steel', 8, 8, 6, cx + 12, cy, 30], ['dark', 3, 3, 10, cx + 22, cy, 30]]);
+  const jacks = (cx, cy) => isoParts([['p-red', 12, 12, 20, cx - 14, cy - 6, 0], ['steel', 6, 6, 6, cx - 14, cy - 6, 20], ['p-red', 12, 12, 20, cx + 2, cy - 6, 0], ['steel', 6, 6, 6, cx + 2, cy - 6, 20],
+    ['p-red', 18, 36, 9, cx + 20, cy + 8, 0], ['steel', 3, 40, 3, cx + 20, cy - 22, 7]]);   // two jack stands + floor jack with handle
+  const tools = [cart, compressor, jacks, cart];
+  let h = tools.map((f, k) => f(zb.x + zb.w * (k + 0.5) / tools.length, ISO_PAD.t / 2)).join('');   // strip behind the bays
+  h += isoParts([['p-dark', 18, 14, 12, x - 18, y0 + 110, 74], ['steel', 4, 26, 2, x - 14, y0 + 205, 74], ['steel', 4, 22, 2, x - 6, y0 + 207, 74], ['steel', 4, 18, 2, x + 2, y0 + 209, 74]]);   // vise + wrenches on the bench
+  const plant = (px, py) => isoBox('p-pot', 22, 22, 18, px, py, 0) + isoRot(px, py, 0, isoBox('p-leaf', 8, 26, 30, 0, 0, 16)) +
+    isoRot(px, py, 60, isoBox('p-leaf', 8, 24, 26, 0, 0, 16)) + isoRot(px, py, 120, isoBox('p-leaf', 8, 24, 34, 0, 0, 16)) + isoBox('p-leaf top', 18, 18, 10, px, py, 40);
+  const ext = (ex, ey) => isoParts([['p-dark', 16, 16, 3, ex, ey, 0], ['p-red', 11, 11, 30, ex, ey, 3], ['p-dark', 7, 7, 6, ex, ey, 33], ['dark', 3, 10, 3, ex + 6, ey, 30]]);
+  h += plant(24, 24) + plant(26, L.D - 28) + ext(x - 44, y0 + 8) + ext(24, L.D - 70);
+  // Christmas tree with ornaments, a star and gifts, in the east strip between the tires and the pallet
+  const tx = x - 6, ty = Math.min(L.D - 210, y0 + 560);
+  let tree = isoBox('p-wood', 10, 10, 14, tx, ty, 0);
+  [62, 50, 38, 26].forEach((sz, k) => {
+    const z = 14 + k * 16, orn = ['o1', 'o2', 'o3', 'o4'];
+    tree += isoRot(tx, ty, k % 2 ? 45 : 0, isoBox('p-tree', sz, sz, 18, 0, 0, z) +
+      [[sz / 2 - 1, 0], [-sz / 2 + 1, 0], [0, sz / 2 - 1], [0, -sz / 2 + 1]].map(([ox, oy], j) => isoBox('orn ' + orn[(j + k) % 4], 6, 6, 6, ox, oy, z + 6)).join(''));
+  });
+  tree += isoRot(tx, ty, 45, isoBox('p-star', 12, 12, 12, 0, 0, 14 + 4 * 16));
+  tree += isoBox('p-gift g1', 22, 18, 16, tx + 34, ty + 20, 0) + isoBox('p-gift g2', 16, 16, 12, tx + 30, ty - 30, 0) + isoBox('p-gift g3', 18, 14, 20, tx - 30, ty + 30, 0);
+  return h + '<div class="xmas iso-sub">' + tree + '</div>';
 }
 function buildIsoFloor(L){
   let h = isoBox('iso-slab', L.W, L.D, 20, L.W / 2, L.D / 2, -21) + isoWalls(L.W, L.D) + isoProps(L) +
@@ -2533,11 +2615,27 @@ function isoPathIn(x, y){
 const ISO_KIT = '<div class="kit-parts">' + isoBox('p-box', 22, 22, 18, 46, 64, 0) + isoBox('p-box', 18, 18, 14, 46, 63, 18) + isoBox('p-box', 16, 20, 12, 30, 72, 0) + '</div>' +
   '<div class="kit-tire">' + isoBox('p-tire', 28, 28, 10, -84, 34, 0) + '</div>';
 
+/* Wall clocks show this screen's (shared) time; Christmas decorations follow the setting (Auto = Sep 1 – Jan 6). */
+function xmasOn(){
+  const mode = settings.xmas || 'auto';
+  if (mode !== 'auto') return mode === 'on';
+  const d = new Date(nowMs()), m = d.getMonth() + 1;
+  return m >= 9 || (m === 1 && d.getDate() <= 6);
+}
+function isoDecorTick(){
+  const x = xmasOn();
+  if (document.body.classList.contains('iso-xmas') !== x) document.body.classList.toggle('iso-xmas', x);
+  const d = new Date(nowMs()), sec = d.getSeconds(), min = d.getMinutes() + sec / 60, hr = (d.getHours() % 12) + min / 60;
+  const rot = [hr * 30, min * 6, sec * 6].map(a => 'translateX(-50%) rotate(' + a.toFixed(1) + 'deg)');
+  document.querySelectorAll('#isoFloor .wclock').forEach(c => {
+    const hands = c.children; hands[0].style.transform = rot[0]; hands[1].style.transform = rot[1]; hands[2].style.transform = rot[2];
+  });
+}
 function renderIso(){
   if (!isoShown()) return;
   const L = isoLayout();
   if (L.key !== ISO.key) {
-    ISO.key = L.key; ISO.W = L.W; ISO.D = L.D; ISO.lane = L.lane;
+    ISO.key = L.key; ISO.W = L.W; ISO.D = L.D; ISO.lane = L.lane; ISO.zones = L.zones;
     const w = $('isoWorld'); w.style.width = L.W + 'px'; w.style.height = L.D + 'px';
     buildIsoFloor(L);
     isoCamera();
@@ -2545,6 +2643,7 @@ function renderIso(){
   const top = Math.round($('isoPage').getBoundingClientRect().top + scrollY);
   if (top !== ISO.top) { ISO.top = top; isoCamera(); }   // the header can change height (count chips wrap)
   document.querySelectorAll('#isoFloor [data-count]').forEach(b => { b.textContent = L.counts[b.dataset.count]; });
+  isoDecorTick();
   const now = nowMs(), seen = new Set(), cars = $('isoCars');
   L.items.forEach((it, i) => {
     const e = it.e; seen.add(e.id);
@@ -2715,9 +2814,28 @@ function isoDrop(id, t){
 }
 
 /* ---- pointer handling: drag vehicles, turn/tilt the view, zoom ---- */
+/* Drop target: turn the screen point back into a point on the floor with the camera matrix, then look it up in
+   the layout. (Chrome's 3D hit-testing, document.elementsFromPoint, misses floor spots once the scene has many
+   3D pieces, so it is not used.) The world has no perspective, so the floor (z = 0) maps to the screen affinely. */
+function isoFloorPoint(cx, cy){
+  const w = $('isoWorld'), stg = $('isoStage'), r = stg.getBoundingClientRect();
+  const m = new DOMMatrix(getComputedStyle(w).transform);
+  const ox = r.left + stg.clientLeft + w.offsetLeft + ISO.W / 2, oy = r.top + stg.clientTop + w.offsetTop + ISO.D / 2;   // transform origin = centre
+  const sx = cx - ox - m.m41, sy = cy - oy - m.m42, det = m.m11 * m.m22 - m.m21 * m.m12;
+  if (Math.abs(det) < 1e-9) return null;
+  const u = (sx * m.m22 - sy * m.m21) / det, v = (sy * m.m11 - sx * m.m12) / det;
+  return { x: u + ISO.W / 2, y: v + ISO.D / 2 };
+}
 function isoTargetAt(x, y){
-  for (const n of document.elementsFromPoint(x, y)) {
-    if (n.dataset && n.dataset.zone) return { el: n, zone: n.dataset.zone, bay: n.dataset.bay || '' };
+  const p = isoFloorPoint(x, y);
+  if (!p || !ISO.zones) return null;
+  const inside = (a, px, py) => px >= a.x && px <= a.x + a.w && py >= a.y && py <= a.y + a.d;
+  for (const z of ISO.zones) {
+    if (!inside(z, p.x, p.y)) continue;
+    const zoneEl = document.querySelector('#isoFloor .iso-zone.z-' + z.key);
+    const i = z.slots.findIndex(sl => inside(sl, p.x, p.y));
+    if (i >= 0) return { el: zoneEl.querySelectorAll('.iso-slot')[i], zone: z.key, bay: z.slots[i].bay || '' };
+    return { el: zoneEl, zone: z.key, bay: '' };
   }
   return null;
 }
