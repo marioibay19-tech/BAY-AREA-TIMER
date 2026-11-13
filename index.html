@@ -463,7 +463,11 @@
   body.tv:not(.idle) .tv-exit{display:block;}
   /* ---------- Interactive 3D view (#3d): isometric bay area, drag to move ---------- */
   #isoPage{display:none; flex-direction:column; gap:10px; padding:12px var(--gutter) 12px; max-width:1800px; margin:0 auto; height:calc(100vh - 90px); min-height:440px;}
-  body.show-iso .layout, body.show-iso .alert-bar{display:none !important;}
+  body.show-iso .layout, body.show-iso:not(.tv) .alert-bar{display:none !important;}
+  body.tv.show-iso #isoPage{flex:1; min-height:0; height:auto !important; max-width:none; width:100%;}
+  body.tv.show-iso .iso-tools, body.tv.show-iso .iso-hint, body.tv.show-iso .iso-info{display:none !important;}
+  body.tv.show-iso .iso-stage{cursor:default;}
+  body.tv.show-iso .iso-legend{font-size:clamp(12px,1vw,18px);}
   body.show-iso #isoPage{display:flex;}
   body.show-iso #isoToggle{border-color:var(--amber); color:var(--amber);}
   body.show-iso #isoToggle svg{color:var(--amber);}
@@ -585,6 +589,36 @@
   .iso-car .cf.wheel{border-radius:50%; background:radial-gradient(circle, #D3D8DE 0 18%, #8E959E 19% 30%, #C3C9D0 31% 44%, #1E2126 46%);}
   .iso-car .cf.tire{border-radius:50%; background:#16181C;}
   .iso-box.dark{--base:#25282E;}
+  /* driveway */
+  .iso-lane{position:absolute; transform:translateZ(1px); pointer-events:none;
+    background:linear-gradient(90deg, transparent 47%, rgba(255,255,255,.75) 47% 53%, transparent 53%) 0 0 / 100% 34px repeat-y,
+      repeating-linear-gradient(180deg, transparent 0 46px, color-mix(in srgb, var(--amber) 55%, transparent) 46px 50px);
+    border-left:3px solid color-mix(in srgb, var(--amber) 60%, transparent); border-right:3px solid color-mix(in srgb, var(--amber) 60%, transparent);}
+  .iso-lane span{position:absolute; left:50%; bottom:46px; transform:translateX(-50%) rotate(90deg); white-space:nowrap;
+    font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; color:color-mix(in srgb, var(--amber) 80%, var(--text));}
+  .iso-props{position:absolute; left:0; top:0; transform-style:preserve-3d;}
+  /* parts boxes and removed tire */
+  .iso-kit{position:absolute; left:0; top:0; transform-style:preserve-3d;}
+  .iso-kit > div{position:absolute; left:0; top:0; transform-style:preserve-3d; display:none;}
+  .iso-veh.wait .kit-parts{display:block;}
+  .iso-veh.rt-cm .kit-tire{display:block;}
+  .iso-veh.leaving .iso-kit, .iso-veh.dragging .iso-kit{display:none;}
+  /* work by repair type */
+  .iso-model .hood{position:absolute; left:0; top:0; transform-style:preserve-3d; display:none;}
+  .iso-veh.rt-pm .hood{display:block;}
+  .iso-model .cf.engine{background:radial-gradient(ellipse 26% 40% at 32% 50%, #8C939C 0 60%, transparent 64%), radial-gradient(ellipse 18% 30% at 72% 46%, #C9A227 0 55%, transparent 60%),
+    linear-gradient(90deg, #2A2E34 0 8%, #3C4148 8% 92%, #2A2E34 92%);}
+  .iso-model .cf.lid{background:linear-gradient(transparent 0 8%, rgba(0,0,0,.18) 8% 10%, transparent 10% 90%, rgba(0,0,0,.18) 90% 92%, transparent 92%), color-mix(in srgb, var(--vc) 55%, #2A2D33);}
+  .iso-model .cf.hub{border-radius:50%; display:none; background:radial-gradient(circle, #5B6168 0 30%, #A9AFB6 32% 62%, #6E747B 64%);}
+  .iso-veh.rt-cm .cf.fl{display:none;}
+  .iso-veh.rt-cm .cf.hub{display:block;}
+  /* over-limit sign and red roof light */
+  .iso-tag .t-alert{display:flex; align-items:center; gap:4px; margin:-4px -9px 4px -9px; padding:2px 8px; border-radius:6px 6px 0 0;
+    background:var(--red); color:#fff; font-weight:800; font-size:11px; letter-spacing:.6px; animation:isoBlink 1s steps(2) infinite;}
+  .iso-veh.over .iso-box.beacon{--base:#FF4A3D;}
+  /* simple view */
+  body.iso-lite .iso-wallwrap, body.iso-lite .iso-props, body.iso-lite .iso-shadow, body.iso-lite .iso-runner{display:none !important;}
+  body.iso-lite .iso-mech, body.iso-lite .iso-leg, body.iso-lite .iso-walker, body.iso-lite .iso-box.beacon > i, body.iso-lite .iso-hop.drop{animation:none !important;}
   .iso-box.chassis{--base:color-mix(in srgb, var(--vc) 35%, #202328);}
   .iso-box.glass > .fn{--fc:color-mix(in srgb, #8EC1F0 70%, #1d2a3a);}
   .iso-box.boom{--base:color-mix(in srgb, var(--vc) 80%, black);}
@@ -759,6 +793,7 @@
       <button class="btn-sm" id="isoZoomOut" title="Zoom out" aria-label="Zoom out">−</button>
       <button class="btn-sm" id="isoZoomIn" title="Zoom in" aria-label="Zoom in">+</button>
       <button class="btn-sm" id="isoReset" title="Back to the starting view">Reset view</button>
+      <button class="btn-sm" id="isoLite" aria-pressed="false" title="Hide walls, props and shadows and stop background animations (for slow screens)">Simple view</button>
       <button class="btn-sm primary" id="isoBack">Back to board</button>
     </div>
   </div>
@@ -1466,6 +1501,7 @@ const TV_OPTS = [
   ['datein', '', 'Date in']
 ];
 const tvShows = key => !(settings.tv && settings.tv[key] === false);
+const tv3d = () => !!(settings.tv && settings.tv.view3d);   // the lobby TV shows the Interactive 3D view
 function applyTvOptions(){
   TV_OPTS.forEach(([k]) => document.body.classList.toggle('tvh-' + k, !tvShows(k)));
   applyTheme();
@@ -1487,6 +1523,21 @@ function applyTvOptions(){
   };
   trow.appendChild(tsel);
   box.appendChild(trow);
+  const vrow = document.createElement('div');
+  vrow.className = 'set-row';
+  vrow.innerHTML = '<span>TV shows</span>';
+  const vsel = document.createElement('select');
+  vsel.style.width = 'auto';
+  [['board', 'Normal board'], ['3d', '3D Interactive view (turns slowly)']].forEach(([v, label]) => {
+    const o = document.createElement('option'); o.value = v; o.textContent = label; vsel.appendChild(o);
+  });
+  vsel.value = tv3d() ? '3d' : 'board';
+  vsel.onchange = () => {
+    const tv = Object.assign({}, settings.tv || {}); tv.view3d = vsel.value === '3d';
+    store.saveSettings({ tv: tv });
+  };
+  vrow.appendChild(vsel);
+  box.appendChild(vrow);
   TV_OPTS.forEach(([k, , label]) => {
     const row = document.createElement('label');
     row.className = 'set-row';
@@ -2081,12 +2132,13 @@ function exportFinished(){
 function showPage(){
   const fin = isFinishedPage() && !isTV();
   document.body.classList.toggle('show-finished', fin);
-  const iso = isIsoPage() && !isTV();
+  const iso = isTV() ? (tv3d() || isIsoPage()) : isIsoPage();
   if (iso !== isoShown()) {
     document.body.classList.toggle('show-iso', iso);
     $('isoCars').innerHTML = ''; ISO.els.clear(); ISO.key = ''; ISO.sel = null; ISO.first = true;   // replay the drop-in on every visit
-    if (iso) { $('staffPanel').classList.remove('open'); window.scrollTo(0, 0); renderIso(); }
+    if (iso) { $('staffPanel').classList.remove('open'); window.scrollTo(0, 0); ISO.st = null; Object.assign(ISO, ISO_VIEW); renderIso(); isoCamera(); }
   }
+  if (iso && isTV() && !ISO.tvRaf) ISO.tvRaf = requestAnimationFrame(isoTvSway);
   if (fin) {
     $('staffPanel').classList.remove('open');
     if (!historyUnsub && store) {
@@ -2220,12 +2272,22 @@ function isoExtrude(profile, w, win, opts){
 }
 function isoWheelsHtml(w, ys, r){
   let h = '';
-  ys.forEach(y => [1, -1].forEach(side => {
+  ys.forEach((y, yi) => [1, -1].forEach(side => {
+    const fl = yi === 0 && side === -1 ? ' fl' : '';   // front-left wheel comes off for corrective jobs
     [w / 2 + 1.5, w / 2 - 7].forEach((x, k) => {
-      h += isoFace(2 * r, 2 * r, [0, 1, 0], [0, 0, -1], [side * x, y, r]).html('', k ? 'tire' : 'wheel');
+      h += isoFace(2 * r, 2 * r, [0, 1, 0], [0, 0, -1], [side * x, y, r]).html('', (k ? 'tire' : 'wheel') + fl);
     });
+    if (fl) h += isoFace(r * 1.2, r * 1.2, [0, 1, 0], [0, 0, -1], [-(w / 2 - 3), y, r]).html('', 'hub');
   }));
   return h;
+}
+/* Open hood: engine bay drawn over the closed hood, and the hood panel swung up from its back edge (hinge). */
+function isoHood(w, yf, zf, yr, zr){
+  const len = Math.hypot(yr - yf, zr - zf), v = [0, (yr - yf) / len, (zr - zf) / len];
+  const bay = isoFace(w - 8, len - 2, [1, 0, 0], v, [0, (yf + yr) / 2, (zf + zr) / 2 + 0.8]).html('', 'engine');
+  const a = 62 * Math.PI / 180, d = [0, -Math.cos(a), Math.sin(a)];
+  const lid = isoFace(w - 4, len, [1, 0, 0], d, [0, yr + d[1] * len / 2, zr + 1 + d[2] * len / 2]).html('', 'lid');
+  return '<div class="hood">' + bay + lid + '</div>';
 }
 const isoParts = list => list.map(p => isoBox.apply(null, p)).join('');
 const isoCar = (profile, w, win, wheelYs, r, extra) => '<div class="iso-car">' + isoWheelsHtml(w, wheelYs, r) + isoExtrude(profile, w, win) + (extra || '') + '</div>';
@@ -2233,15 +2295,15 @@ const ISO_MODELS = {
   pickup: () => isoParts(isoArms()) + isoCar(
     [[-75, 10, 'f'], [-75, 31], [-71, 37], [-40, 41, 'g'], [-21, 63], [9, 64, 'g'], [13, 43, 'b'], [75, 43, 'r'], [75, 10]], 64,
     [[[-38, 44], [-23, 60], [-6, 60.5], [-6, 44]], [[-3, 44], [-3, 60.5], [7, 61], [10, 44]]], [-47, 47], 13,
-    isoBox('beacon', 12, 8, 6, 0, -5, 64)),
+    isoBox('beacon', 12, 8, 6, 0, -5, 64) + isoHood(64, -71, 37, -40, 41)),
   suv: () => isoParts(isoArms()) + isoCar(
     [[-75, 10, 'f'], [-75, 32], [-70, 38], [-42, 43, 'g'], [-22, 64], [42, 66, 'g'], [62, 60], [75, 50, 'r'], [75, 10]], 64,
     [[[-39, 46], [-24, 61], [-2, 62], [-2, 46]], [[2, 46], [2, 62], [26, 62.5], [26, 46]], [[30, 46], [30, 62.5], [44, 63], [58, 52], [58, 46]]], [-47, 48], 13,
-    isoBox('beacon', 12, 8, 6, 0, 10, 66)),
+    isoBox('beacon', 12, 8, 6, 0, 10, 66) + isoHood(64, -70, 38, -42, 43)),
   van: () => isoParts(isoArms()) + isoCar(
     [[-75, 10, 'f'], [-75, 34], [-71, 41], [-60, 47, 'g'], [-46, 71], [70, 73], [75, 69, 'r'], [75, 10]], 64,
     [[[-45, 50], [-36, 67], [-22, 68], [-22, 50]], [[-18, 50], [-18, 68], [12, 69], [12, 50]], [[16, 50], [16, 69], [46, 69.5], [46, 50]], [[50, 50], [50, 69.5], [70, 70], [70, 50]]], [-50, 50], 13,
-    isoBox('beacon', 12, 8, 6, 0, -30, 72)),
+    isoBox('beacon', 12, 8, 6, 0, -30, 72) + isoHood(64, -71, 41, -60, 47)),
   truck: () => isoParts([['chassis', 70, 186, 12, 0, 4, 14], ['', 74, 126, 62, 0, 31, 24]]) + isoCar(
     [[-95, 12, 'f'], [-95, 52], [-93, 74, 'g'], [-89, 84], [-56, 85], [-52, 12]], 72,
     [[[-88, 58], [-85, 79], [-68, 80], [-68, 58]]], [-70, 36, 66], 15,
@@ -2341,7 +2403,8 @@ function isoLayout(){
   const zones = [zb, zw, zs];
   const W = ISO_PAD.l + inner + ISO_PAD.r, D = zw.y + Math.max(zw.d, zs.d) + ISO_PAD.b;
   const key = W + 'x' + D + '|' + zones.map(z => z.slots.length).join(',') + '|' + names.join('\u0001') + '|' + extra.length;
-  return { W, D, zones, items, key, inner, counts: { bay: bay.length, wait: wait.length, sched: sched.length } };
+  const lane = { x: zw.x + zw.w + ISO_GAP / 2, aisle: zw.y - ISO_GAP / 2, top: zw.y - ISO_GAP, out: D + 260 };   // driveway between the lots
+  return { W, D, zones, items, key, inner, lane, counts: { bay: bay.length, wait: wait.length, sched: sched.length } };
 }
 
 const ISO_TITLES = { bay: 'In the bay now', wait: 'Awaiting parts', sched: 'Scheduled' };
@@ -2386,11 +2449,12 @@ function isoProps(L){
   if (L.D - y0 > 640) h += isoBox('p-wood', 84, 84, 10, x, L.D - 110, 0) + boxes(x - 18, L.D - 128, 10) + boxes(x + 20, L.D - 92, 10) + isoBox('p-box', 34, 34, 26, x + 18, L.D - 130, 10);
   const zw = L.zones[1];
   h += tires(Math.max(30, zw.x - 36), zw.y - ISO_GAP / 2, 3);
-  return h;
+  return '<div class="iso-props">' + h + '</div>';
 }
 function buildIsoFloor(L){
   let h = isoBox('iso-slab', L.W, L.D, 20, L.W / 2, L.D / 2, -21) + isoWalls(L.W, L.D) + isoProps(L) +
-    '<div class="iso-ground" style="width:' + L.W + 'px;height:' + L.D + 'px"></div>';
+    '<div class="iso-ground" style="width:' + L.W + 'px;height:' + L.D + 'px"></div>' +
+    '<div class="iso-lane" style="left:' + (L.lane.x - 26) + 'px;top:' + L.lane.top + 'px;width:52px;height:' + (L.D - L.lane.top) + 'px"><span>IN · OUT</span></div>';
   L.zones.forEach(z => {
     h += '<div class="iso-zone z-' + z.key + '" data-zone="' + z.key + '" style="left:' + z.x + 'px;top:' + z.y + 'px;width:' + z.w + 'px;height:' + z.d + 'px">';
     z.slots.forEach(s => {
@@ -2421,18 +2485,59 @@ function isoTag(e, now){
     const elapsed = workedMs(e, now), limitMs = e.limitHrs * 3600000, pct = Math.min(100, elapsed / limitMs * 100);
     // Kept short so neighbouring bays' tags don't overlap; the details panel has the rest.
     const what = e.hold ? (e.hold === PAUSED ? 'Paused' : esc(e.hold)) : elapsed > limitMs ? 'Over' : '';
-    return plate + '<span class="ts"><b>' + fmtElapsed(elapsed) + '</b>' + (what ? ' · ' + what : '') + '</span>' +
+    return (!e.hold && elapsed > limitMs ? '<span class="t-alert">' + ICON.alert + ' OVER LIMIT</span>' : '') + plate + '<span class="ts"><b>' + fmtElapsed(elapsed) + '</b>' + (what ? ' · ' + what : '') + '</span>' +
       '<div class="tbar"><i style="width:' + pct.toFixed(1) + '%"></i></div>';
   }
   if (e.status === 'wait') return plate + '<span class="ts">' + (e.hold && e.hold !== 'Awaiting parts' ? esc(holdLabel(e)) + ' · ' : '') + 'In ' + esc(fmtDate(entryDateIn(e))) + '</span>';
   return plate + '<span class="ts">' + esc(schedWhen(e).text) + '</span>';
 }
 
+/* ---- Drive in / drive out ----
+   Vehicles use the driveway between the Awaiting parts and Scheduled lots and the aisle in front of the bays.
+   The element moves (translate) and .iso-hop turns (rotateZ) with matching keyframes; headings: 0 = facing −y
+   (parked), 90 = +x, 180 = +y, −90 = −x. Transform-only Web Animations, so it stays smooth. */
+const ISO_SPEED = 230, ISO_TURN = 0.5;   // world px per second, seconds per 90° turn
+function isoDrive(el, from, legs, keep){
+  const cur = Object.assign({}, from), frames = [{ t: 0, x: cur.x, y: cur.y, r: cur.r }];
+  let t = 0;
+  legs.forEach(L => {
+    let r = L.r; while (r - cur.r > 180) r -= 360; while (cur.r - r > 180) r += 360;   // turn the short way
+    if (r !== cur.r) { t += Math.abs(r - cur.r) / 90 * ISO_TURN; cur.r = r; frames.push({ t, x: cur.x, y: cur.y, r }); }
+    const dist = Math.hypot(L.x - cur.x, L.y - cur.y);
+    if (dist > 0.5) { t += dist / ISO_SPEED; cur.x = L.x; cur.y = L.y; frames.push({ t, x: cur.x, y: cur.y, r: cur.r }); }
+  });
+  const T = Math.max(t, 0.05), hop = el.querySelector('.iso-hop');
+  hop.classList.remove('drop', 'move');
+  const opt = { duration: T * 1000, easing: 'linear', fill: keep ? 'forwards' : 'none' };
+  hop.animate(frames.map(f => ({ offset: f.t / T, transform: 'rotateZ(' + f.r + 'deg)' })), opt);
+  return el.animate(frames.map(f => ({ offset: f.t / T, transform: 'translate3d(' + f.x + 'px,' + f.y + 'px,0)' })), opt);
+}
+function isoStopDrive(el){   // a vehicle that was leaving came back (Undo / Restore)
+  if (typeof el._out === 'number') clearTimeout(el._out);
+  el._out = null; el.classList.remove('leaving');
+  [el, el.querySelector('.iso-hop')].forEach(n => n.getAnimations().forEach(a => a.cancel()));
+}
+function isoPathOut(x, y){
+  const L = ISO.lane, legs = [{ x, y: L.aisle, r: 0 }];          // reverse out of the bay (or pull forward out of a lot)
+  if (Math.abs(x - L.x) > 1) legs.push({ x: L.x, y: L.aisle, r: L.x > x ? 90 : -90 });
+  legs.push({ x: L.x, y: L.out, r: 180 });
+  return legs;
+}
+function isoPathIn(x, y){
+  const L = ISO.lane, legs = [{ x: L.x, y: L.aisle, r: 0 }];
+  if (Math.abs(x - L.x) > 1) legs.push({ x, y: L.aisle, r: x > L.x ? 90 : -90 });
+  legs.push({ x, y, r: 0 });                                      // park facing the back wall (reverses into a lot)
+  return { from: { x: L.x, y: L.out, r: 0 }, legs };
+}
+/* Floor kit around a vehicle: parts boxes (awaiting parts) and the removed tire by the lift post (corrective). */
+const ISO_KIT = '<div class="kit-parts">' + isoBox('p-box', 22, 22, 18, 46, 64, 0) + isoBox('p-box', 18, 18, 14, 46, 63, 18) + isoBox('p-box', 16, 20, 12, 30, 72, 0) + '</div>' +
+  '<div class="kit-tire">' + isoBox('p-tire', 28, 28, 10, -84, 34, 0) + '</div>';
+
 function renderIso(){
   if (!isoShown()) return;
   const L = isoLayout();
   if (L.key !== ISO.key) {
-    ISO.key = L.key; ISO.W = L.W; ISO.D = L.D;
+    ISO.key = L.key; ISO.W = L.W; ISO.D = L.D; ISO.lane = L.lane;
     const w = $('isoWorld'); w.style.width = L.W + 'px'; w.style.height = L.D + 'px';
     buildIsoFloor(L);
     isoCamera();
@@ -2448,7 +2553,8 @@ function renderIso(){
     if (fresh) {
       el = document.createElement('div');
       el.tabIndex = 0; el.setAttribute('role', 'button');
-      el.innerHTML = '<div class="iso-shadow"></div><div class="iso-hop"><div class="iso-model"></div><div class="iso-crew"></div></div><div class="iso-tag"></div>';
+      el.innerHTML = '<div class="iso-hop"><div class="iso-shadow"></div><div class="iso-model"></div><div class="iso-crew"></div></div>' +
+        '<div class="iso-kit">' + ISO_KIT + '</div><div class="iso-tag"></div>';
       el.dataset.id = String(e.id);
       if (ISO.tagT) el.querySelector('.iso-tag').style.transform = ISO.tagT;
       el.style.transform = 'translate3d(' + it.x + 'px,' + it.y + 'px,0)';
@@ -2456,10 +2562,10 @@ function renderIso(){
       cars.appendChild(el);
       ISO.els.set(e.id, el);
       const hop = el.querySelector('.iso-hop');
-      hop.style.animationDelay = (ISO.first ? i * 80 : 0) + 'ms';
-      hop.classList.add('drop');
       hop.addEventListener('animationend', () => { hop.classList.remove('drop', 'move'); hop.style.animationDelay = ''; });
-    } else if (el._out) { clearTimeout(el._out); el._out = null; }
+      if (ISO.first || !ISO.lane) { hop.style.animationDelay = (ISO.first ? i * 80 : 0) + 'ms'; hop.classList.add('drop'); }
+      else { const p = isoPathIn(it.x, it.y); isoDrive(el, p.from, p.legs, false); }   // a new vehicle drives in
+    } else if (el._out) { isoStopDrive(el); }
     const kind = isoKind(e);
     if (el.dataset.kind !== kind) {
       el.dataset.kind = kind;
@@ -2470,7 +2576,9 @@ function renderIso(){
     const dragging = ISO.drag && ISO.drag.active && ISO.drag.id === e.id;
     const state = isoState(e, now);
     const onLift = it.zone === 'bay' && ISO_LIFTABLE[kind] && it.lift && /^(work|near|over)$/.test(state);
-    const cls = 'iso-veh ' + state + (it.zone !== 'bay' ? ' lot' : ' inbay') + (onLift ? ' raised' : '') + (ISO.sel === e.id ? ' sel' : '') + (dragging ? ' dragging' : '') + (el._out ? ' out' : '');
+    const working = it.zone === 'bay' && /^(work|near|over)$/.test(state);
+    const rt = working ? (/Corrective/.test(e.repair || '') ? ' rt-cm' : ' rt-pm') : '';   // hood open (PM/Express) or wheel off (CM)
+    const cls = 'iso-veh ' + state + (it.zone !== 'bay' ? ' lot' : ' inbay') + (onLift ? ' raised' : '') + rt + (ISO.sel === e.id ? ' sel' : '') + (dragging ? ' dragging' : '');
     if (el.className !== cls) el.className = cls;   // rewriting an unchanged class still restyles the whole model
     const aria = vTitle(e) + ', ' + ISO_TITLES[it.zone] + (e.bay && it.zone === 'bay' ? ', ' + e.bay : '');
     if (el.getAttribute('aria-label') !== aria) el.setAttribute('aria-label', aria);
@@ -2486,8 +2594,17 @@ function renderIso(){
   });
   ISO.els.forEach((el, id) => {
     if (seen.has(id) || el._out) return;
-    el.classList.add('out');
-    el._out = setTimeout(() => { el.remove(); ISO.els.delete(id); }, 650);
+    const wasRaised = el.classList.contains('raised');
+    el.classList.remove('raised', 'sel', 'rt-cm', 'rt-pm');
+    el.classList.add('leaving');
+    const done = () => { if (el._out) { el.remove(); ISO.els.delete(id); } };
+    el._out = setTimeout(() => {
+      if (!el._out || !ISO.lane || !el.isConnected) return done();
+      const [x, y] = el.dataset.pos.split(',').map(Number);
+      const a = isoDrive(el, { x, y, r: 0 }, isoPathOut(x, y), true);
+      el._out = 'driving';
+      a.finished.then(done, () => {});
+    }, wasRaised ? 1500 : 150);   // the lift comes down first
   });
   if (ISO.sel !== null && !seen.has(ISO.sel)) ISO.sel = null;
   ISO.first = false;
@@ -2521,6 +2638,17 @@ function isoCamera(fast){
   w.style.transform = 'translate(-50%,-50%) translate(' + ISO.panX + 'px,' + ISO.panY + 'px) scale(' + s.toFixed(4) + ') rotateX(' + ISO.tilt + 'deg) rotateZ(' + ISO.rz + 'deg)';
 }
 
+/* TV: the view sways slowly left and right (about 30 frames a second is plenty). */
+function isoTvSway(ts){
+  if (!isoShown() || !isTV()) { ISO.tvRaf = 0; Object.assign(ISO, ISO_VIEW); if (isoShown()) isoCamera(); return; }
+  if (!ISO.tvLast || ts - ISO.tvLast > 33) {
+    ISO.tvLast = ts;
+    ISO.rz = ISO_VIEW.rz + 16 * Math.sin(ts / 40000 * 2 * Math.PI);
+    ISO.zoom = 1; ISO.panX = ISO.panY = 0; ISO.tilt = ISO_VIEW.tilt;
+    isoCamera(true);
+  }
+  ISO.tvRaf = requestAnimationFrame(isoTvSway);
+}
 let isoCamFrame = 0;
 function isoCameraSoon(){   // at most one camera update per screen frame
   if (isoCamFrame) return;
@@ -2601,9 +2729,9 @@ function isoHot(t){
 }
 $('isoStage').addEventListener('pointerdown', ev => {
   if (ev.button > 0 && ev.pointerType === 'mouse' && ev.button !== 1) return;
-  if (ev.target.closest('.iso-info')) return;
+  if (ev.target.closest('.iso-info') || isTV()) return;
   const v = ev.target.closest('.iso-veh');
-  if (v && !v.classList.contains('out') && ev.button === 0 && !ev.shiftKey) {   // Shift+drag always pans
+  if (v && !v.classList.contains('leaving') && ev.button === 0 && !ev.shiftKey) {   // Shift+drag always pans
     ISO.drag = { id: parseFloat(v.dataset.id), el: v, x0: ev.clientX, y0: ev.clientY, active: false, ghost: null, target: null };
   } else {
     // Shift/middle button pans; on touch screens one finger pans once zoomed in (turn with the buttons)
@@ -2665,7 +2793,7 @@ function isoPointerEnd(ev, cancel){
 $('isoStage').addEventListener('pointerup', ev => isoPointerEnd(ev, false));
 $('isoStage').addEventListener('pointercancel', ev => isoPointerEnd(ev, true));
 $('isoStage').addEventListener('wheel', ev => {
-  if (ev.target.closest('.iso-info')) return;
+  if (ev.target.closest('.iso-info') || isTV()) return;
   ev.preventDefault();
   ISO.zoom = Math.max(0.5, Math.min(3, ISO.zoom * (ev.deltaY < 0 ? 1.12 : 1 / 1.12)));
   $('isoWorld').classList.add('live'); isoCameraSoon();
@@ -2687,6 +2815,18 @@ $('isoBack').onclick = () => {
   showPage();
 };
 window.addEventListener('resize', () => { if (isoShown()) { ISO.st = null; isoCamera(); } });
+/* Simple view: no walls, props or shadows and no background animations (for slow screens). Per device. */
+function applyIsoLite(on){
+  document.body.classList.toggle('iso-lite', on);
+  $('isoLite').setAttribute('aria-pressed', on ? 'true' : 'false');
+  $('isoLite').classList.toggle('primary', on);
+}
+$('isoLite').onclick = () => {
+  const on = !document.body.classList.contains('iso-lite');
+  try { localStorage.setItem('bayIsoLite', on ? '1' : ''); } catch (err) {}
+  applyIsoLite(on);
+};
+applyIsoLite((() => { try { return localStorage.getItem('bayIsoLite') === '1'; } catch (err) { return false; } })());
 ['finSearch', 'finFrom', 'finTo', 'finRepair'].forEach(id => $(id).addEventListener('input', renderFinished));
 $('finBinToggle').onclick = () => { showBin = !showBin; renderFinished(); window.scrollTo(0, 0); };
 
@@ -3226,6 +3366,7 @@ let limitTouched = false;
 function applySettings(){
   renderDivisions();
   applyTvOptions();
+  showPage();   // the TV may switch between the board and the 3D view
   rebuildVehicles(addedVehicles());
   renderAddedVehicles();
   if (!$('staffPanel').contains(document.activeElement) || document.activeElement !== $('fBay')) renderBayOptions();
