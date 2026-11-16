@@ -490,6 +490,8 @@
   /* 3D boxes: --w × --d × --h at (--x, --y) with the bottom at --z. Faces: top, north, south, east, west. */
   .iso-box{position:absolute; left:0; top:0; transform-style:preserve-3d;
     transform:translate3d(var(--x,0px), var(--y,0px), calc(var(--z,0px) + var(--h) / 2));}
+  /* Faces that point away from the camera are skipped (backface-visibility), which roughly halves the drawing work. */
+  .iso-box > i, .cf.bf{backface-visibility:hidden; -webkit-backface-visibility:hidden;}
   .iso-box > i{position:absolute; display:block; left:calc(var(--fw) / -2); top:calc(var(--fh) / -2); width:var(--fw); height:var(--fh); background:var(--fc);}
   .iso-box > .ft{--fw:var(--w); --fh:var(--d); --fc:var(--c-top); transform:translateZ(calc(var(--h) / 2));}
   .iso-box > .fn{--fw:var(--w); --fh:var(--h); --fc:var(--c-ns); transform:rotateX(90deg) translateZ(calc(var(--d) / 2));}
@@ -2183,7 +2185,7 @@ function showPage(){
   if (iso !== isoShown()) {
     document.body.classList.toggle('show-iso', iso);
     $('isoCars').innerHTML = ''; ISO.els.clear(); ISO.key = ''; ISO.sel = null; ISO.first = true;   // replay the drop-in on every visit
-    if (iso) { $('staffPanel').classList.remove('open'); window.scrollTo(0, 0); ISO.st = null; Object.assign(ISO, ISO_VIEW); renderIso(); isoCamera(); }
+    if (iso) { $('staffPanel').classList.remove('open'); window.scrollTo(0, 0); ISO.st = null; Object.assign(ISO, ISO_VIEW); renderIso(); isoCamera(); isoAutoLite(); }
   }
   if (iso && isTV() && !ISO.tvRaf) ISO.tvRaf = requestAnimationFrame(isoTvSway);
   if (fin) {
@@ -2305,14 +2307,15 @@ function isoExtrude(profile, w, win, opts){
     const sh = isoShade(fc.n);
     const style = opts.edge ? opts.edge(sh) : type === 'g' ? isoGlass(sh) : type === 'k' ? 'background:color-mix(in srgb, #3A3F46 ' + sh + '%, black)' : type === 'b'   // open pickup bed: dark floor inside a body-colored rim
       ? isoBody(Math.max(20, sh - 30)) + ';box-shadow:inset 0 0 0 5px color-mix(in srgb, var(--vc) ' + sh + '%, black)' : isoBody(sh);
-    h += fc.html('', type === 'f' ? 'front' : type === 'r' ? 'rear' : '').replace('style="', 'style="' + style + ';');
+    h += fc.html('', (type === 'f' ? 'front' : type === 'r' ? 'rear' : '') + ' bf').replace('style="', 'style="' + style + ';');
   }
-  const poly = pts => 'polygon(' + pts.map(([y, z]) => (y - y0).toFixed(1) + 'px ' + (z1 - z).toFixed(1) + 'px').join(',') + ')';
+  // Both sides face outward (the right side is drawn mirrored), so the side facing away can be skipped (.bf).
   [1, -1].forEach(side => {
-    const fc = isoFace(L, H, [0, 1, 0], [0, 0, -1], [side * w / 2, (y0 + y1) / 2, (z0 + z1) / 2]);
+    const poly = pts => 'polygon(' + pts.map(([y, z]) => (side > 0 ? y1 - y : y - y0).toFixed(1) + 'px ' + (z1 - z).toFixed(1) + 'px').join(',') + ')';
+    const fc = isoFace(L, H, [0, -side, 0], [0, 0, -1], [side * w / 2, (y0 + y1) / 2, (z0 + z1) / 2]);
     const sh = isoShade([side, 0, 0]);
     const inner = (win || []).map(pg => '<b style="clip-path:' + poly(pg) + ';' + isoGlass(sh) + '"></b>').join('') + '<b class="sill"></b>';
-    h += fc.html(opts.side ? (win || []).map(pg => '<b style="clip-path:' + poly(pg) + ';' + isoGlass(sh) + '"></b>').join('') : inner)
+    h += fc.html(opts.side ? (win || []).map(pg => '<b style="clip-path:' + poly(pg) + ';' + isoGlass(sh) + '"></b>').join('') : inner, 'bf')
       .replace('style="', 'style="clip-path:' + poly(profile) + ';' + (opts.side ? opts.side(sh) : isoBody(sh)) + ';');
   });
   return h;
@@ -2941,10 +2944,39 @@ function applyIsoLite(on){
 }
 $('isoLite').onclick = () => {
   const on = !document.body.classList.contains('iso-lite');
-  try { localStorage.setItem('bayIsoLite', on ? '1' : ''); } catch (err) {}
+  try { localStorage.setItem('bayIsoLite', on ? '1' : '0'); } catch (err) {}   // '1' / '0' = chosen by staff; unset = automatic
   applyIsoLite(on);
+  isoLiteNote('');
 };
-applyIsoLite((() => { try { return localStorage.getItem('bayIsoLite') === '1'; } catch (err) { return false; } })());
+const isoLitePref = () => { try { return localStorage.getItem('bayIsoLite') || ''; } catch (err) { return ''; } };
+applyIsoLite(isoLitePref() === '1');
+/* Automatic Simple view: a few seconds after the 3D view opens, count frames for 3 s. If this screen
+   draws fewer than 30 per second, turn Simple view on (only when nobody chose a setting on this device). */
+var isoFpsChecked = false;
+function isoLiteNote(text){
+  const h = document.querySelector('.iso-hint');
+  if (!h.dataset.text) h.dataset.text = h.textContent;
+  h.textContent = text || h.dataset.text;
+}
+function isoAutoLite(){
+  if (isoFpsChecked || isoLitePref() === '1' || isoLitePref() === '0' || document.body.classList.contains('iso-lite')) return;
+  isoFpsChecked = true;
+  setTimeout(() => {
+    if (!isoShown() || document.hidden) { isoFpsChecked = false; return; }
+    let n = 0; const t0 = performance.now();
+    const step = t => {
+      n++;
+      if (t - t0 < 3000) { requestAnimationFrame(step); return; }
+      const fps = n * 1000 / (t - t0);
+      if (document.hidden || !isoShown()) { isoFpsChecked = false; return; }
+      if (fps < 30 && !document.body.classList.contains('iso-lite')) {
+        applyIsoLite(true);
+        isoLiteNote('Simple view was turned on automatically because this screen was slow (' + Math.round(fps) + ' frames per second). Click Simple view to turn it off.');
+      }
+    };
+    requestAnimationFrame(step);
+  }, 3000);
+}
 ['finSearch', 'finFrom', 'finTo', 'finRepair'].forEach(id => $(id).addEventListener('input', renderFinished));
 $('finBinToggle').onclick = () => { showBin = !showBin; renderFinished(); window.scrollTo(0, 0); };
 
