@@ -46,6 +46,7 @@ The user is not a developer. Explain Firebase and GitHub steps in plain, numbere
 - Time limit fills in from the repair type's default unless staff typed one (`limitTouched`).
 - Work and remarks are cut to 2 lines on the board (`.wtext`); full text in Staff panel, tooltip, and Finished page.
 - Elapsed time ticks every second; the card turns red with "OVER LIMIT" past the limit.
+- Performance (2026-11-16, user saw FPS drops): `renderBoard()` builds the HTML as strings and compares a key; it only rebuilds the DOM when something visible changes (vehicles, labels, minutes left, TV page, lock state). Otherwise `setDyn()` updates just the `.elapsed` text and `.bar-fill` width. Ticking text must stay out of the key (keep the elapsed span empty in the HTML). Timers don't tick while the Staff panel/PIN box is open. `renderBoard(true)` forces a rebuild (used on TV resize). No `backdrop-filter` on overlays (it was redrawn every second).
 - Staff panel has two columns (Waiting, In bay); vehicles are dragged between them. Dragging resets the timer (`since`).
 - Every field is editable at any time, including while waiting, via the **Edit** button on each vehicle in the Staff panel (In bay and Waiting). Edit loads the vehicle into the top form (title "Edit …", "Save changes" / "Cancel edit"); it can change the vehicle (duplicate guard applies), repair type, work, remarks, date in, status, bay, mechanics, time limit and the timer start (`fSince`). Changing status without touching the timer start resets `since`, like dragging. The Staff rows show a read-only summary; the old inline editors were replaced.
 - Adding a vehicle already on the board (same property no.) is blocked.
@@ -104,4 +105,5 @@ Serve the folder (`python3 -m http.server`) and open it in a browser with `FIREB
 - 2026-11-06: renamed the Waiting list to "Awaiting parts" (labels only).
 - 2026-11-10: fixed timer stuck at 0m 00s after Edit moved a previously paused vehicle (old `heldMs` kept); existing stuck entries heal on refresh.
 - 2026-11-11: Resume after Pause restarts the timer for the new day; total time over all days kept for the record.
+- 2026-11-16: fixed FPS drops in normal (interactive) mode: board no longer rebuilt every second, blur behind the Staff panel removed.
 - Ideas the user has not decided on: link to the user's PM/CM maintenance records.

@@ -269,7 +269,7 @@
 
   /* ---------- Staff panel (dialog with tabs) ---------- */
   .staff-panel{position:fixed; inset:0; background:rgba(8,10,14,0.6); display:none; align-items:center; justify-content:center;
-    z-index:10; padding:clamp(0px,2vw,24px); backdrop-filter:blur(2px);}
+    z-index:10; padding:clamp(0px,2vw,24px);}
   .staff-panel.open{display:flex;}
   .staff-sheet{background:var(--bg); border:1px solid var(--hair); width:100%; max-width:1240px; height:100%; max-height:940px;
     overflow-y:auto; border-radius:var(--r-lg); box-shadow:var(--shadow-lg); padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));}
@@ -348,7 +348,7 @@
   .set-row select{width:auto; max-width:60%;}
 
   /* ---------- PIN box ---------- */
-  .pin-modal{position:fixed; inset:0; background:rgba(8,10,14,0.6); display:none; align-items:center; justify-content:center; z-index:30; padding:16px; backdrop-filter:blur(2px);}
+  .pin-modal{position:fixed; inset:0; background:rgba(8,10,14,0.6); display:none; align-items:center; justify-content:center; z-index:30; padding:16px;}
   .pin-modal.open{display:flex;}
   .pin-box{background:var(--surface); border:1px solid var(--hair); border-radius:var(--r-lg); padding:22px; width:100%; max-width:360px; box-shadow:var(--shadow-lg);}
   .pin-box h3{font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:0.5px; margin:0 0 6px;}
@@ -1106,16 +1106,20 @@ function endBoardDrag(){
   });
 });
 
-function renderBoard(){
+/* The board is rebuilt only when something on it changes (vehicles, labels, page, minutes left).
+   Every other second only the timers and progress bars are updated, which keeps scrolling and
+   hovering smooth on slower computers. */
+let boardKey = '', boardDyn = [];
+function renderBoard(force){
   if (boardDragging) return;
+  // While the Staff panel or PIN box covers the board, its timers don't need to tick.
+  const covered = !isTV() && ($('staffPanel').classList.contains('open') || $('pinModal').classList.contains('open'));
   const now = nowMs();
   const bay = entries.filter(e => e.status === 'bay');
   const wait = entries.filter(e => e.status === 'wait');
-  const bayEl = $('bayGrid'), qEl = $('queueList');
-
-  bayEl.innerHTML = bay.length ? '' : '<div class="empty">No vehicles in the bay right now.</div>';
+  const sched = entries.filter(e => e.status === 'sched').sort((a, b) => schedKey(a) < schedKey(b) ? -1 : 1);
   const overNow = [];
-  bay.forEach(e => {
+  const bayItems = bay.map(e => {
     const elapsed = workedMs(e, now);
     const held = !!e.hold;
     const limitMs = e.limitHrs * 3600000;
@@ -1124,10 +1128,6 @@ function renderBoard(){
     const left = limitMs - elapsed;
     const near = !over && !held && left <= NEAR_MS;
     if (over) overNow.push(e);
-    const card = document.createElement('div');
-    card.className = 'card' + (held ? ' hold' : over ? ' over' : near ? ' near' : '');
-    // Keep the pulse smooth even though the card is redrawn every second.
-    if (over && !held) card.style.animationDelay = -(now % 1600) + 'ms';
     const status = held ? '<span class="status hold-tag">' + esc(holdLabel(e)) + '</span>'
       : over ? '<span class="status over-label">Over limit</span>'
       : near ? '<span class="status near-label">' + Math.max(1, Math.ceil(left / 60000)) + ' min left</span>'
@@ -1136,7 +1136,7 @@ function renderBoard(){
       : over ? '<b style="color:var(--red)">Over by ' + esc(fmtDuration(-left)) + '</b>'
       : esc(fmtDuration(left)) + ' left';
     const mechs = e.mechanics || [];
-    card.innerHTML =
+    const html =
       '<div class="card-top"><span class="plate" title="' + esc(vTitle(e)) + '">' + esc(vTitle(e)) + '</span>' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') + '</div>' +
       (e.desc || (e.vno && e.vno !== vTitle(e)) ? '<div class="vdesc">' + (e.desc ? '<span class="vd">' + esc(e.desc) + '</span>' : '') +
         ((e.vno && e.vno !== vTitle(e)) ? '<span class="pno">' + (e.desc ? '<span class="sep"> · </span>' : '') + esc(e.vno) + '</span>' : '') + '</div>' : '') +
@@ -1145,42 +1145,26 @@ function renderBoard(){
       workHtml(e) +
       (mechs.length ? '<div class="mechanic-block"><span class="mechanic-label" title="' + (mechs.length > 1 ? 'Mechanics' : 'Mechanic') + '">' + ICON.user + '</span><div class="mechanic-names">' + mechs.map(n => '<span class="mech-chip">' + esc(n) + '</span>').join('') + '</div></div>' : '') +
       '<div class="card-foot">' +
-        '<div class="time-row"><span class="elapsed">' + fmtElapsed(elapsed) + '</span><span class="limit">of ' + esc(e.limitHrs) + 'h limit</span></div>' +
-        '<div class="bar-track"><div class="bar-fill' + (held ? ' hold' : over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
+        '<div class="time-row"><span class="elapsed"></span><span class="limit">of ' + esc(e.limitHrs) + 'h limit</span></div>' +
+        '<div class="bar-track"><div class="bar-fill' + (held ? ' hold' : over ? ' over' : '') + '"></div></div>' +
         '<div class="foot-meta"><span class="datein-row">In <b>' + esc(fmtDate(entryDateIn(e))) + '</b>' + (e.workDay > 1 ? ' · day ' + e.workDay : '') + '</span><span>' + footRight + '</span></div>' +
       '</div>';
-    boardDraggable(card, e);
-    bayEl.appendChild(card);
+    return { e, html, cls: 'card' + (held ? ' hold' : over ? ' over' : near ? ' near' : ''), pulse: over && !held,
+             time: fmtElapsed(elapsed), pct };
   });
-
-  qEl.innerHTML = wait.length ? '' : '<div class="empty">No vehicles awaiting parts.</div>';
-  wait.forEach(e => {
-    const row = document.createElement('div');
-    row.className = 'qrow' + (e.hold ? ' q-hold' : '');
-    row.innerHTML =
+  const waitItems = wait.map(e => ({ e, cls: 'qrow' + (e.hold ? ' q-hold' : ''), html:
       '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span>' +
         (e.hold && e.hold !== 'Awaiting parts' ? '<span class="status hold-tag">' + esc(holdLabel(e)) + '</span>' : '') + '</div>' +
       (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + endUserHtml(e) + workHtml(e) + '</div>' +
       '<div class="q-side"><span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span>' +
-        '<div class="datein">Date in<b>' + esc(fmtDate(entryDateIn(e))) + '</b></div></div>';
-    boardDraggable(row, e);
-    qEl.appendChild(row);
-  });
-
-  const sched = entries.filter(e => e.status === 'sched').sort((a, b) => schedKey(a) < schedKey(b) ? -1 : 1);
-  const sEl = $('schedList');
-  sEl.innerHTML = sched.length ? '' : '<div class="empty">Nothing scheduled.</div>';
-  sched.forEach(e => {
+        '<div class="datein">Date in<b>' + esc(fmtDate(entryDateIn(e))) + '</b></div></div>' }));
+  const schedItems = sched.map(e => {
     const w = schedWhen(e);
-    const row = document.createElement('div');
-    row.className = 'qrow' + (w.cls ? ' q-' + w.cls : '');
-    row.innerHTML =
+    return { e, cls: 'qrow' + (w.cls ? ' q-' + w.cls : ''), html:
       '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span></div>' +
       (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + endUserHtml(e) + workHtml(e) + '</div>' +
       '<div class="q-side"><div class="sched-when ' + w.cls + '">' + esc(w.text) + '</div>' +
-        '<span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span></div>';
-    boardDraggable(row, e);
-    sEl.appendChild(row);
+        '<span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span></div>' };
   });
 
   updateAlerts(overNow);
@@ -1189,12 +1173,49 @@ function renderBoard(){
   const nHold = entries.filter(e => e.hold && e.status !== 'sched').length;
   const nSchedToday = sched.filter(e => e.schedDate === today).length;
   const stat = (cls, n, label) => '<span class="stat ' + cls + '"><span class="sd"></span><b>' + n + '</b>' + label + '</span>';
-  $('counts').innerHTML = stat('s-bay', bay.length, 'in the bay') + stat('s-wait', wait.length, 'awaiting parts') +
+  const counts = stat('s-bay', bay.length, 'in the bay') + stat('s-wait', wait.length, 'awaiting parts') +
     (nHold ? stat('s-hold', nHold, 'on hold') : '') + stat('s-sched', nSchedToday, 'scheduled today');
-  $('bayCount').textContent = bay.length;
-  $('queueCount').textContent = wait.length;
-  $('schedCount').textContent = sched.length;
-  tvPaginate();
+
+  const sig = it => it.e.id + '|' + it.cls + '|' + it.html;
+  const key = [isTV(), isUnlocked(), tvPageTick, counts].concat(bayItems.map(sig), ['W'], waitItems.map(sig), ['S'], schedItems.map(sig)).join('\u0001');
+  if (force || key !== boardKey) {
+    boardKey = key;
+    const fill = (el, items, emptyText) => {
+      el.innerHTML = items.length ? '' : '<div class="empty">' + emptyText + '</div>';
+      return items.map(it => {
+        const node = document.createElement('div');
+        node.className = it.cls;
+        node.innerHTML = it.html;
+        // Keep the pulse in step across cards.
+        if (it.pulse) node.style.animationDelay = -(now % 1600) + 'ms';
+        boardDraggable(node, it.e);
+        el.appendChild(node);
+        return node;
+      });
+    };
+    const cards = fill($('bayGrid'), bayItems, 'No vehicles in the bay right now.');
+    boardDyn = cards.map(c => ({ time: c.querySelector('.elapsed'), bar: c.querySelector('.bar-fill'), t: '', p: -1 }));
+    fill($('queueList'), waitItems, 'No vehicles awaiting parts.');
+    fill($('schedList'), schedItems, 'Nothing scheduled.');
+    $('counts').innerHTML = counts;
+    $('bayCount').textContent = bay.length;
+    $('queueCount').textContent = wait.length;
+    $('schedCount').textContent = sched.length;
+    setDyn(bayItems);
+    tvPaginate();
+  } else if (!covered) {
+    setDyn(bayItems);
+  }
+}
+// Update only the ticking parts of each bay card (skip anything that didn't change).
+function setDyn(items){
+  items.forEach((it, i) => {
+    const d = boardDyn[i];
+    if (!d) return;
+    if (d.t !== it.time) { d.time.textContent = it.time; d.t = it.time; }
+    const p = Math.round(it.pct * 10) / 10;
+    if (d.p !== p) { d.bar.style.width = p + '%'; d.p = p; }
+  });
 }
 
 /* ---------- TV pages: show what fits, then flip to the next page every 15 seconds ---------- */
@@ -1229,7 +1250,7 @@ function tvPaginate(){
   [['bayGrid', 'bayPage'], ['queueList', 'queuePage'], ['schedList', 'schedPage']].forEach(([c, ind]) => paginate($(c), $(ind)));
 }
 setInterval(() => { if (isTV()) { tvPageTick++; renderBoard(); } }, TV_PAGE_MS);
-window.addEventListener('resize', () => { if (isTV()) renderBoard(); });
+window.addEventListener('resize', () => { if (isTV()) renderBoard(true); });
 
 /* ---------- What the TV shows (meta/settings.tv; true = show) ---------- */
 const TV_OPTS = [
@@ -1291,7 +1312,8 @@ let audioCtx = null;
 function updateAlerts(overNow){
   const bar = $('alertBar');
   if (overNow.length) {
-    bar.innerHTML = ICON.alert + ' ' + esc('Over time limit: ' + overNow.map(e => vTitle(e) + (e.bay ? ' (' + e.bay + ')' : '')).join('  ·  '));
+    const html = ICON.alert + ' ' + esc('Over time limit: ' + overNow.map(e => vTitle(e) + (e.bay ? ' (' + e.bay + ')' : '')).join('  ·  '));
+    if (bar.dataset.html !== html) { bar.innerHTML = html; bar.dataset.html = html; }
     bar.classList.add('show');
   } else {
     bar.classList.remove('show');
