@@ -61,13 +61,14 @@ In the Staff panel, each vehicle has an amber **Move to…** dropdown. Pick **In
 ## Can't finish today? Pause it
 1. At the end of the day, click **Staff** and find the vehicle in **In bay**.
 2. Click **⏸ Pause**. It asks which day work will continue and suggests the next working day (Friday → Monday). Click **OK**.
-3. The timer stops, and the board shows **"Paused · continues tomorrow"** (or the day you chose). The vehicle stays in its bay.
+3. The timer stops, and the vehicle moves from **In the bay now** to the **Paused & on hold** area on the right, with **"Paused · continues tomorrow"** (or the day you chose) and the time worked so far. It keeps its bay. This way **In the bay now** only shows the vehicles being repaired right now.
 4. Next morning, click **▶ Resume**. The timer **starts again from 0** with the full time limit for the new day, and the card shows "day 2".
+   On a computer you can also drag: drag a card from **In the bay now** onto **Paused & on hold** to pause it, and drag it back to resume.
 5. When you click **Done**, the Finished page keeps the **total** working time over all days, and the result shows whether any day went over the limit (for example "Within limit · 2 days").
 
 ## On hold (Awaiting parts, Under observation, …)
 1. In the Staff panel, open the blue **Put on hold…** dropdown on the vehicle and pick **Awaiting parts**, **Under observation**, **At outside shop**, or **Other reason…**.
-2. On the board the card turns blue with the reason, and the timer **pauses**, so time on hold doesn't count against the time limit.
+2. On the board the vehicle moves to the **Paused & on hold** area with the reason, and the timer **pauses**, so time on hold doesn't count against the time limit.
 3. When work starts again, open the same dropdown and pick **Resume work**.
 4. On the Finished page, the time in bay is the working time, with the time on hold shown underneath.
 
