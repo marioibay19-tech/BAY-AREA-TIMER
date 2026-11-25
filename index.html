@@ -238,6 +238,8 @@
   .q-side{flex:none; text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px;}
   .qrow .datein{color:var(--muted); font-size:12px; white-space:nowrap;}
   .qrow .datein b{display:block; color:var(--text); font-size:13px; font-weight:600;}
+  .qrow .worked{color:var(--muted); font-size:12px; white-space:nowrap;}
+  .qrow .worked b{display:block; color:var(--blue); font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;}
   .qrow .sched-when{font-size:13px; font-weight:700; white-space:nowrap; padding:3px 9px; border-radius:var(--r-sm); background:var(--surface2);}
   .qrow .sched-when.today{color:var(--amber); background:var(--amber-dim);}
   .qrow .sched-when.late{color:var(--red); background:var(--red-dim);}
@@ -433,10 +435,12 @@
   @media (max-width:979px){ body.tv .layout{grid-template-rows:minmax(0,1fr) minmax(0,1fr);} }
   body.tv .panel{display:flex; flex-direction:column; min-height:0; overflow:hidden;}
   body.tv #bayGrid{flex:1; min-height:0; overflow:hidden; align-content:start; position:relative;}
-  body.tv #queueZone, body.tv #schedZone{min-height:0; display:flex; flex-direction:column;}
+  body.tv #queueZone, body.tv #pauseZone, body.tv #schedZone{min-height:0; display:flex; flex-direction:column;}
   body.tv #queueZone{flex:3 1 0;}
+  body.tv #pauseZone{flex:2 1 0;}
+  body.tv #pauseZone.is-empty{display:none;}   /* the TV only shows the Paused area when something is paused */
   body.tv #schedZone{flex:2 1 0;}
-  body.tv #queueList, body.tv #schedList{flex:1; min-height:0; overflow:hidden; position:relative;}
+  body.tv #queueList, body.tv #pauseList, body.tv #schedList{flex:1; min-height:0; overflow:hidden; position:relative;}
   /* What the TV shows (set in the Staff panel) */
   body.tv.tvh-who .enduser,
   body.tv.tvh-mech .mechanic-block, body.tv.tvh-pno .pno, body.tv.tvh-work .w-work,
@@ -501,6 +505,10 @@
     <div class="drop-zone" id="queueZone">
       <div class="section-title">Awaiting parts <span class="sec-count" id="queueCount">0</span><span class="page-ind" id="queuePage"></span></div>
       <div class="queue-list" id="queueList"></div>
+    </div>
+    <div class="drop-zone" id="pauseZone">
+      <div class="section-title next">Paused &amp; on hold <span class="sec-count" id="pauseCount">0</span><span class="page-ind" id="pausePage"></span></div>
+      <div class="queue-list" id="pauseList"></div>
     </div>
     <div class="drop-zone" id="schedZone">
       <div class="section-title next">Scheduled <span class="sec-count" id="schedCount">0</span><span class="page-ind" id="schedPage"></span></div>
@@ -1092,7 +1100,7 @@ function endBoardDrag(){
   document.querySelectorAll('.drop-zone.dragover').forEach(z => z.classList.remove('dragover'));
   renderBoard();
 }
-[['bayZone', 'bay'], ['queueZone', 'wait'], ['schedZone', 'sched']].forEach(([id, target]) => {
+[['bayZone', 'bay'], ['queueZone', 'wait'], ['pauseZone', 'pause'], ['schedZone', 'sched']].forEach(([id, target]) => {
   const z = $(id);
   z.addEventListener('dragover', ev => { if (!boardDragging) return; ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; z.classList.add('dragover'); });
   z.addEventListener('dragleave', ev => { if (!z.contains(ev.relatedTarget)) z.classList.remove('dragover'); });
@@ -1102,18 +1110,34 @@ function endBoardDrag(){
     const id = parseFloat(ev.dataTransfer.getData('text/plain'));
     const e = entries.find(x => x.id === id);
     endBoardDrag();
-    if (e) moveTo(e, target);
+    if (e) dropOn(e, target);
   });
 });
+/* The Paused area holds in-bay vehicles that are paused or on hold (status stays 'bay').
+   Dropping a working bay vehicle there pauses it; dropping a paused one back on the bay resumes it. */
+function dropOn(e, target){
+  if (target === 'pause') {
+    if (e.status !== 'bay') { alert(vTitle(e) + ' is not in the bay. Move it to In the bay first, then pause it.'); return; }
+    if (!e.hold) pauseJob(e);
+    return;
+  }
+  if (target === 'bay' && e.status === 'bay' && e.hold) {
+    if (e.hold === PAUSED) resumeJob(e); else setHold(e, '');
+    return;
+  }
+  moveTo(e, target);
+}
 
 function renderBoard(){
   if (boardDragging) return;
   const now = nowMs();
-  const bay = entries.filter(e => e.status === 'bay');
+  const bayAll = entries.filter(e => e.status === 'bay');
+  const bay = bayAll.filter(e => !e.hold);            // being repaired now
+  const paused = bayAll.filter(e => e.hold);          // paused or on hold: shown in the Paused area
   const wait = entries.filter(e => e.status === 'wait');
   const bayEl = $('bayGrid'), qEl = $('queueList');
 
-  bayEl.innerHTML = bay.length ? '' : '<div class="empty">No vehicles in the bay right now.</div>';
+  bayEl.innerHTML = bay.length ? '' : '<div class="empty">No vehicles being repaired right now.</div>';
   const overNow = [];
   bay.forEach(e => {
     const elapsed = workedMs(e, now);
@@ -1167,6 +1191,25 @@ function renderBoard(){
     qEl.appendChild(row);
   });
 
+  const pEl = $('pauseList');
+  pEl.innerHTML = paused.length ? '' : '<div class="empty">No paused jobs.</div>';
+  $('pauseZone').classList.toggle('is-empty', !paused.length);
+  paused.forEach(e => {
+    const today = workedMs(e, now), worked = today + (e.priorMs || 0);   // worked so far, all days
+    if (today > e.limitHrs * 3600000) overNow.push(e);
+    const row = document.createElement('div');
+    row.className = 'qrow q-hold';
+    row.innerHTML =
+      '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span>' +
+        '<span class="status hold-tag">' + esc(holdLabel(e)) + '</span>' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') + '</div>' +
+      (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + endUserHtml(e) + workHtml(e) + '</div>' +
+      '<div class="q-side"><span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span>' +
+        '<div class="worked">Worked' + (e.workDay > 1 ? ' · ' + e.workDay + ' days' : '') + '<b>' + esc(fmtDuration(worked)) + '</b></div></div>';
+    boardDraggable(row, e);
+    if (row.draggable) row.title = 'Drag to In the bay now to resume work';
+    pEl.appendChild(row);
+  });
+
   const sched = entries.filter(e => e.status === 'sched').sort((a, b) => schedKey(a) < schedKey(b) ? -1 : 1);
   const sEl = $('schedList');
   sEl.innerHTML = sched.length ? '' : '<div class="empty">Nothing scheduled.</div>';
@@ -1189,9 +1232,10 @@ function renderBoard(){
   const nHold = entries.filter(e => e.hold && e.status !== 'sched').length;
   const nSchedToday = sched.filter(e => e.schedDate === today).length;
   const stat = (cls, n, label) => '<span class="stat ' + cls + '"><span class="sd"></span><b>' + n + '</b>' + label + '</span>';
-  $('counts').innerHTML = stat('s-bay', bay.length, 'in the bay') + stat('s-wait', wait.length, 'awaiting parts') +
-    (nHold ? stat('s-hold', nHold, 'on hold') : '') + stat('s-sched', nSchedToday, 'scheduled today');
+  $('counts').innerHTML = stat('s-bay', bay.length, 'being repaired') + stat('s-wait', wait.length, 'awaiting parts') +
+    (nHold ? stat('s-hold', nHold, 'paused / on hold') : '') + stat('s-sched', nSchedToday, 'scheduled today');
   $('bayCount').textContent = bay.length;
+  $('pauseCount').textContent = paused.length;
   $('queueCount').textContent = wait.length;
   $('schedCount').textContent = sched.length;
   tvPaginate();
@@ -1226,7 +1270,7 @@ function paginate(container, indicator){
     '<span class="page-dots">' + pages.map((_, i) => '<i class="' + (i === n ? 'on' : '') + '"></i>').join('') + '</span>';
 }
 function tvPaginate(){
-  [['bayGrid', 'bayPage'], ['queueList', 'queuePage'], ['schedList', 'schedPage']].forEach(([c, ind]) => paginate($(c), $(ind)));
+  [['bayGrid', 'bayPage'], ['queueList', 'queuePage'], ['pauseList', 'pausePage'], ['schedList', 'schedPage']].forEach(([c, ind]) => paginate($(c), $(ind)));
 }
 setInterval(() => { if (isTV()) { tvPageTick++; renderBoard(); } }, TV_PAGE_MS);
 window.addEventListener('resize', () => { if (isTV()) renderBoard(); });
