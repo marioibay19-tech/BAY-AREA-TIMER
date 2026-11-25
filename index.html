@@ -238,11 +238,13 @@
   .q-side{flex:none; text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px;}
   .qrow .datein{color:var(--muted); font-size:12px; white-space:nowrap;}
   .qrow .datein b{display:block; color:var(--text); font-size:13px; font-weight:600;}
+  .q-chips{display:flex; gap:6px; align-items:center;}
   .qrow .worked{color:var(--muted); font-size:12px; white-space:nowrap;}
-  .qrow .worked b{display:block; color:var(--blue); font-size:13px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .qrow .worked b{color:var(--blue); font-weight:700; font-variant-numeric:tabular-nums;}
   .qrow .sched-when{font-size:13px; font-weight:700; white-space:nowrap; padding:3px 9px; border-radius:var(--r-sm); background:var(--surface2);}
   .qrow .sched-when.today{color:var(--amber); background:var(--amber-dim);}
   .qrow .sched-when.late{color:var(--red); background:var(--red-dim);}
+  .qrow .sched-when.held{color:var(--blue); background:var(--blue-dim);}
 
   /* ---------- Buttons & form controls ---------- */
   input,select,textarea{
@@ -421,7 +423,9 @@
   body.tv .queue-list{gap:clamp(8px,.6vw,12px);}
   body.tv .qrow .plate{font-size:clamp(24px,1.8vw,38px);}
   body.tv .qrow .work .wtext{-webkit-line-clamp:1;}
-  body.tv .vdesc, body.tv .work, body.tv .qrow .datein, body.tv .qrow .datein b, body.tv .qrow .sched-when, body.tv .empty,
+  body.tv .queue.tight1 .qrow .work, body.tv .queue.tight2 .qrow .work, body.tv .queue.tight2 .qrow .enduser{display:none;}
+  body.tv .qrow .vdesc{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}   /* rows keep the same height */
+  body.tv .vdesc, body.tv .work, body.tv .qrow .datein, body.tv .qrow .datein b, body.tv .qrow .worked, body.tv .qrow .worked b, body.tv .qrow .sched-when, body.tv .empty,
   body.tv .foot-meta, body.tv .limit{font-size:clamp(14px,1.05vw,21px);}
   body.tv .enduser{font-size:clamp(13px,1vw,20px);}
   body.tv .repair, body.tv .status, body.tv .mech-chip, body.tv .bay-tag, body.tv .work .wlabel{font-size:clamp(12px,.9vw,18px);}
@@ -1200,11 +1204,13 @@ function renderBoard(){
     const row = document.createElement('div');
     row.className = 'qrow q-hold';
     row.innerHTML =
-      '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span>' +
-        '<span class="status hold-tag">' + esc(holdLabel(e)) + '</span>' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') + '</div>' +
+      '<div class="q-main"><div class="q-top"><span class="plate">' + esc(vTitle(e)) + '</span></div>' +
       (e.desc ? '<div class="vdesc">' + esc(e.desc) + '</div>' : '') + endUserHtml(e) + workHtml(e) + '</div>' +
-      '<div class="q-side"><span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span>' +
-        '<div class="worked">Worked' + (e.workDay > 1 ? ' · ' + e.workDay + ' days' : '') + '<b>' + esc(fmtDuration(worked)) + '</b></div></div>';
+      // Same shape as Scheduled rows: status badge on top, then the chips, then the time worked.
+      '<div class="q-side"><div class="sched-when held">' + esc(holdLabel(e)) + '</div>' +
+        '<div class="q-chips">' + (e.bay ? '<span class="bay-tag">' + esc(e.bay) + '</span>' : '') +
+        '<span class="repair" title="' + esc(e.repair) + '">' + esc(shortRepair(e.repair)) + '</span></div>' +
+        '<div class="worked">Worked ' + (e.workDay > 1 ? e.workDay + ' days · ' : '') + '<b>' + esc(fmtDuration(worked)) + '</b></div></div>';
     boardDraggable(row, e);
     if (row.draggable) row.title = 'Drag to In the bay now to resume work';
     pEl.appendChild(row);
@@ -1269,7 +1275,46 @@ function paginate(container, indicator){
   indicator.innerHTML = 'Page ' + (n + 1) + ' of ' + pages.length +
     '<span class="page-dots">' + pages.map((_, i) => '<i class="' + (i === n ? 'on' : '') + '"></i>').join('') + '</span>';
 }
+/* TV: share the right column's height between Awaiting parts, Paused and Scheduled by what each list
+   needs, so a short list doesn't leave a big gap and every list fits at least one whole row (no rows cut off). */
+function tvFitColumn(){
+  const col = document.querySelector('.panel.queue');
+  col.classList.remove('tight1', 'tight2');
+  if (!isTV()) { fitColumn(col); return; }
+  // On a small screen, rows get more compact (no work line, then no end-user) until one row of each list fits.
+  for (const level of ['', 'tight1', 'tight2']) {
+    if (level) col.classList.add(level);
+    if (fitColumn(col)) return;
+  }
+}
+function fitColumn(col){
+  const zones = ['queueZone', 'pauseZone', 'schedZone'].map(id => $(id));
+  zones.forEach(z => { const l = z.querySelector('.queue-list'); z.style.flex = ''; l.style.flex = ''; l.style.height = ''; });
+  if (!isTV()) return true;
+  const shown = zones.filter(z => getComputedStyle(z).display !== 'none');
+  const gap = parseFloat(getComputedStyle(col).rowGap) || 0;
+  let avail = col.clientHeight - gap * (shown.length - 1);
+  const info = shown.map(z => {
+    const l = z.querySelector('.queue-list'), items = Array.from(l.children);
+    items.forEach(it => { it.style.display = ''; });
+    const lgap = parseFloat(getComputedStyle(l).rowGap) || 0;
+    const hs = items.map(it => it.offsetHeight);
+    avail -= z.offsetHeight - l.offsetHeight;                       // the section title
+    return { z, l, need: hs.reduce((a, b) => a + b, 0) + lgap * Math.max(0, hs.length - 1), min: Math.max(0, ...hs) };
+  });
+  info.forEach(x => { x.h = x.min; avail -= x.min; });
+  const fits = avail >= 0;
+  // Hand out the rest, smallest need first, so each list grows up to what it needs.
+  let left = info.filter(x => x.need > x.h).sort((a, b) => (a.need - a.h) - (b.need - b.h));
+  while (left.length && avail > 0) {
+    const share = avail / left.length, x = left.shift(), add = Math.min(share, x.need - x.h);
+    x.h += add; avail -= add;
+  }
+  info.forEach(x => { x.z.style.flex = 'none'; x.l.style.flex = 'none'; x.l.style.height = Math.floor(x.h) + 'px'; });
+  return fits;
+}
 function tvPaginate(){
+  tvFitColumn();
   [['bayGrid', 'bayPage'], ['queueList', 'queuePage'], ['pauseList', 'pausePage'], ['schedList', 'schedPage']].forEach(([c, ind]) => paginate($(c), $(ind)));
 }
 setInterval(() => { if (isTV()) { tvPageTick++; renderBoard(); } }, TV_PAGE_MS);
